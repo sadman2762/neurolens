@@ -62,4 +62,12 @@ class MemoryRepositoryImpl implements MemoryRepository {
           .toList(),
     );
   }
+
+  @override
+  Future<void> updateMemoryContent({
+    required String id,
+    required String content,
+  }) {
+    return _database.updateMemoryContent(id: id, content: content);
+  }
 }

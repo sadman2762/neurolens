@@ -8,4 +8,9 @@ abstract class MemoryRepository {
   Future<int> getMemoryCount();
 
   Stream<List<Memory>> watchAllMemories();
+
+  Future<void> updateMemoryContent({
+  required String id,
+  required String content,
+});
 }

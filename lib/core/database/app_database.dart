@@ -60,4 +60,13 @@ class AppDatabase extends _$AppDatabase {
 
     return row.read(countExpression) ?? 0;
   }
+
+  Future<void> updateMemoryContent({
+    required String id,
+    required String content,
+  }) {
+    return (update(memories)..where((row) => row.id.equals(id))).write(
+      MemoriesCompanion(content: Value(content)),
+    );
+  }
 }

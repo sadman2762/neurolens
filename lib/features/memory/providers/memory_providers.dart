@@ -4,6 +4,8 @@ import 'package:neurolens/features/memory/data/gallery_sync_service.dart';
 import 'package:neurolens/features/memory/data/repositories/gallery_repository_impl.dart';
 import 'package:neurolens/features/memory/data/repositories/memory_repository_impl.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
+import 'package:neurolens/features/memory/data/ocr_processing_service.dart';
+import 'package:neurolens/features/memory/data/ocr_service.dart';
 
 final galleryRepositoryProvider = Provider<GalleryRepositoryImpl>((ref) {
   return GalleryRepositoryImpl();
@@ -50,4 +52,22 @@ final filteredMemoryTimelineProvider =
       return title.contains(query) || content.contains(query);
     }).toList();
   });
+});
+
+final ocrServiceProvider = Provider<OcrService>((ref) {
+  final service = OcrService();
+
+  ref.onDispose(service.dispose);
+
+  return service;
+});
+
+final ocrProcessingServiceProvider = Provider<OcrProcessingService>((ref) {
+  final ocrService = ref.watch(ocrServiceProvider);
+  final memoryRepository = ref.watch(memoryRepositoryProvider);
+
+  return OcrProcessingService(
+    ocrService: ocrService,
+    memoryRepository: memoryRepository,
+  );
 });
