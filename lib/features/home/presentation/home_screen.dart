@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/data/gallery_permission_service.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
 import 'package:neurolens/features/memory/presentation/memory_detail_screen.dart';
+import 'package:neurolens/features/memory/presentation/text_memory_detail_screen.dart';
 import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 
@@ -122,23 +123,37 @@ class HomeScreen extends ConsumerWidget {
     BuildContext context,
     String id,
     String title,
+    String? content,
     String type,
+    DateTime createdAt,
   ) {
-    if (type != 'image') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Text memory details are coming next.'),
+    if (type == 'image') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => MemoryDetailScreen(
+            assetId: id,
+            title: title,
+          ),
         ),
       );
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => MemoryDetailScreen(
-          assetId: id,
-          title: title,
+    if (type == 'note') {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => TextMemoryDetailScreen(
+            content: content ?? title,
+            createdAt: createdAt,
+          ),
         ),
+      );
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$type memory details are not available yet.'),
       ),
     );
   }
@@ -235,7 +250,9 @@ class HomeScreen extends ConsumerWidget {
                               context,
                               memory.id,
                               memory.title,
+                              memory.content,
                               memory.type,
+                              memory.createdAt,
                             );
                           },
                         );

@@ -11,8 +11,7 @@ class AddTextMemoryScreen extends ConsumerStatefulWidget {
       _AddTextMemoryScreenState();
 }
 
-class _AddTextMemoryScreenState
-    extends ConsumerState<AddTextMemoryScreen> {
+class _AddTextMemoryScreenState extends ConsumerState<AddTextMemoryScreen> {
   final TextEditingController _controller = TextEditingController();
 
   @override
@@ -26,9 +25,7 @@ class _AddTextMemoryScreenState
 
     if (text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter some text first.'),
-        ),
+        const SnackBar(content: Text('Please enter some text first.')),
       );
       return;
     }
@@ -37,6 +34,7 @@ class _AddTextMemoryScreenState
       id: 'note_${DateTime.now().microsecondsSinceEpoch}',
       type: 'note',
       title: text.length > 40 ? '${text.substring(0, 40)}...' : text,
+      content: text,
       originalPath: null,
       createdAt: DateTime.now(),
     );
@@ -55,10 +53,7 @@ class _AddTextMemoryScreenState
       appBar: AppBar(
         title: const Text('New text memory'),
         actions: [
-          TextButton(
-            onPressed: _saveMemory,
-            child: const Text('Save'),
-          ),
+          TextButton(onPressed: _saveMemory, child: const Text('Save')),
         ],
       ),
       body: Padding(

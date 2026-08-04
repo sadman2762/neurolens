@@ -16,10 +16,10 @@ class MemoryGridItem extends StatelessWidget {
   Widget build(BuildContext context) {
     if (memory.type == 'image') {
       return InkWell(
-        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           child: MemoryThumbnail(
             assetId: memory.id,
           ),
@@ -28,25 +28,32 @@ class MemoryGridItem extends StatelessWidget {
     }
 
     return InkWell(
-      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.note_alt_outlined),
-            const Spacer(),
-            Text(
-              memory.title,
-              maxLines: 4,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
+            const Icon(
+              Icons.note_alt_outlined,
+              size: 28,
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: Text(
+                memory.title,
+                maxLines: 5,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.25,
+                ),
               ),
             ),
           ],

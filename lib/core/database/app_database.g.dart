@@ -35,6 +35,17 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _contentMeta = const VerificationMeta(
+    'content',
+  );
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+    'content',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _originalPathMeta = const VerificationMeta(
     'originalPath',
   );
@@ -62,6 +73,7 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     id,
     type,
     title,
+    content,
     originalPath,
     createdAt,
   ];
@@ -97,6 +109,12 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
       );
     } else if (isInserting) {
       context.missing(_titleMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(
+        _contentMeta,
+        content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
     }
     if (data.containsKey('original_path')) {
       context.handle(
@@ -136,6 +154,10 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         DriftSqlType.string,
         data['${effectivePrefix}title'],
       )!,
+      content: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content'],
+      ),
       originalPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}original_path'],
@@ -157,12 +179,14 @@ class Memory extends DataClass implements Insertable<Memory> {
   final String id;
   final String type;
   final String title;
+  final String? content;
   final String? originalPath;
   final DateTime createdAt;
   const Memory({
     required this.id,
     required this.type,
     required this.title,
+    this.content,
     this.originalPath,
     required this.createdAt,
   });
@@ -172,6 +196,9 @@ class Memory extends DataClass implements Insertable<Memory> {
     map['id'] = Variable<String>(id);
     map['type'] = Variable<String>(type);
     map['title'] = Variable<String>(title);
+    if (!nullToAbsent || content != null) {
+      map['content'] = Variable<String>(content);
+    }
     if (!nullToAbsent || originalPath != null) {
       map['original_path'] = Variable<String>(originalPath);
     }
@@ -184,6 +211,9 @@ class Memory extends DataClass implements Insertable<Memory> {
       id: Value(id),
       type: Value(type),
       title: Value(title),
+      content: content == null && nullToAbsent
+          ? const Value.absent()
+          : Value(content),
       originalPath: originalPath == null && nullToAbsent
           ? const Value.absent()
           : Value(originalPath),
@@ -200,6 +230,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       id: serializer.fromJson<String>(json['id']),
       type: serializer.fromJson<String>(json['type']),
       title: serializer.fromJson<String>(json['title']),
+      content: serializer.fromJson<String?>(json['content']),
       originalPath: serializer.fromJson<String?>(json['originalPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -211,6 +242,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       'id': serializer.toJson<String>(id),
       'type': serializer.toJson<String>(type),
       'title': serializer.toJson<String>(title),
+      'content': serializer.toJson<String?>(content),
       'originalPath': serializer.toJson<String?>(originalPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -220,12 +252,14 @@ class Memory extends DataClass implements Insertable<Memory> {
     String? id,
     String? type,
     String? title,
+    Value<String?> content = const Value.absent(),
     Value<String?> originalPath = const Value.absent(),
     DateTime? createdAt,
   }) => Memory(
     id: id ?? this.id,
     type: type ?? this.type,
     title: title ?? this.title,
+    content: content.present ? content.value : this.content,
     originalPath: originalPath.present ? originalPath.value : this.originalPath,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -234,6 +268,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       id: data.id.present ? data.id.value : this.id,
       type: data.type.present ? data.type.value : this.type,
       title: data.title.present ? data.title.value : this.title,
+      content: data.content.present ? data.content.value : this.content,
       originalPath: data.originalPath.present
           ? data.originalPath.value
           : this.originalPath,
@@ -247,6 +282,7 @@ class Memory extends DataClass implements Insertable<Memory> {
           ..write('id: $id, ')
           ..write('type: $type, ')
           ..write('title: $title, ')
+          ..write('content: $content, ')
           ..write('originalPath: $originalPath, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -254,7 +290,8 @@ class Memory extends DataClass implements Insertable<Memory> {
   }
 
   @override
-  int get hashCode => Object.hash(id, type, title, originalPath, createdAt);
+  int get hashCode =>
+      Object.hash(id, type, title, content, originalPath, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -262,6 +299,7 @@ class Memory extends DataClass implements Insertable<Memory> {
           other.id == this.id &&
           other.type == this.type &&
           other.title == this.title &&
+          other.content == this.content &&
           other.originalPath == this.originalPath &&
           other.createdAt == this.createdAt);
 }
@@ -270,6 +308,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
   final Value<String> id;
   final Value<String> type;
   final Value<String> title;
+  final Value<String?> content;
   final Value<String?> originalPath;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -277,6 +316,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     this.id = const Value.absent(),
     this.type = const Value.absent(),
     this.title = const Value.absent(),
+    this.content = const Value.absent(),
     this.originalPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -285,6 +325,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     required String id,
     required String type,
     required String title,
+    this.content = const Value.absent(),
     this.originalPath = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
@@ -296,6 +337,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Expression<String>? id,
     Expression<String>? type,
     Expression<String>? title,
+    Expression<String>? content,
     Expression<String>? originalPath,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -304,6 +346,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       if (id != null) 'id': id,
       if (type != null) 'type': type,
       if (title != null) 'title': title,
+      if (content != null) 'content': content,
       if (originalPath != null) 'original_path': originalPath,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -314,6 +357,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Value<String>? id,
     Value<String>? type,
     Value<String>? title,
+    Value<String?>? content,
     Value<String?>? originalPath,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -322,6 +366,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       id: id ?? this.id,
       type: type ?? this.type,
       title: title ?? this.title,
+      content: content ?? this.content,
       originalPath: originalPath ?? this.originalPath,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -339,6 +384,9 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
     }
     if (originalPath.present) {
       map['original_path'] = Variable<String>(originalPath.value);
@@ -358,6 +406,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
           ..write('id: $id, ')
           ..write('type: $type, ')
           ..write('title: $title, ')
+          ..write('content: $content, ')
           ..write('originalPath: $originalPath, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -382,6 +431,7 @@ typedef $$MemoriesTableCreateCompanionBuilder =
       required String id,
       required String type,
       required String title,
+      Value<String?> content,
       Value<String?> originalPath,
       required DateTime createdAt,
       Value<int> rowid,
@@ -391,6 +441,7 @@ typedef $$MemoriesTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> type,
       Value<String> title,
+      Value<String?> content,
       Value<String?> originalPath,
       Value<DateTime> createdAt,
       Value<int> rowid,
@@ -417,6 +468,11 @@ class $$MemoriesTableFilterComposer
 
   ColumnFilters<String> get title => $composableBuilder(
     column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get content => $composableBuilder(
+    column: $table.content,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -455,6 +511,11 @@ class $$MemoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get content => $composableBuilder(
+    column: $table.content,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get originalPath => $composableBuilder(
     column: $table.originalPath,
     builder: (column) => ColumnOrderings(column),
@@ -483,6 +544,9 @@ class $$MemoriesTableAnnotationComposer
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
 
   GeneratedColumn<String> get originalPath => $composableBuilder(
     column: $table.originalPath,
@@ -524,6 +588,7 @@ class $$MemoriesTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> type = const Value.absent(),
                 Value<String> title = const Value.absent(),
+                Value<String?> content = const Value.absent(),
                 Value<String?> originalPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -531,6 +596,7 @@ class $$MemoriesTableTableManager
                 id: id,
                 type: type,
                 title: title,
+                content: content,
                 originalPath: originalPath,
                 createdAt: createdAt,
                 rowid: rowid,
@@ -540,6 +606,7 @@ class $$MemoriesTableTableManager
                 required String id,
                 required String type,
                 required String title,
+                Value<String?> content = const Value.absent(),
                 Value<String?> originalPath = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
@@ -547,6 +614,7 @@ class $$MemoriesTableTableManager
                 id: id,
                 type: type,
                 title: title,
+                content: content,
                 originalPath: originalPath,
                 createdAt: createdAt,
                 rowid: rowid,

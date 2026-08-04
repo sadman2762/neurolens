@@ -10,6 +10,8 @@ class Memories extends Table {
 
   TextColumn get title => text()();
 
+  TextColumn get content => text().nullable()();
+
   TextColumn get originalPath => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime()();
@@ -23,7 +25,21 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'neurolens'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onCreate: (migrator) async {
+        await migrator.createAll();
+      },
+      onUpgrade: (migrator, from, to) async {
+        if (from < 2) {
+          await migrator.addColumn(memories, memories.content);
+        }
+      },
+    );
+  }
 
   Future<void> insertMemory(MemoriesCompanion memory) {
     return into(memories).insertOnConflictUpdate(memory);
