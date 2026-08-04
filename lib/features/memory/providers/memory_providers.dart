@@ -6,6 +6,7 @@ import 'package:neurolens/features/memory/data/repositories/memory_repository_im
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/data/ocr_processing_service.dart';
 import 'package:neurolens/features/memory/data/ocr_service.dart';
+import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 
 final galleryRepositoryProvider = Provider<GalleryRepositoryImpl>((ref) {
   return GalleryRepositoryImpl();
@@ -21,9 +22,12 @@ final gallerySyncServiceProvider = Provider<GallerySyncService>((ref) {
   final galleryRepository = ref.watch(galleryRepositoryProvider);
   final memoryRepository = ref.watch(memoryRepositoryProvider);
 
+  final ocrProcessingService = ref.watch(ocrProcessingServiceProvider);
+
   return GallerySyncService(
     galleryRepository: galleryRepository,
     memoryRepository: memoryRepository,
+    ocrProcessingService: ocrProcessingService,
   );
 });
 
@@ -35,21 +39,27 @@ final memoryTimelineProvider = StreamProvider<List<Memory>>((ref) {
 
 final memorySearchQueryProvider = StateProvider<String>((ref) => '');
 
-final filteredMemoryTimelineProvider =
-    Provider<AsyncValue<List<Memory>>>((ref) {
+final filteredMemoryTimelineProvider = Provider<AsyncValue<List<Memory>>>((
+  ref,
+) {
   final timeline = ref.watch(memoryTimelineProvider);
   final query = ref.watch(memorySearchQueryProvider).trim().toLowerCase();
+  final filter = ref.watch(memoryFilterProvider);
 
   return timeline.whenData((memories) {
-    if (query.isEmpty) {
-      return memories;
-    }
-
     return memories.where((memory) {
-      final title = memory.title.toLowerCase();
-      final content = memory.content?.toLowerCase() ?? '';
+      final matchesSearch =
+          query.isEmpty ||
+          memory.title.toLowerCase().contains(query) ||
+          (memory.content?.toLowerCase().contains(query) ?? false);
 
-      return title.contains(query) || content.contains(query);
+      final matchesFilter = switch (filter) {
+        MemoryFilter.all => true,
+        MemoryFilter.images => memory.type == 'image',
+        MemoryFilter.notes => memory.type == 'note',
+      };
+
+      return matchesSearch && matchesFilter;
     }).toList();
   });
 });
