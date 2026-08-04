@@ -1,0 +1,11 @@
+import 'package:neurolens/features/memory/domain/models/memory.dart';
+
+abstract class MemoryRepository {
+  Future<void> saveMemory(Memory memory);
+
+  Future<void> saveMemories(List<Memory> memories);
+
+  Future<int> getMemoryCount();
+
+  Stream<List<Memory>> watchAllMemories();
+}

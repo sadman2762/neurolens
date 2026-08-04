@@ -1,0 +1,62 @@
+import 'package:drift/drift.dart';
+import 'package:neurolens/core/database/app_database.dart';
+import 'package:neurolens/features/memory/domain/models/memory.dart' as domain;
+import 'package:neurolens/features/memory/domain/repositories/memory_repository.dart';
+
+class MemoryRepositoryImpl implements MemoryRepository {
+  MemoryRepositoryImpl(this._database);
+
+  final AppDatabase _database;
+
+  @override
+  Future<void> saveMemory(domain.Memory memory) {
+    return _database.insertMemory(
+      MemoriesCompanion(
+        id: Value(memory.id),
+        type: Value(memory.type),
+        title: Value(memory.title),
+        originalPath: Value(memory.originalPath),
+        createdAt: Value(memory.createdAt),
+      ),
+    );
+  }
+
+  @override
+  Future<void> saveMemories(List<domain.Memory> memories) {
+    return _database.transaction(() async {
+      for (final memory in memories) {
+        await _database.insertMemory(
+          MemoriesCompanion(
+            id: Value(memory.id),
+            type: Value(memory.type),
+            title: Value(memory.title),
+            originalPath: Value(memory.originalPath),
+            createdAt: Value(memory.createdAt),
+          ),
+        );
+      }
+    });
+  }
+
+  @override
+  Future<int> getMemoryCount() {
+    return _database.getMemoryCount();
+  }
+
+  @override
+  Stream<List<domain.Memory>> watchAllMemories() {
+    return _database.watchAllMemories().map(
+      (rows) => rows
+          .map(
+            (row) => domain.Memory(
+              id: row.id,
+              type: row.type,
+              title: row.title,
+              originalPath: row.originalPath,
+              createdAt: row.createdAt,
+            ),
+          )
+          .toList(),
+    );
+  }
+}
