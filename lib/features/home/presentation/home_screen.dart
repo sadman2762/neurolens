@@ -7,11 +7,25 @@ import 'package:neurolens/features/memory/presentation/text_memory_detail_screen
 import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.dart';
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
+import 'package:neurolens/features/search/providers/voice_search_providers.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
-  Future<void> _syncGallery(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _syncGallery(BuildContext context) async {
     final permissionService = GalleryPermissionService();
     final hasAccess = await permissionService.requestPermission();
 
@@ -19,7 +33,9 @@ class HomeScreen extends ConsumerWidget {
 
     if (!hasAccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gallery access was not granted.')),
+        const SnackBar(
+          content: Text('Gallery access was not granted.'),
+        ),
       );
       return;
     }
@@ -47,13 +63,72 @@ class HomeScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gallery sync failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gallery sync failed: $error'),
+        ),
+      );
     }
   }
 
-  void _openImportSheet(BuildContext context, WidgetRef ref) {
+  Future<void> _toggleVoiceSearch() async {
+    FocusScope.of(context).unfocus();
+
+    final service = ref.read(voiceSearchServiceProvider);
+    final isListening = ref.read(voiceListeningProvider);
+
+    if (isListening) {
+      await service.stopListening();
+
+      if (!mounted) return;
+
+      ref.read(voiceListeningProvider.notifier).state = false;
+      return;
+    }
+
+    try {
+      ref.read(voiceListeningProvider.notifier).state = true;
+
+      await service.startListening(
+        onWords: (words) {
+          if (!mounted) return;
+
+          setState(() {
+            _searchController.value = TextEditingValue(
+              text: words,
+              selection: TextSelection.collapsed(
+                offset: words.length,
+              ),
+            );
+          });
+
+          ref.read(memorySearchQueryProvider.notifier).state = words;
+        },
+        onFinished: () {
+          if (!mounted) return;
+
+          ref.read(voiceListeningProvider.notifier).state = false;
+        },
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ref.read(voiceListeningProvider.notifier).state = false;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Voice search failed: $error'),
+        ),
+      );
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    ref.read(memorySearchQueryProvider.notifier).state = '';
+  }
+
+  void _openImportSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -68,7 +143,10 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 const Text(
                   'Import memory',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
@@ -79,7 +157,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   onTap: () async {
                     Navigator.pop(bottomSheetContext);
-                    await _syncGallery(context, ref);
+                    await _syncGallery(context);
                   },
                 ),
                 ListTile(
@@ -89,8 +167,6 @@ class HomeScreen extends ConsumerWidget {
                   onTap: () async {
                     await Navigator.of(bottomSheetContext).maybePop();
 
-                    // Allow the bottom-sheet closing animation to finish before
-                    // launching Android's native document picker.
                     await Future<void>.delayed(
                       const Duration(milliseconds: 300),
                     );
@@ -118,7 +194,9 @@ class HomeScreen extends ConsumerWidget {
                       if (!context.mounted) return;
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('PDF import failed: $error')),
+                        SnackBar(
+                          content: Text('PDF import failed: $error'),
+                        ),
                       );
                     }
                   },
@@ -155,7 +233,10 @@ class HomeScreen extends ConsumerWidget {
     if (type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => MemoryDetailScreen(assetId: id, title: title),
+          builder: (_) => MemoryDetailScreen(
+            assetId: id,
+            title: title,
+          ),
         ),
       );
       return;
@@ -174,14 +255,18 @@ class HomeScreen extends ConsumerWidget {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$type memory details are not available yet.')),
+      SnackBar(
+        content: Text('$type memory details are not available yet.'),
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final timeline = ref.watch(filteredMemoryTimelineProvider);
     final selectedFilter = ref.watch(memoryFilterProvider);
+    final isListening = ref.watch(voiceListeningProvider);
+    final searchQuery = ref.watch(memorySearchQueryProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -193,7 +278,10 @@ class HomeScreen extends ConsumerWidget {
               const Center(
                 child: Text(
                   'NeuroLens',
-                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
@@ -201,22 +289,45 @@ class HomeScreen extends ConsumerWidget {
                 child: Text(
                   'Your phone remembers everything you forget.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 17, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 17,
+                    color: Colors.grey.shade700,
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
               TextField(
+                controller: _searchController,
+                textInputAction: TextInputAction.search,
                 onChanged: (value) {
                   ref.read(memorySearchQueryProvider.notifier).state = value;
                 },
                 decoration: InputDecoration(
-                  hintText: 'Search your memories...',
+                  hintText: isListening
+                      ? 'Listening...'
+                      : 'Search your memories...',
                   prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: IconButton(
-                    onPressed: () {
-                      // Voice search will be added later.
-                    },
-                    icon: const Icon(Icons.mic_none_rounded),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (searchQuery.isNotEmpty)
+                        IconButton(
+                          onPressed: _clearSearch,
+                          tooltip: 'Clear search',
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      IconButton(
+                        onPressed: _toggleVoiceSearch,
+                        tooltip: isListening
+                            ? 'Stop voice search'
+                            : 'Start voice search',
+                        icon: Icon(
+                          isListening
+                              ? Icons.mic_rounded
+                              : Icons.mic_none_rounded,
+                        ),
+                      ),
+                    ],
                   ),
                   filled: true,
                   border: OutlineInputBorder(
@@ -229,7 +340,7 @@ class HomeScreen extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: () => _openImportSheet(context, ref),
+                  onPressed: () => _openImportSheet(context),
                   icon: const Icon(Icons.add_rounded),
                   label: const Text('Import memory'),
                 ),
@@ -279,27 +390,33 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               Text(
-                'Memories',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                searchQuery.isEmpty ? 'Memories' : 'Search results',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 12),
               Expanded(
                 child: timeline.when(
                   data: (memories) {
                     if (memories.isEmpty) {
-                      return const Center(child: Text('No matching memories.'));
+                      return Center(
+                        child: Text(
+                          searchQuery.isEmpty
+                              ? 'No memories yet.'
+                              : 'No matching memories.',
+                        ),
+                      );
                     }
 
                     return GridView.builder(
                       padding: const EdgeInsets.only(bottom: 24),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
                       itemCount: memories.length,
                       itemBuilder: (context, index) {
                         final memory = memories[index];
@@ -320,8 +437,9 @@ class HomeScreen extends ConsumerWidget {
                       },
                     );
                   },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
                   error: (error, stackTrace) => Center(
                     child: Text(
                       'Could not load memories: $error',
