@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:neurolens/features/memory/domain/models/memory.dart';
+import 'package:neurolens/features/memory/providers/memory_providers.dart';
 
-class AddTextMemoryScreen extends StatefulWidget {
+class AddTextMemoryScreen extends ConsumerStatefulWidget {
   const AddTextMemoryScreen({super.key});
 
   @override
-  State<AddTextMemoryScreen> createState() => _AddTextMemoryScreenState();
+  ConsumerState<AddTextMemoryScreen> createState() =>
+      _AddTextMemoryScreenState();
 }
 
-class _AddTextMemoryScreenState extends State<AddTextMemoryScreen> {
+class _AddTextMemoryScreenState
+    extends ConsumerState<AddTextMemoryScreen> {
   final TextEditingController _controller = TextEditingController();
 
   @override
@@ -16,7 +21,7 @@ class _AddTextMemoryScreenState extends State<AddTextMemoryScreen> {
     super.dispose();
   }
 
-  void _saveMemory() {
+  Future<void> _saveMemory() async {
     final text = _controller.text.trim();
 
     if (text.isEmpty) {
@@ -28,11 +33,18 @@ class _AddTextMemoryScreenState extends State<AddTextMemoryScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Memory saved locally.'),
-      ),
+    final memory = Memory(
+      id: 'note_${DateTime.now().microsecondsSinceEpoch}',
+      type: 'note',
+      title: text.length > 40 ? '${text.substring(0, 40)}...' : text,
+      originalPath: null,
+      createdAt: DateTime.now(),
     );
+
+    final repository = ref.read(memoryRepositoryProvider);
+    await repository.saveMemory(memory);
+
+    if (!mounted) return;
 
     Navigator.pop(context);
   }
