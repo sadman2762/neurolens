@@ -10,10 +10,7 @@ import 'package:neurolens/features/memory/providers/memory_providers.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  Future<void> _syncGallery(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _syncGallery(BuildContext context, WidgetRef ref) async {
     final permissionService = GalleryPermissionService();
     final hasAccess = await permissionService.requestPermission();
 
@@ -21,9 +18,7 @@ class HomeScreen extends ConsumerWidget {
 
     if (!hasAccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gallery access was not granted.'),
-        ),
+        const SnackBar(content: Text('Gallery access was not granted.')),
       );
       return;
     }
@@ -51,18 +46,13 @@ class HomeScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gallery sync failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gallery sync failed: $error')));
     }
   }
 
-  void _openImportSheet(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
+  void _openImportSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -77,10 +67,7 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 const Text(
                   'Import memory',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
@@ -130,10 +117,7 @@ class HomeScreen extends ConsumerWidget {
     if (type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => MemoryDetailScreen(
-            assetId: id,
-            title: title,
-          ),
+          builder: (_) => MemoryDetailScreen(assetId: id, title: title),
         ),
       );
       return;
@@ -152,18 +136,13 @@ class HomeScreen extends ConsumerWidget {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$type memory details are not available yet.'),
-      ),
+      SnackBar(content: Text('$type memory details are not available yet.')),
     );
   }
 
   @override
-  Widget build(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
-    final timeline = ref.watch(memoryTimelineProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timeline = ref.watch(filteredMemoryTimelineProvider);
 
     return Scaffold(
       body: SafeArea(
@@ -174,23 +153,18 @@ class HomeScreen extends ConsumerWidget {
             children: [
               const Text(
                 'NeuroLens',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
                 'Your phone remembers everything you forget.',
-                style: TextStyle(
-                  fontSize: 17,
-                  color: Colors.grey.shade700,
-                ),
+                style: TextStyle(fontSize: 17, color: Colors.grey.shade700),
               ),
               const SizedBox(height: 20),
               TextField(
-                readOnly: true,
-                onTap: () {},
+                onChanged: (value) {
+                  ref.read(memorySearchQueryProvider.notifier).state = value;
+                },
                 decoration: InputDecoration(
                   hintText: 'Search your memories...',
                   prefixIcon: const Icon(Icons.search_rounded),
@@ -217,28 +191,26 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               Text(
                 'Memories',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Expanded(
                 child: timeline.when(
                   data: (memories) {
                     if (memories.isEmpty) {
-                      return const Center(
-                        child: Text('No memories yet.'),
-                      );
+                      return const Center(child: Text('No memories yet.'));
                     }
 
                     return GridView.builder(
                       padding: const EdgeInsets.only(bottom: 24),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
                       itemCount: memories.length,
                       itemBuilder: (context, index) {
                         final memory = memories[index];
@@ -259,9 +231,8 @@ class HomeScreen extends ConsumerWidget {
                       },
                     );
                   },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, stackTrace) => Center(
                     child: Text(
                       'Could not load memories: $error',
