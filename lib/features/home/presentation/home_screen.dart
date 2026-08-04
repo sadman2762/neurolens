@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/data/gallery_permission_service.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
+import 'package:neurolens/features/memory/presentation/widgets/memory_thumbnail.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  Future<void> _syncGallery(BuildContext context, WidgetRef ref) async {
+  Future<void> _syncGallery(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final permissionService = GalleryPermissionService();
     final hasAccess = await permissionService.requestPermission();
 
@@ -15,7 +19,9 @@ class HomeScreen extends ConsumerWidget {
 
     if (!hasAccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gallery access was not granted.')),
+        const SnackBar(
+          content: Text('Gallery access was not granted.'),
+        ),
       );
       return;
     }
@@ -32,8 +38,8 @@ class HomeScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Saved $savedCount images. '
-            '$totalCount memories are now stored locally.',
+            'Synced $savedCount images. '
+            '$totalCount memories are stored locally.',
           ),
         ),
       );
@@ -43,13 +49,18 @@ class HomeScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gallery sync failed: $error'),
+        ),
+      );
     }
   }
 
-  void _openImportSheet(BuildContext context, WidgetRef ref) {
+  void _openImportSheet(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -64,7 +75,10 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 const Text(
                   'Import memory',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
@@ -104,25 +118,35 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final timeline = ref.watch(memoryTimelineProvider);
+
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 12),
               const Text(
                 'NeuroLens',
-                style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               Text(
                 'Your phone remembers everything you forget.',
-                style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
+                style: TextStyle(
+                  fontSize: 17,
+                  color: Colors.grey.shade700,
+                ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -131,13 +155,52 @@ class HomeScreen extends ConsumerWidget {
                   label: const Text('Import memory'),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 20),
+              Text(
+                'Memories',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 12),
               Expanded(
-                child: Center(
-                  child: Icon(
-                    Icons.psychology_alt_rounded,
-                    size: 120,
-                    color: Theme.of(context).colorScheme.primary,
+                child: timeline.when(
+                  data: (memories) {
+                    if (memories.isEmpty) {
+                      return const Center(
+                        child: Text('No memories yet.'),
+                      );
+                    }
+
+                    return GridView.builder(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
+                      itemCount: memories.length,
+                      itemBuilder: (context, index) {
+                        final memory = memories[index];
+
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: MemoryThumbnail(
+                            assetId: memory.id,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(),
+                  ),
+                  error: (error, stackTrace) => Center(
+                    child: Text(
+                      'Could not load memories: $error',
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ),
               ),

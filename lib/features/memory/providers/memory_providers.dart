@@ -22,3 +22,8 @@ final gallerySyncServiceProvider = Provider<GallerySyncService>((ref) {
     memoryRepository: memoryRepository,
   );
 });
+
+final memoryTimelineProvider = StreamProvider((ref) {
+  final repository = ref.watch(memoryRepositoryProvider);
+  return repository.watchAllMemories();
+});
