@@ -46,6 +46,17 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _embeddingMeta = const VerificationMeta(
+    'embedding',
+  );
+  @override
+  late final GeneratedColumn<String> embedding = GeneratedColumn<String>(
+    'embedding',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _originalPathMeta = const VerificationMeta(
     'originalPath',
   );
@@ -74,6 +85,7 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     type,
     title,
     content,
+    embedding,
     originalPath,
     createdAt,
   ];
@@ -114,6 +126,12 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
       context.handle(
         _contentMeta,
         content.isAcceptableOrUnknown(data['content']!, _contentMeta),
+      );
+    }
+    if (data.containsKey('embedding')) {
+      context.handle(
+        _embeddingMeta,
+        embedding.isAcceptableOrUnknown(data['embedding']!, _embeddingMeta),
       );
     }
     if (data.containsKey('original_path')) {
@@ -158,6 +176,10 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         DriftSqlType.string,
         data['${effectivePrefix}content'],
       ),
+      embedding: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}embedding'],
+      ),
       originalPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}original_path'],
@@ -180,6 +202,7 @@ class Memory extends DataClass implements Insertable<Memory> {
   final String type;
   final String title;
   final String? content;
+  final String? embedding;
   final String? originalPath;
   final DateTime createdAt;
   const Memory({
@@ -187,6 +210,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     required this.type,
     required this.title,
     this.content,
+    this.embedding,
     this.originalPath,
     required this.createdAt,
   });
@@ -198,6 +222,9 @@ class Memory extends DataClass implements Insertable<Memory> {
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || content != null) {
       map['content'] = Variable<String>(content);
+    }
+    if (!nullToAbsent || embedding != null) {
+      map['embedding'] = Variable<String>(embedding);
     }
     if (!nullToAbsent || originalPath != null) {
       map['original_path'] = Variable<String>(originalPath);
@@ -214,6 +241,9 @@ class Memory extends DataClass implements Insertable<Memory> {
       content: content == null && nullToAbsent
           ? const Value.absent()
           : Value(content),
+      embedding: embedding == null && nullToAbsent
+          ? const Value.absent()
+          : Value(embedding),
       originalPath: originalPath == null && nullToAbsent
           ? const Value.absent()
           : Value(originalPath),
@@ -231,6 +261,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       type: serializer.fromJson<String>(json['type']),
       title: serializer.fromJson<String>(json['title']),
       content: serializer.fromJson<String?>(json['content']),
+      embedding: serializer.fromJson<String?>(json['embedding']),
       originalPath: serializer.fromJson<String?>(json['originalPath']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -243,6 +274,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       'type': serializer.toJson<String>(type),
       'title': serializer.toJson<String>(title),
       'content': serializer.toJson<String?>(content),
+      'embedding': serializer.toJson<String?>(embedding),
       'originalPath': serializer.toJson<String?>(originalPath),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -253,6 +285,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     String? type,
     String? title,
     Value<String?> content = const Value.absent(),
+    Value<String?> embedding = const Value.absent(),
     Value<String?> originalPath = const Value.absent(),
     DateTime? createdAt,
   }) => Memory(
@@ -260,6 +293,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     type: type ?? this.type,
     title: title ?? this.title,
     content: content.present ? content.value : this.content,
+    embedding: embedding.present ? embedding.value : this.embedding,
     originalPath: originalPath.present ? originalPath.value : this.originalPath,
     createdAt: createdAt ?? this.createdAt,
   );
@@ -269,6 +303,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       type: data.type.present ? data.type.value : this.type,
       title: data.title.present ? data.title.value : this.title,
       content: data.content.present ? data.content.value : this.content,
+      embedding: data.embedding.present ? data.embedding.value : this.embedding,
       originalPath: data.originalPath.present
           ? data.originalPath.value
           : this.originalPath,
@@ -283,6 +318,7 @@ class Memory extends DataClass implements Insertable<Memory> {
           ..write('type: $type, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
+          ..write('embedding: $embedding, ')
           ..write('originalPath: $originalPath, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -291,7 +327,7 @@ class Memory extends DataClass implements Insertable<Memory> {
 
   @override
   int get hashCode =>
-      Object.hash(id, type, title, content, originalPath, createdAt);
+      Object.hash(id, type, title, content, embedding, originalPath, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -300,6 +336,7 @@ class Memory extends DataClass implements Insertable<Memory> {
           other.type == this.type &&
           other.title == this.title &&
           other.content == this.content &&
+          other.embedding == this.embedding &&
           other.originalPath == this.originalPath &&
           other.createdAt == this.createdAt);
 }
@@ -309,6 +346,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
   final Value<String> type;
   final Value<String> title;
   final Value<String?> content;
+  final Value<String?> embedding;
   final Value<String?> originalPath;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -317,6 +355,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     this.type = const Value.absent(),
     this.title = const Value.absent(),
     this.content = const Value.absent(),
+    this.embedding = const Value.absent(),
     this.originalPath = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -326,6 +365,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     required String type,
     required String title,
     this.content = const Value.absent(),
+    this.embedding = const Value.absent(),
     this.originalPath = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
@@ -338,6 +378,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Expression<String>? type,
     Expression<String>? title,
     Expression<String>? content,
+    Expression<String>? embedding,
     Expression<String>? originalPath,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -347,6 +388,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       if (type != null) 'type': type,
       if (title != null) 'title': title,
       if (content != null) 'content': content,
+      if (embedding != null) 'embedding': embedding,
       if (originalPath != null) 'original_path': originalPath,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -358,6 +400,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Value<String>? type,
     Value<String>? title,
     Value<String?>? content,
+    Value<String?>? embedding,
     Value<String?>? originalPath,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
@@ -367,6 +410,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       type: type ?? this.type,
       title: title ?? this.title,
       content: content ?? this.content,
+      embedding: embedding ?? this.embedding,
       originalPath: originalPath ?? this.originalPath,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -388,6 +432,9 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     if (content.present) {
       map['content'] = Variable<String>(content.value);
     }
+    if (embedding.present) {
+      map['embedding'] = Variable<String>(embedding.value);
+    }
     if (originalPath.present) {
       map['original_path'] = Variable<String>(originalPath.value);
     }
@@ -407,6 +454,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
           ..write('type: $type, ')
           ..write('title: $title, ')
           ..write('content: $content, ')
+          ..write('embedding: $embedding, ')
           ..write('originalPath: $originalPath, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -432,6 +480,7 @@ typedef $$MemoriesTableCreateCompanionBuilder =
       required String type,
       required String title,
       Value<String?> content,
+      Value<String?> embedding,
       Value<String?> originalPath,
       required DateTime createdAt,
       Value<int> rowid,
@@ -442,6 +491,7 @@ typedef $$MemoriesTableUpdateCompanionBuilder =
       Value<String> type,
       Value<String> title,
       Value<String?> content,
+      Value<String?> embedding,
       Value<String?> originalPath,
       Value<DateTime> createdAt,
       Value<int> rowid,
@@ -473,6 +523,11 @@ class $$MemoriesTableFilterComposer
 
   ColumnFilters<String> get content => $composableBuilder(
     column: $table.content,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get embedding => $composableBuilder(
+    column: $table.embedding,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -516,6 +571,11 @@ class $$MemoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get embedding => $composableBuilder(
+    column: $table.embedding,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get originalPath => $composableBuilder(
     column: $table.originalPath,
     builder: (column) => ColumnOrderings(column),
@@ -547,6 +607,9 @@ class $$MemoriesTableAnnotationComposer
 
   GeneratedColumn<String> get content =>
       $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get embedding =>
+      $composableBuilder(column: $table.embedding, builder: (column) => column);
 
   GeneratedColumn<String> get originalPath => $composableBuilder(
     column: $table.originalPath,
@@ -589,6 +652,7 @@ class $$MemoriesTableTableManager
                 Value<String> type = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> content = const Value.absent(),
+                Value<String?> embedding = const Value.absent(),
                 Value<String?> originalPath = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -597,6 +661,7 @@ class $$MemoriesTableTableManager
                 type: type,
                 title: title,
                 content: content,
+                embedding: embedding,
                 originalPath: originalPath,
                 createdAt: createdAt,
                 rowid: rowid,
@@ -607,6 +672,7 @@ class $$MemoriesTableTableManager
                 required String type,
                 required String title,
                 Value<String?> content = const Value.absent(),
+                Value<String?> embedding = const Value.absent(),
                 Value<String?> originalPath = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
@@ -615,6 +681,7 @@ class $$MemoriesTableTableManager
                 type: type,
                 title: title,
                 content: content,
+                embedding: embedding,
                 originalPath: originalPath,
                 createdAt: createdAt,
                 rowid: rowid,

@@ -10,7 +10,12 @@ abstract class MemoryRepository {
   Stream<List<Memory>> watchAllMemories();
 
   Future<void> updateMemoryContent({
-  required String id,
-  required String content,
-});
+    required String id,
+    required String content,
+  });
+
+  Future<void> updateMemoryEmbedding({
+    required String id,
+    required String embedding,
+  });
 }

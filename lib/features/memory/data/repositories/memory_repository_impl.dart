@@ -32,6 +32,7 @@ class MemoryRepositoryImpl implements MemoryRepository {
             type: Value(memory.type),
             title: Value(memory.title),
             content: Value(memory.content),
+            embedding: Value(memory.embedding),
             originalPath: Value(memory.originalPath),
             createdAt: Value(memory.createdAt),
           ),
@@ -55,6 +56,7 @@ class MemoryRepositoryImpl implements MemoryRepository {
               type: row.type,
               title: row.title,
               content: row.content,
+              embedding: row.embedding,
               originalPath: row.originalPath,
               createdAt: row.createdAt,
             ),
@@ -69,5 +71,13 @@ class MemoryRepositoryImpl implements MemoryRepository {
     required String content,
   }) {
     return _database.updateMemoryContent(id: id, content: content);
+  }
+
+  @override
+  Future<void> updateMemoryEmbedding({
+    required String id,
+    required String embedding,
+  }) {
+    return _database.updateMemoryEmbedding(id: id, embedding: embedding);
   }
 }

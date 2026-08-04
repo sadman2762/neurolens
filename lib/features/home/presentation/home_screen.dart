@@ -11,10 +11,7 @@ import 'package:neurolens/features/memory/providers/memory_providers.dart';
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
-  Future<void> _syncGallery(
-    BuildContext context,
-    WidgetRef ref,
-  ) async {
+  Future<void> _syncGallery(BuildContext context, WidgetRef ref) async {
     final permissionService = GalleryPermissionService();
     final hasAccess = await permissionService.requestPermission();
 
@@ -22,9 +19,7 @@ class HomeScreen extends ConsumerWidget {
 
     if (!hasAccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gallery access was not granted.'),
-        ),
+        const SnackBar(content: Text('Gallery access was not granted.')),
       );
       return;
     }
@@ -52,18 +47,13 @@ class HomeScreen extends ConsumerWidget {
 
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gallery sync failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gallery sync failed: $error')));
     }
   }
 
-  void _openImportSheet(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
+  void _openImportSheet(BuildContext context, WidgetRef ref) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -78,10 +68,7 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 const Text(
                   'Import memory',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
@@ -95,10 +82,49 @@ class HomeScreen extends ConsumerWidget {
                     await _syncGallery(context, ref);
                   },
                 ),
-                const ListTile(
-                  leading: Icon(Icons.picture_as_pdf_outlined),
-                  title: Text('PDF or document'),
-                ),
+                ListTile(
+  leading: const Icon(Icons.picture_as_pdf_outlined),
+  title: const Text('PDF document'),
+  subtitle: const Text('Import a PDF from this device'),
+  onTap: () async {
+    await Navigator.of(bottomSheetContext).maybePop();
+
+    // Allow the bottom-sheet closing animation to finish before
+    // launching Android's native document picker.
+    await Future<void>.delayed(
+      const Duration(milliseconds: 300),
+    );
+
+    try {
+      final imported = await ref
+          .read(pdfImportServiceProvider)
+          .importPdf();
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            imported
+                ? 'PDF imported successfully.'
+                : 'No PDF was selected.',
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('PDF import error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF import failed: $error'),
+        ),
+      );
+    }
+  },
+),
                 ListTile(
                   leading: const Icon(Icons.note_add_outlined),
                   title: const Text('Text note'),
@@ -131,10 +157,7 @@ class HomeScreen extends ConsumerWidget {
     if (type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => MemoryDetailScreen(
-            assetId: id,
-            title: title,
-          ),
+          builder: (_) => MemoryDetailScreen(assetId: id, title: title),
         ),
       );
       return;
@@ -153,17 +176,12 @@ class HomeScreen extends ConsumerWidget {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$type memory details are not available yet.'),
-      ),
+      SnackBar(content: Text('$type memory details are not available yet.')),
     );
   }
 
   @override
-  Widget build(
-    BuildContext context,
-    WidgetRef ref,
-  ) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final timeline = ref.watch(filteredMemoryTimelineProvider);
     final selectedFilter = ref.watch(memoryFilterProvider);
 
@@ -174,19 +192,18 @@ class HomeScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'NeuroLens',
-                style: TextStyle(
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
+              const Center(
+                child: Text(
+                  'NeuroLens',
+                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                'Your phone remembers everything you forget.',
-                style: TextStyle(
-                  fontSize: 17,
-                  color: Colors.grey.shade700,
+              Center(
+                child: Text(
+                  'Your phone remembers everything you forget.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 17, color: Colors.grey.shade700),
                 ),
               ),
               const SizedBox(height: 20),
@@ -198,7 +215,9 @@ class HomeScreen extends ConsumerWidget {
                   hintText: 'Search your memories...',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: IconButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      // Voice search will be added later.
+                    },
                     icon: const Icon(Icons.mic_none_rounded),
                   ),
                   filled: true,
@@ -254,28 +273,26 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               Text(
                 'Memories',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Expanded(
                 child: timeline.when(
                   data: (memories) {
                     if (memories.isEmpty) {
-                      return const Center(
-                        child: Text('No matching memories.'),
-                      );
+                      return const Center(child: Text('No matching memories.'));
                     }
 
                     return GridView.builder(
                       padding: const EdgeInsets.only(bottom: 24),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
                       itemCount: memories.length,
                       itemBuilder: (context, index) {
                         final memory = memories[index];
@@ -296,9 +313,8 @@ class HomeScreen extends ConsumerWidget {
                       },
                     );
                   },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, stackTrace) => Center(
                     child: Text(
                       'Could not load memories: $error',

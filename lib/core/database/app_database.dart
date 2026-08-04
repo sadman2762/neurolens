@@ -12,6 +12,8 @@ class Memories extends Table {
 
   TextColumn get content => text().nullable()();
 
+  TextColumn get embedding => text().nullable()();
+
   TextColumn get originalPath => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime()();
@@ -25,7 +27,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'neurolens'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -35,7 +37,17 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
-          await migrator.addColumn(memories, memories.content);
+          await migrator.addColumn(
+            memories,
+            memories.content,
+          );
+        }
+
+        if (from < 3) {
+          await migrator.addColumn(
+            memories,
+            memories.embedding,
+          );
         }
       },
     );
@@ -46,15 +58,20 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<Memory>> watchAllMemories() {
-    return (select(
-      memories,
-    )..orderBy([(t) => OrderingTerm.desc(t.createdAt)])).watch();
+    return (select(memories)
+          ..orderBy([
+            (table) => OrderingTerm.desc(table.createdAt),
+          ]))
+        .watch();
   }
 
   Future<int> getMemoryCount() async {
     final countExpression = memories.id.count();
 
-    final query = selectOnly(memories)..addColumns([countExpression]);
+    final query = selectOnly(memories)
+      ..addColumns([
+        countExpression,
+      ]);
 
     final row = await query.getSingle();
 
@@ -66,7 +83,20 @@ class AppDatabase extends _$AppDatabase {
     required String content,
   }) {
     return (update(memories)..where((row) => row.id.equals(id))).write(
-      MemoriesCompanion(content: Value(content)),
+      MemoriesCompanion(
+        content: Value(content),
+      ),
+    );
+  }
+
+  Future<void> updateMemoryEmbedding({
+    required String id,
+    required String embedding,
+  }) {
+    return (update(memories)..where((row) => row.id.equals(id))).write(
+      MemoriesCompanion(
+        embedding: Value(embedding),
+      ),
     );
   }
 }
