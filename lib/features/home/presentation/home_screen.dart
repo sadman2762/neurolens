@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/data/gallery_permission_service.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
+import 'package:neurolens/features/memory/presentation/memory_detail_screen.dart';
 import 'package:neurolens/features/memory/presentation/widgets/memory_thumbnail.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 
@@ -147,6 +148,24 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
+              TextField(
+                readOnly: true,
+                onTap: () {},
+                decoration: InputDecoration(
+                  hintText: 'Search your memories...',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: IconButton(
+                    onPressed: () {},
+                    icon: const Icon(Icons.mic_none_rounded),
+                  ),
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(18),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -184,10 +203,23 @@ class HomeScreen extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final memory = memories[index];
 
-                        return ClipRRect(
+                        return InkWell(
                           borderRadius: BorderRadius.circular(12),
-                          child: MemoryThumbnail(
-                            assetId: memory.id,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => MemoryDetailScreen(
+                                  assetId: memory.id,
+                                  title: memory.title,
+                                ),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: MemoryThumbnail(
+                              assetId: memory.id,
+                            ),
                           ),
                         );
                       },
