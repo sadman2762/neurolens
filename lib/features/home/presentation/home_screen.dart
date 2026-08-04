@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/data/gallery_permission_service.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
 import 'package:neurolens/features/memory/presentation/memory_detail_screen.dart';
-import 'package:neurolens/features/memory/presentation/widgets/memory_thumbnail.dart';
+import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -31,7 +31,7 @@ class HomeScreen extends ConsumerWidget {
       final syncService = ref.read(gallerySyncServiceProvider);
       final memoryRepository = ref.read(memoryRepositoryProvider);
 
-      final savedCount = await syncService.syncAllImages();
+      final syncedCount = await syncService.syncAllImages();
       final totalCount = await memoryRepository.getMemoryCount();
 
       if (!context.mounted) return;
@@ -39,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Synced $savedCount images. '
+            'Synced $syncedCount images. '
             '$totalCount memories are stored locally.',
           ),
         ),
@@ -115,6 +115,31 @@ class HomeScreen extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+
+  void _openMemory(
+    BuildContext context,
+    String id,
+    String title,
+    String type,
+  ) {
+    if (type != 'image') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Text memory details are coming next.'),
+        ),
+      );
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => MemoryDetailScreen(
+          assetId: id,
+          title: title,
+        ),
+      ),
     );
   }
 
@@ -203,24 +228,16 @@ class HomeScreen extends ConsumerWidget {
                       itemBuilder: (context, index) {
                         final memory = memories[index];
 
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                        return MemoryGridItem(
+                          memory: memory,
                           onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => MemoryDetailScreen(
-                                  assetId: memory.id,
-                                  title: memory.title,
-                                ),
-                              ),
+                            _openMemory(
+                              context,
+                              memory.id,
+                              memory.title,
+                              memory.type,
                             );
                           },
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: MemoryThumbnail(
-                              assetId: memory.id,
-                            ),
-                          ),
                         );
                       },
                     );
