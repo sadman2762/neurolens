@@ -83,48 +83,46 @@ class HomeScreen extends ConsumerWidget {
                   },
                 ),
                 ListTile(
-  leading: const Icon(Icons.picture_as_pdf_outlined),
-  title: const Text('PDF document'),
-  subtitle: const Text('Import a PDF from this device'),
-  onTap: () async {
-    await Navigator.of(bottomSheetContext).maybePop();
+                  leading: const Icon(Icons.picture_as_pdf_outlined),
+                  title: const Text('PDF document'),
+                  subtitle: const Text('Import a PDF from this device'),
+                  onTap: () async {
+                    await Navigator.of(bottomSheetContext).maybePop();
 
-    // Allow the bottom-sheet closing animation to finish before
-    // launching Android's native document picker.
-    await Future<void>.delayed(
-      const Duration(milliseconds: 300),
-    );
+                    // Allow the bottom-sheet closing animation to finish before
+                    // launching Android's native document picker.
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 300),
+                    );
 
-    try {
-      final imported = await ref
-          .read(pdfImportServiceProvider)
-          .importPdf();
+                    try {
+                      final imported = await ref
+                          .read(pdfImportServiceProvider)
+                          .importPdf();
 
-      if (!context.mounted) return;
+                      if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            imported
-                ? 'PDF imported successfully.'
-                : 'No PDF was selected.',
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      debugPrint('PDF import error: $error');
-      debugPrintStack(stackTrace: stackTrace);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            imported
+                                ? 'PDF imported successfully.'
+                                : 'No PDF was selected.',
+                          ),
+                        ),
+                      );
+                    } catch (error, stackTrace) {
+                      debugPrint('PDF import error: $error');
+                      debugPrintStack(stackTrace: stackTrace);
 
-      if (!context.mounted) return;
+                      if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('PDF import failed: $error'),
-        ),
-      );
-    }
-  },
-),
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('PDF import failed: $error')),
+                      );
+                    }
+                  },
+                ),
                 ListTile(
                   leading: const Icon(Icons.note_add_outlined),
                   title: const Text('Text note'),
@@ -265,6 +263,15 @@ class HomeScreen extends ConsumerWidget {
                       onSelected: (_) {
                         ref.read(memoryFilterProvider.notifier).state =
                             MemoryFilter.notes;
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    ChoiceChip(
+                      label: const Text('PDFs'),
+                      selected: selectedFilter == MemoryFilter.pdfs,
+                      onSelected: (_) {
+                        ref.read(memoryFilterProvider.notifier).state =
+                            MemoryFilter.pdfs;
                       },
                     ),
                   ],

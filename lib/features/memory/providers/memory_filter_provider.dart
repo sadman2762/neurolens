@@ -4,6 +4,7 @@ enum MemoryFilter {
   all,
   images,
   notes,
+  pdfs,
 }
 
 final memoryFilterProvider = StateProvider<MemoryFilter>(

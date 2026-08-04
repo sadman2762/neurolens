@@ -9,6 +9,7 @@ import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/data/pdf_import_service.dart';
 import 'package:neurolens/features/memory/data/pdf_picker_service.dart';
+import 'package:neurolens/features/memory/data/pdf_text_extractor_service.dart';
 
 final galleryRepositoryProvider = Provider<GalleryRepositoryImpl>((ref) {
   return GalleryRepositoryImpl();
@@ -76,6 +77,7 @@ final filteredMemoryTimelineProvider =
         MemoryFilter.all => true,
         MemoryFilter.images => memory.type == 'image',
         MemoryFilter.notes => memory.type == 'note',
+        MemoryFilter.pdfs => memory.type == 'pdf',
       };
 
       return matchesSearch && matchesFilter;
@@ -89,10 +91,17 @@ final pdfPickerServiceProvider = Provider<PdfPickerService>((ref) {
 
 final pdfImportServiceProvider = Provider<PdfImportService>((ref) {
   final pickerService = ref.watch(pdfPickerServiceProvider);
+  final textExtractorService = ref.watch(pdfTextExtractorServiceProvider);
   final memoryRepository = ref.watch(memoryRepositoryProvider);
 
   return PdfImportService(
     pickerService: pickerService,
+    textExtractorService: textExtractorService,
     memoryRepository: memoryRepository,
   );
+});
+
+final pdfTextExtractorServiceProvider =
+    Provider<PdfTextExtractorService>((ref) {
+  return PdfTextExtractorService();
 });
