@@ -8,6 +8,7 @@ import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:neurolens/features/search/providers/voice_search_providers.dart';
+import 'package:neurolens/features/memory/presentation/pdf_viewer_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -33,9 +34,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (!hasAccess) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gallery access was not granted.'),
-        ),
+        const SnackBar(content: Text('Gallery access was not granted.')),
       );
       return;
     }
@@ -63,11 +62,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       if (!context.mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gallery sync failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gallery sync failed: $error')));
     }
   }
 
@@ -96,9 +93,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           setState(() {
             _searchController.value = TextEditingValue(
               text: words,
-              selection: TextSelection.collapsed(
-                offset: words.length,
-              ),
+              selection: TextSelection.collapsed(offset: words.length),
             );
           });
 
@@ -115,11 +110,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       ref.read(voiceListeningProvider.notifier).state = false;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Voice search failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Voice search failed: $error')));
     }
   }
 
@@ -143,10 +136,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 const Text(
                   'Import memory',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 20),
                 ListTile(
@@ -194,9 +184,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       if (!context.mounted) return;
 
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('PDF import failed: $error'),
-                        ),
+                        SnackBar(content: Text('PDF import failed: $error')),
                       );
                     }
                   },
@@ -227,16 +215,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String id,
     String title,
     String? content,
+    String? originalPath,
     String type,
     DateTime createdAt,
   ) {
     if (type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => MemoryDetailScreen(
-            assetId: id,
-            title: title,
+          builder: (_) => MemoryDetailScreen(assetId: id, title: title),
+        ),
+      );
+      return;
+    }
+
+    if (type == 'pdf') {
+      if (originalPath == null || originalPath.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('This PDF file is no longer available.'),
           ),
+        );
+        return;
+      }
+
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => PdfViewerScreen(filePath: originalPath, title: title),
         ),
       );
       return;
@@ -255,9 +259,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$type memory details are not available yet.'),
-      ),
+      SnackBar(content: Text('$type memory details are not available yet.')),
     );
   }
 
@@ -278,10 +280,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const Center(
                 child: Text(
                   'NeuroLens',
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(height: 6),
@@ -289,10 +288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: Text(
                   'Your phone remembers everything you forget.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 17,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 17, color: Colors.grey.shade700),
                 ),
               ),
               const SizedBox(height: 20),
@@ -303,9 +299,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ref.read(memorySearchQueryProvider.notifier).state = value;
                 },
                 decoration: InputDecoration(
-                  hintText: isListening
-                      ? 'Listening...'
-                      : 'Ask NeuroLens...',
+                  hintText: isListening ? 'Listening...' : 'Ask NeuroLens...',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -391,9 +385,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 16),
               Text(
                 searchQuery.isEmpty ? 'Memories' : 'Search results',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Expanded(
@@ -413,10 +407,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 24),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                          ),
                       itemCount: memories.length,
                       itemBuilder: (context, index) {
                         final memory = memories[index];
@@ -429,6 +423,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               memory.id,
                               memory.title,
                               memory.content,
+                              memory.originalPath,
                               memory.type,
                               memory.createdAt,
                             );
@@ -437,9 +432,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       },
                     );
                   },
-                  loading: () => const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (error, stackTrace) => Center(
                     child: Text(
                       'Could not load memories: $error',
