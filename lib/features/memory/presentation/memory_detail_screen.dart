@@ -22,6 +22,10 @@ class MemoryDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
+  static const Color _backgroundColor = Color(0xFF050816);
+  static const Color _surfaceColor = Color(0xFF0D1321);
+  static const Color _purple = Color(0xFF8B5CF6);
+
   late final Future<Uint8List?> _imageFuture;
 
   bool _isSharing = false;
@@ -114,30 +118,47 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          icon: Icon(
+          backgroundColor: _surfaceColor,
+          surfaceTintColor: Colors.transparent,
+          icon: const Icon(
             Icons.delete_outline_rounded,
-            color: Theme.of(dialogContext).colorScheme.error,
+            color: Color(0xFFF87171),
+            size: 32,
           ),
-          title: const Text('Remove this image?'),
-          content: const Text(
+          title: const Text(
+            'Remove this image?',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
             'This image will be removed from NeuroLens. '
             'The original photo will remain in your phone gallery.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.62),
+              height: 1.5,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                ),
+              ),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
               style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(dialogContext).colorScheme.error,
-                foregroundColor:
-                    Theme.of(dialogContext).colorScheme.onError,
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
               ),
               child: const Text('Remove'),
             ),
@@ -179,87 +200,150 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
+  Widget _buildActionButton({
+    required VoidCallback? onPressed,
+    required Widget icon,
+    required String tooltip,
+  }) {
+    return Container(
+      width: 42,
+      height: 42,
+      margin: const EdgeInsets.only(left: 8),
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.06),
+        ),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: tooltip,
+        icon: icon,
+        color: Colors.white,
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: _backgroundColor,
         foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 0,
         title: Text(
           widget.title,
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         actions: [
-          IconButton(
-            onPressed: _isSharing || _isDeleting ? null : _shareImage,
+          _buildActionButton(
+            onPressed:
+                _isSharing || _isDeleting ? null : _shareImage,
             tooltip: 'Share image',
             icon: _isSharing
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.share_outlined),
+                : const Icon(
+                    Icons.share_outlined,
+                    size: 21,
+                  ),
           ),
-          IconButton(
-            onPressed: _isSharing || _isDeleting ? null : _confirmDelete,
+          _buildActionButton(
+            onPressed:
+                _isSharing || _isDeleting ? null : _confirmDelete,
             tooltip: 'Remove from NeuroLens',
             icon: _isDeleting
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.delete_outline_rounded),
+                : const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 22,
+                    color: Color(0xFFF87171),
+                  ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 12),
         ],
       ),
-      body: FutureBuilder<Uint8List?>(
-        future: _imageFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(
-                color: Colors.white,
-              ),
-            );
-          }
-
-          if (snapshot.hasError) {
-            return const _ImageErrorView(
-              message: 'Could not load this image.',
-            );
-          }
-
-          final bytes = snapshot.data;
-
-          if (bytes == null) {
-            return const _ImageErrorView(
-              message: 'This image is no longer available.',
-            );
-          }
-
-          return InteractiveViewer(
-            minScale: 0.8,
-            maxScale: 5,
-            boundaryMargin: const EdgeInsets.all(40),
-            child: Center(
-              child: Image.memory(
-                bytes,
-                fit: BoxFit.contain,
-                gaplessPlayback: true,
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 14),
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.06),
               ),
             ),
-          );
-        },
+            clipBehavior: Clip.antiAlias,
+            child: FutureBuilder<Uint8List?>(
+              future: _imageFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState ==
+                    ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: _purple,
+                    ),
+                  );
+                }
+
+                if (snapshot.hasError) {
+                  return const _ImageErrorView(
+                    message: 'Could not load this image.',
+                  );
+                }
+
+                final bytes = snapshot.data;
+
+                if (bytes == null) {
+                  return const _ImageErrorView(
+                    message: 'This image is no longer available.',
+                  );
+                }
+
+                return InteractiveViewer(
+                  minScale: 0.8,
+                  maxScale: 5,
+                  boundaryMargin: const EdgeInsets.all(40),
+                  child: Center(
+                    child: Image.memory(
+                      bytes,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -280,18 +364,28 @@ class _ImageErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.broken_image_outlined,
-              size: 56,
-              color: Colors.white70,
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF8B5CF6)
+                    .withValues(alpha: 0.12),
+              ),
+              child: const Icon(
+                Icons.broken_image_outlined,
+                size: 34,
+                color: Color(0xFFC084FC),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             Text(
               message,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ],

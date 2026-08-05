@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/data/gallery_permission_service.dart';
+import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
 import 'package:neurolens/features/memory/presentation/memory_detail_screen.dart';
+import 'package:neurolens/features/memory/presentation/pdf_viewer_screen.dart';
 import 'package:neurolens/features/memory/presentation/text_memory_detail_screen.dart';
 import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.dart';
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:neurolens/features/search/providers/voice_search_providers.dart';
-import 'package:neurolens/features/memory/presentation/pdf_viewer_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  static const Color _backgroundColor = Color(0xFF050816);
+  static const Color _surfaceColor = Color(0xFF0D1321);
+  static const Color _purple = Color(0xFFA855F7);
+
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -126,39 +131,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      backgroundColor: _surfaceColor,
       builder: (bottomSheetContext) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
                   'Import memory',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Sync full gallery'),
-                  subtitle: const Text(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: const Color(0xFF141B2D),
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                    color: Color(0xFFA78BFA),
+                  ),
+                  title: const Text(
+                    'Sync full gallery',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
                     'Scan and index photos stored on this phone',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
                   onTap: () async {
                     Navigator.pop(bottomSheetContext);
                     await _syncGallery(context);
                   },
                 ),
+                const SizedBox(height: 10),
                 ListTile(
-                  leading: const Icon(Icons.picture_as_pdf_outlined),
-                  title: const Text('PDF document'),
-                  subtitle: const Text('Import a PDF from this device'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: const Color(0xFF141B2D),
+                  leading: const Icon(
+                    Icons.picture_as_pdf_outlined,
+                    color: Color(0xFFF87171),
+                  ),
+                  title: const Text(
+                    'PDF document',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Import a searchable PDF from this device',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
                   onTap: () async {
-                    await Navigator.of(bottomSheetContext).maybePop();
+                    Navigator.pop(bottomSheetContext);
 
                     await Future<void>.delayed(
-                      const Duration(milliseconds: 300),
+                      const Duration(milliseconds: 250),
                     );
 
                     try {
@@ -189,9 +234,29 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     }
                   },
                 ),
+                const SizedBox(height: 10),
                 ListTile(
-                  leading: const Icon(Icons.note_add_outlined),
-                  title: const Text('Text note'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  tileColor: const Color(0xFF141B2D),
+                  leading: const Icon(
+                    Icons.note_add_outlined,
+                    color: Color(0xFF4ADE80),
+                  ),
+                  title: const Text(
+                    'Text note',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    'Create a searchable text memory',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
+                  ),
                   onTap: () {
                     Navigator.pop(bottomSheetContext);
 
@@ -210,25 +275,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _openMemory(
-    BuildContext context,
-    String id,
-    String title,
-    String? content,
-    String? originalPath,
-    String type,
-    DateTime createdAt,
-  ) {
-    if (type == 'image') {
+  void _openMemory(BuildContext context, Memory memory) {
+    if (memory.type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => MemoryDetailScreen(assetId: id, title: title),
+          builder: (_) =>
+              MemoryDetailScreen(assetId: memory.id, title: memory.title),
         ),
       );
       return;
     }
 
-    if (type == 'pdf') {
+    if (memory.type == 'pdf') {
+      final originalPath = memory.originalPath;
+
       if (originalPath == null || originalPath.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -240,19 +300,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => PdfViewerScreen(memoryId: id,filePath: originalPath, title: title),
+          builder: (_) => PdfViewerScreen(
+            memoryId: memory.id,
+            filePath: originalPath,
+            title: memory.title,
+          ),
         ),
       );
       return;
     }
 
-    if (type == 'note') {
+    if (memory.type == 'note') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => TextMemoryDetailScreen(
-            memoryId: id,
-            content: content ?? title,
-            createdAt: createdAt,
+            memoryId: memory.id,
+            content: memory.content ?? memory.title,
+            createdAt: memory.createdAt,
           ),
         ),
       );
@@ -260,7 +324,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$type memory details are not available yet.')),
+      SnackBar(
+        content: Text('${memory.type} memory details are not available yet.'),
+      ),
     );
   }
 
@@ -272,179 +338,369 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final searchQuery = ref.watch(memorySearchQueryProvider);
 
     return Scaffold(
+      backgroundColor: _backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(
-                child: Text(
-                  'NeuroLens',
-                  style: TextStyle(fontSize: 34, fontWeight: FontWeight.bold),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Center(
-                child: Text(
-                  'Your phone remembers everything you forget.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 17, color: Colors.grey.shade700),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onChanged: (value) {
-                  ref.read(memorySearchQueryProvider.notifier).state = value;
-                },
-                decoration: InputDecoration(
-                  hintText: isListening ? 'Listening...' : 'Ask NeuroLens...',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+              child: Column(
+                children: [
+                  Row(
                     children: [
-                      if (searchQuery.isNotEmpty)
-                        IconButton(
-                          onPressed: _clearSearch,
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close_rounded),
-                        ),
-                      IconButton(
-                        onPressed: _toggleVoiceSearch,
-                        tooltip: isListening
-                            ? 'Stop voice search'
-                            : 'Start voice search',
-                        icon: Icon(
-                          isListening
-                              ? Icons.mic_rounded
-                              : Icons.mic_none_rounded,
-                        ),
-                      ),
+                      const Expanded(child: _NeuroLensTitle()),
+                      _AddMemoryButton(onTap: () => _openImportSheet(context)),
                     ],
                   ),
-                  filled: true,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: () => _openImportSheet(context),
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('Import memory'),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ChoiceChip(
-                      label: const Text('All'),
-                      selected: selectedFilter == MemoryFilter.all,
-                      onSelected: (_) {
-                        ref.read(memoryFilterProvider.notifier).state =
-                            MemoryFilter.all;
-                      },
+                  const SizedBox(height: 16),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _surfaceColor,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.06),
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Images'),
-                      selected: selectedFilter == MemoryFilter.images,
-                      onSelected: (_) {
-                        ref.read(memoryFilterProvider.notifier).state =
-                            MemoryFilter.images;
+                    child: TextField(
+                      controller: _searchController,
+                      textInputAction: TextInputAction.search,
+                      cursorColor: _purple,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                      onChanged: (value) {
+                        ref.read(memorySearchQueryProvider.notifier).state =
+                            value;
                       },
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('Notes'),
-                      selected: selectedFilter == MemoryFilter.notes,
-                      onSelected: (_) {
-                        ref.read(memoryFilterProvider.notifier).state =
-                            MemoryFilter.notes;
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ChoiceChip(
-                      label: const Text('PDFs'),
-                      selected: selectedFilter == MemoryFilter.pdfs,
-                      onSelected: (_) {
-                        ref.read(memoryFilterProvider.notifier).state =
-                            MemoryFilter.pdfs;
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                searchQuery.isEmpty ? 'Memories' : 'Search results',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: timeline.when(
-                  data: (memories) {
-                    if (memories.isEmpty) {
-                      return Center(
-                        child: Text(
-                          searchQuery.isEmpty
-                              ? 'No memories yet.'
-                              : 'No matching memories.',
+                      decoration: InputDecoration(
+                        hintText: isListening
+                            ? 'Listening...'
+                            : 'Ask NeuroLens...',
+                        hintStyle: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
                         ),
-                      );
-                    }
-
-                    return GridView.builder(
-                      padding: const EdgeInsets.only(bottom: 24),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Colors.white.withValues(alpha: 0.55),
+                        ),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (searchQuery.isNotEmpty)
+                              IconButton(
+                                onPressed: _clearSearch,
+                                tooltip: 'Clear search',
+                                icon: Icon(
+                                  Icons.close_rounded,
+                                  color: Colors.white.withValues(alpha: 0.65),
+                                ),
+                              ),
+                            IconButton(
+                              onPressed: _toggleVoiceSearch,
+                              tooltip: isListening
+                                  ? 'Stop voice search'
+                                  : 'Start voice search',
+                              icon: Icon(
+                                isListening
+                                    ? Icons.mic_rounded
+                                    : Icons.mic_none_rounded,
+                                color: isListening
+                                    ? _purple
+                                    : Colors.white.withValues(alpha: 0.72),
+                              ),
+                            ),
+                          ],
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _FilterButton(
+                            label: 'All',
+                            selected: selectedFilter == MemoryFilter.all,
+                            onTap: () {
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.all;
+                            },
                           ),
-                      itemCount: memories.length,
-                      itemBuilder: (context, index) {
-                        final memory = memories[index];
+                          const SizedBox(width: 8),
+                          _FilterButton(
+                            label: 'Images',
+                            selected: selectedFilter == MemoryFilter.images,
+                            onTap: () {
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.images;
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterButton(
+                            label: 'PDFs',
+                            selected: selectedFilter == MemoryFilter.pdfs,
+                            onTap: () {
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.pdfs;
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          _FilterButton(
+                            label: 'Notes',
+                            selected: selectedFilter == MemoryFilter.notes,
+                            onTap: () {
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.notes;
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(
+                children: [
+                  Text(
+                    searchQuery.isEmpty ? 'Memories' : 'Search results',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const Spacer(),
+                  timeline.maybeWhen(
+                    data: (memories) => Text(
+                      '${memories.length}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 13,
+                      ),
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: timeline.when(
+                data: (memories) {
+                  if (memories.isEmpty) {
+                    return _EmptyMemoriesView(
+                      isSearching: searchQuery.isNotEmpty,
+                      onImport: () => _openImportSheet(context),
+                    );
+                  }
 
-                        return MemoryGridItem(
+                  return GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
+                    physics: const BouncingScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 9,
+                          mainAxisSpacing: 9,
+                          childAspectRatio: 0.82,
+                        ),
+                    itemCount: memories.length,
+                    itemBuilder: (context, index) {
+                      final memory = memories[index];
+
+                      return RepaintBoundary(
+                        child: MemoryGridItem(
                           memory: memory,
                           onTap: () {
-                            _openMemory(
-                              context,
-                              memory.id,
-                              memory.title,
-                              memory.content,
-                              memory.originalPath,
-                              memory.type,
-                              memory.createdAt,
-                            );
+                            _openMemory(context, memory);
                           },
-                        );
-                      },
-                    );
-                  },
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stackTrace) => Center(
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(
+                  child: CircularProgressIndicator(color: _purple),
+                ),
+                error: (error, stackTrace) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
                     child: Text(
-                      'Could not load memories: $error',
+                      'Could not load memories:\n$error',
                       textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        height: 1.5,
+                      ),
                     ),
                   ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NeuroLensTitle extends StatelessWidget {
+  const _NeuroLensTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ShaderMask(
+        shaderCallback: (bounds) {
+          return const LinearGradient(
+            colors: [
+              Colors.white,
+              Colors.white,
+              Color(0xFFC084FC),
+              Color(0xFF22D3EE),
+            ],
+            stops: [0, 0.43, 0.68, 1],
+          ).createShader(bounds);
+        },
+        child: const Text(
+          'NeuroLens',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 27,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.8,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddMemoryButton extends StatelessWidget {
+  const _AddMemoryButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF8B5CF6),
+      shape: const CircleBorder(),
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: const SizedBox(
+          width: 44,
+          height: 44,
+          child: Icon(Icons.add_rounded, color: Colors.white, size: 27),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterButton extends StatelessWidget {
+  const _FilterButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: selected ? const Color(0xFF8B5CF6) : const Color(0xFF0D1321),
+      borderRadius: BorderRadius.circular(30),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(30),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected
+                  ? Colors.white
+                  : Colors.white.withValues(alpha: 0.68),
+              fontSize: 13,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyMemoriesView extends StatelessWidget {
+  const _EmptyMemoriesView({required this.isSearching, required this.onImport});
+
+  final bool isSearching;
+  final VoidCallback onImport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isSearching
+                  ? Icons.search_off_rounded
+                  : Icons.auto_awesome_outlined,
+              size: 52,
+              color: const Color(0xFFC084FC),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isSearching ? 'No matching memories' : 'No memories yet',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isSearching
+                  ? 'Try another search term.'
+                  : 'Import photos, PDFs, or notes to get started.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 13,
+              ),
+            ),
+            if (!isSearching) ...[
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: onImport,
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Import memory'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF8B5CF6),
+                  foregroundColor: Colors.white,
                 ),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );

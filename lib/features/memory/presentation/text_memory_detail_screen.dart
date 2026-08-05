@@ -22,6 +22,11 @@ class TextMemoryDetailScreen extends ConsumerStatefulWidget {
 
 class _TextMemoryDetailScreenState
     extends ConsumerState<TextMemoryDetailScreen> {
+  static const Color _backgroundColor = Color(0xFF050816);
+  static const Color _surfaceColor = Color(0xFF0D1321);
+  static const Color _surfaceHighlightColor = Color(0xFF141B2D);
+  static const Color _purple = Color(0xFF8B5CF6);
+
   bool _isSharing = false;
   bool _isDeleting = false;
 
@@ -68,29 +73,46 @@ class _TextMemoryDetailScreenState
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          icon: Icon(
+          backgroundColor: _surfaceColor,
+          surfaceTintColor: Colors.transparent,
+          icon: const Icon(
             Icons.delete_outline_rounded,
-            color: Theme.of(dialogContext).colorScheme.error,
+            color: Color(0xFFF87171),
+            size: 32,
           ),
-          title: const Text('Delete this note?'),
-          content: const Text(
+          title: const Text(
+            'Delete this note?',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: Text(
             'This note will be permanently removed from NeuroLens.',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.62),
+              height: 1.5,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(false);
               },
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.72),
+                ),
+              ),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(true);
               },
               style: FilledButton.styleFrom(
-                backgroundColor: Theme.of(dialogContext).colorScheme.error,
-                foregroundColor:
-                    Theme.of(dialogContext).colorScheme.onError,
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
               ),
               child: const Text('Delete'),
             ),
@@ -144,72 +166,160 @@ class _TextMemoryDetailScreenState
     return '$day/$month/$year at $hour:$minute';
   }
 
+  Widget _buildActionButton({
+    required VoidCallback? onPressed,
+    required Widget icon,
+    required String tooltip,
+  }) {
+    return Container(
+      width: 42,
+      height: 42,
+      margin: const EdgeInsets.only(left: 8),
+      decoration: BoxDecoration(
+        color: _surfaceColor,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.06),
+        ),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        tooltip: tooltip,
+        icon: icon,
+        color: Colors.white,
+        padding: EdgeInsets.zero,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: _backgroundColor,
       appBar: AppBar(
-        title: const Text('Text memory'),
+        backgroundColor: _backgroundColor,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        titleSpacing: 0,
+        title: const Text(
+          'Text memory',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         actions: [
-          IconButton(
+          _buildActionButton(
             onPressed: _isSharing || _isDeleting ? null : _shareNote,
             tooltip: 'Share note',
             icon: _isSharing
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
+                      color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.share_outlined),
+                : const Icon(
+                    Icons.share_outlined,
+                    size: 21,
+                  ),
           ),
-          IconButton(
+          _buildActionButton(
             onPressed: _isSharing || _isDeleting ? null : _confirmDelete,
             tooltip: 'Delete note',
             icon: _isDeleting
                 ? const SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
+                      color: Colors.white,
                     ),
                   )
-                : const Icon(Icons.delete_outline_rounded),
+                : const Icon(
+                    Icons.delete_outline_rounded,
+                    size: 22,
+                    color: Color(0xFFF87171),
+                  ),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 12),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SelectableText(
-              widget.content,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontSize: 18,
-                    height: 1.5,
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+          child: Column(
+            children: [
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: _surfaceColor,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.06),
+                    ),
                   ),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Icon(
-                  Icons.schedule_outlined,
-                  size: 16,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _formatDate(widget.createdAt),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color:
-                            Theme.of(context).colorScheme.onSurfaceVariant,
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      widget.content,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        height: 1.6,
                       ),
+                    ),
+                  ),
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: _surfaceHighlightColor,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.schedule_outlined,
+                      size: 18,
+                      color: _purple,
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        _formatDate(widget.createdAt),
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.auto_awesome_outlined,
+                      size: 17,
+                      color: Colors.white.withValues(alpha: 0.35),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
