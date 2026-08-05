@@ -305,7 +305,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 decoration: InputDecoration(
                   hintText: isListening
                       ? 'Listening...'
-                      : 'Search your memories...',
+                      : 'Ask NeuroLens...',
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: Row(
                     mainAxisSize: MainAxisSize.min,
