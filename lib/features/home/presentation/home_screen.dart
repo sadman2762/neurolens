@@ -240,7 +240,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => PdfViewerScreen(filePath: originalPath, title: title),
+          builder: (_) => PdfViewerScreen(memoryId: id,filePath: originalPath, title: title),
         ),
       );
       return;
@@ -250,6 +250,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => TextMemoryDetailScreen(
+            memoryId: id,
             content: content ?? title,
             createdAt: createdAt,
           ),

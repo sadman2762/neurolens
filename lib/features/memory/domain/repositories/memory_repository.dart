@@ -18,4 +18,6 @@ abstract class MemoryRepository {
     required String id,
     required String embedding,
   });
+
+  Future<void> deleteMemory(String id);
 }

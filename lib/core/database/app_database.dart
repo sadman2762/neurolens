@@ -37,17 +37,11 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
-          await migrator.addColumn(
-            memories,
-            memories.content,
-          );
+          await migrator.addColumn(memories, memories.content);
         }
 
         if (from < 3) {
-          await migrator.addColumn(
-            memories,
-            memories.embedding,
-          );
+          await migrator.addColumn(memories, memories.embedding);
         }
       },
     );
@@ -58,20 +52,15 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Stream<List<Memory>> watchAllMemories() {
-    return (select(memories)
-          ..orderBy([
-            (table) => OrderingTerm.desc(table.createdAt),
-          ]))
-        .watch();
+    return (select(
+      memories,
+    )..orderBy([(table) => OrderingTerm.desc(table.createdAt)])).watch();
   }
 
   Future<int> getMemoryCount() async {
     final countExpression = memories.id.count();
 
-    final query = selectOnly(memories)
-      ..addColumns([
-        countExpression,
-      ]);
+    final query = selectOnly(memories)..addColumns([countExpression]);
 
     final row = await query.getSingle();
 
@@ -83,9 +72,7 @@ class AppDatabase extends _$AppDatabase {
     required String content,
   }) {
     return (update(memories)..where((row) => row.id.equals(id))).write(
-      MemoriesCompanion(
-        content: Value(content),
-      ),
+      MemoriesCompanion(content: Value(content)),
     );
   }
 
@@ -94,9 +81,11 @@ class AppDatabase extends _$AppDatabase {
     required String embedding,
   }) {
     return (update(memories)..where((row) => row.id.equals(id))).write(
-      MemoriesCompanion(
-        embedding: Value(embedding),
-      ),
+      MemoriesCompanion(embedding: Value(embedding)),
     );
+  }
+
+  Future<void> deleteMemory(String id) {
+    return (delete(memories)..where((row) => row.id.equals(id))).go();
   }
 }

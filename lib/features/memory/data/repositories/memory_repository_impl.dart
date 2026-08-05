@@ -80,4 +80,9 @@ class MemoryRepositoryImpl implements MemoryRepository {
   }) {
     return _database.updateMemoryEmbedding(id: id, embedding: embedding);
   }
+
+  @override
+  Future<void> deleteMemory(String id) {
+    return _database.deleteMemory(id);
+  }
 }
