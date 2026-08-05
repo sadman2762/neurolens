@@ -68,6 +68,95 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _visionCaptionMeta = const VerificationMeta(
+    'visionCaption',
+  );
+  @override
+  late final GeneratedColumn<String> visionCaption = GeneratedColumn<String>(
+    'vision_caption',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionSceneMeta = const VerificationMeta(
+    'visionScene',
+  );
+  @override
+  late final GeneratedColumn<String> visionScene = GeneratedColumn<String>(
+    'vision_scene',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionObjectsMeta = const VerificationMeta(
+    'visionObjects',
+  );
+  @override
+  late final GeneratedColumn<String> visionObjects = GeneratedColumn<String>(
+    'vision_objects',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionKeywordsMeta = const VerificationMeta(
+    'visionKeywords',
+  );
+  @override
+  late final GeneratedColumn<String> visionKeywords = GeneratedColumn<String>(
+    'vision_keywords',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionColorsMeta = const VerificationMeta(
+    'visionColors',
+  );
+  @override
+  late final GeneratedColumn<String> visionColors = GeneratedColumn<String>(
+    'vision_colors',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionModelMeta = const VerificationMeta(
+    'visionModel',
+  );
+  @override
+  late final GeneratedColumn<String> visionModel = GeneratedColumn<String>(
+    'vision_model',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionImageHashMeta = const VerificationMeta(
+    'visionImageHash',
+  );
+  @override
+  late final GeneratedColumn<String> visionImageHash = GeneratedColumn<String>(
+    'vision_image_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _visionProcessedAtMeta = const VerificationMeta(
+    'visionProcessedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> visionProcessedAt =
+      GeneratedColumn<DateTime>(
+        'vision_processed_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -87,6 +176,14 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     content,
     embedding,
     originalPath,
+    visionCaption,
+    visionScene,
+    visionObjects,
+    visionKeywords,
+    visionColors,
+    visionModel,
+    visionImageHash,
+    visionProcessedAt,
     createdAt,
   ];
   @override
@@ -143,6 +240,78 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         ),
       );
     }
+    if (data.containsKey('vision_caption')) {
+      context.handle(
+        _visionCaptionMeta,
+        visionCaption.isAcceptableOrUnknown(
+          data['vision_caption']!,
+          _visionCaptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_scene')) {
+      context.handle(
+        _visionSceneMeta,
+        visionScene.isAcceptableOrUnknown(
+          data['vision_scene']!,
+          _visionSceneMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_objects')) {
+      context.handle(
+        _visionObjectsMeta,
+        visionObjects.isAcceptableOrUnknown(
+          data['vision_objects']!,
+          _visionObjectsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_keywords')) {
+      context.handle(
+        _visionKeywordsMeta,
+        visionKeywords.isAcceptableOrUnknown(
+          data['vision_keywords']!,
+          _visionKeywordsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_colors')) {
+      context.handle(
+        _visionColorsMeta,
+        visionColors.isAcceptableOrUnknown(
+          data['vision_colors']!,
+          _visionColorsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_model')) {
+      context.handle(
+        _visionModelMeta,
+        visionModel.isAcceptableOrUnknown(
+          data['vision_model']!,
+          _visionModelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_image_hash')) {
+      context.handle(
+        _visionImageHashMeta,
+        visionImageHash.isAcceptableOrUnknown(
+          data['vision_image_hash']!,
+          _visionImageHashMeta,
+        ),
+      );
+    }
+    if (data.containsKey('vision_processed_at')) {
+      context.handle(
+        _visionProcessedAtMeta,
+        visionProcessedAt.isAcceptableOrUnknown(
+          data['vision_processed_at']!,
+          _visionProcessedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -184,6 +353,38 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         DriftSqlType.string,
         data['${effectivePrefix}original_path'],
       ),
+      visionCaption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_caption'],
+      ),
+      visionScene: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_scene'],
+      ),
+      visionObjects: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_objects'],
+      ),
+      visionKeywords: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_keywords'],
+      ),
+      visionColors: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_colors'],
+      ),
+      visionModel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_model'],
+      ),
+      visionImageHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}vision_image_hash'],
+      ),
+      visionProcessedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}vision_processed_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -204,6 +405,14 @@ class Memory extends DataClass implements Insertable<Memory> {
   final String? content;
   final String? embedding;
   final String? originalPath;
+  final String? visionCaption;
+  final String? visionScene;
+  final String? visionObjects;
+  final String? visionKeywords;
+  final String? visionColors;
+  final String? visionModel;
+  final String? visionImageHash;
+  final DateTime? visionProcessedAt;
   final DateTime createdAt;
   const Memory({
     required this.id,
@@ -212,6 +421,14 @@ class Memory extends DataClass implements Insertable<Memory> {
     this.content,
     this.embedding,
     this.originalPath,
+    this.visionCaption,
+    this.visionScene,
+    this.visionObjects,
+    this.visionKeywords,
+    this.visionColors,
+    this.visionModel,
+    this.visionImageHash,
+    this.visionProcessedAt,
     required this.createdAt,
   });
   @override
@@ -228,6 +445,30 @@ class Memory extends DataClass implements Insertable<Memory> {
     }
     if (!nullToAbsent || originalPath != null) {
       map['original_path'] = Variable<String>(originalPath);
+    }
+    if (!nullToAbsent || visionCaption != null) {
+      map['vision_caption'] = Variable<String>(visionCaption);
+    }
+    if (!nullToAbsent || visionScene != null) {
+      map['vision_scene'] = Variable<String>(visionScene);
+    }
+    if (!nullToAbsent || visionObjects != null) {
+      map['vision_objects'] = Variable<String>(visionObjects);
+    }
+    if (!nullToAbsent || visionKeywords != null) {
+      map['vision_keywords'] = Variable<String>(visionKeywords);
+    }
+    if (!nullToAbsent || visionColors != null) {
+      map['vision_colors'] = Variable<String>(visionColors);
+    }
+    if (!nullToAbsent || visionModel != null) {
+      map['vision_model'] = Variable<String>(visionModel);
+    }
+    if (!nullToAbsent || visionImageHash != null) {
+      map['vision_image_hash'] = Variable<String>(visionImageHash);
+    }
+    if (!nullToAbsent || visionProcessedAt != null) {
+      map['vision_processed_at'] = Variable<DateTime>(visionProcessedAt);
     }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -247,6 +488,30 @@ class Memory extends DataClass implements Insertable<Memory> {
       originalPath: originalPath == null && nullToAbsent
           ? const Value.absent()
           : Value(originalPath),
+      visionCaption: visionCaption == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionCaption),
+      visionScene: visionScene == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionScene),
+      visionObjects: visionObjects == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionObjects),
+      visionKeywords: visionKeywords == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionKeywords),
+      visionColors: visionColors == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionColors),
+      visionModel: visionModel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionModel),
+      visionImageHash: visionImageHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionImageHash),
+      visionProcessedAt: visionProcessedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(visionProcessedAt),
       createdAt: Value(createdAt),
     );
   }
@@ -263,6 +528,16 @@ class Memory extends DataClass implements Insertable<Memory> {
       content: serializer.fromJson<String?>(json['content']),
       embedding: serializer.fromJson<String?>(json['embedding']),
       originalPath: serializer.fromJson<String?>(json['originalPath']),
+      visionCaption: serializer.fromJson<String?>(json['visionCaption']),
+      visionScene: serializer.fromJson<String?>(json['visionScene']),
+      visionObjects: serializer.fromJson<String?>(json['visionObjects']),
+      visionKeywords: serializer.fromJson<String?>(json['visionKeywords']),
+      visionColors: serializer.fromJson<String?>(json['visionColors']),
+      visionModel: serializer.fromJson<String?>(json['visionModel']),
+      visionImageHash: serializer.fromJson<String?>(json['visionImageHash']),
+      visionProcessedAt: serializer.fromJson<DateTime?>(
+        json['visionProcessedAt'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -276,6 +551,14 @@ class Memory extends DataClass implements Insertable<Memory> {
       'content': serializer.toJson<String?>(content),
       'embedding': serializer.toJson<String?>(embedding),
       'originalPath': serializer.toJson<String?>(originalPath),
+      'visionCaption': serializer.toJson<String?>(visionCaption),
+      'visionScene': serializer.toJson<String?>(visionScene),
+      'visionObjects': serializer.toJson<String?>(visionObjects),
+      'visionKeywords': serializer.toJson<String?>(visionKeywords),
+      'visionColors': serializer.toJson<String?>(visionColors),
+      'visionModel': serializer.toJson<String?>(visionModel),
+      'visionImageHash': serializer.toJson<String?>(visionImageHash),
+      'visionProcessedAt': serializer.toJson<DateTime?>(visionProcessedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -287,6 +570,14 @@ class Memory extends DataClass implements Insertable<Memory> {
     Value<String?> content = const Value.absent(),
     Value<String?> embedding = const Value.absent(),
     Value<String?> originalPath = const Value.absent(),
+    Value<String?> visionCaption = const Value.absent(),
+    Value<String?> visionScene = const Value.absent(),
+    Value<String?> visionObjects = const Value.absent(),
+    Value<String?> visionKeywords = const Value.absent(),
+    Value<String?> visionColors = const Value.absent(),
+    Value<String?> visionModel = const Value.absent(),
+    Value<String?> visionImageHash = const Value.absent(),
+    Value<DateTime?> visionProcessedAt = const Value.absent(),
     DateTime? createdAt,
   }) => Memory(
     id: id ?? this.id,
@@ -295,6 +586,24 @@ class Memory extends DataClass implements Insertable<Memory> {
     content: content.present ? content.value : this.content,
     embedding: embedding.present ? embedding.value : this.embedding,
     originalPath: originalPath.present ? originalPath.value : this.originalPath,
+    visionCaption: visionCaption.present
+        ? visionCaption.value
+        : this.visionCaption,
+    visionScene: visionScene.present ? visionScene.value : this.visionScene,
+    visionObjects: visionObjects.present
+        ? visionObjects.value
+        : this.visionObjects,
+    visionKeywords: visionKeywords.present
+        ? visionKeywords.value
+        : this.visionKeywords,
+    visionColors: visionColors.present ? visionColors.value : this.visionColors,
+    visionModel: visionModel.present ? visionModel.value : this.visionModel,
+    visionImageHash: visionImageHash.present
+        ? visionImageHash.value
+        : this.visionImageHash,
+    visionProcessedAt: visionProcessedAt.present
+        ? visionProcessedAt.value
+        : this.visionProcessedAt,
     createdAt: createdAt ?? this.createdAt,
   );
   Memory copyWithCompanion(MemoriesCompanion data) {
@@ -307,6 +616,30 @@ class Memory extends DataClass implements Insertable<Memory> {
       originalPath: data.originalPath.present
           ? data.originalPath.value
           : this.originalPath,
+      visionCaption: data.visionCaption.present
+          ? data.visionCaption.value
+          : this.visionCaption,
+      visionScene: data.visionScene.present
+          ? data.visionScene.value
+          : this.visionScene,
+      visionObjects: data.visionObjects.present
+          ? data.visionObjects.value
+          : this.visionObjects,
+      visionKeywords: data.visionKeywords.present
+          ? data.visionKeywords.value
+          : this.visionKeywords,
+      visionColors: data.visionColors.present
+          ? data.visionColors.value
+          : this.visionColors,
+      visionModel: data.visionModel.present
+          ? data.visionModel.value
+          : this.visionModel,
+      visionImageHash: data.visionImageHash.present
+          ? data.visionImageHash.value
+          : this.visionImageHash,
+      visionProcessedAt: data.visionProcessedAt.present
+          ? data.visionProcessedAt.value
+          : this.visionProcessedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -320,14 +653,37 @@ class Memory extends DataClass implements Insertable<Memory> {
           ..write('content: $content, ')
           ..write('embedding: $embedding, ')
           ..write('originalPath: $originalPath, ')
+          ..write('visionCaption: $visionCaption, ')
+          ..write('visionScene: $visionScene, ')
+          ..write('visionObjects: $visionObjects, ')
+          ..write('visionKeywords: $visionKeywords, ')
+          ..write('visionColors: $visionColors, ')
+          ..write('visionModel: $visionModel, ')
+          ..write('visionImageHash: $visionImageHash, ')
+          ..write('visionProcessedAt: $visionProcessedAt, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, type, title, content, embedding, originalPath, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    type,
+    title,
+    content,
+    embedding,
+    originalPath,
+    visionCaption,
+    visionScene,
+    visionObjects,
+    visionKeywords,
+    visionColors,
+    visionModel,
+    visionImageHash,
+    visionProcessedAt,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -338,6 +694,14 @@ class Memory extends DataClass implements Insertable<Memory> {
           other.content == this.content &&
           other.embedding == this.embedding &&
           other.originalPath == this.originalPath &&
+          other.visionCaption == this.visionCaption &&
+          other.visionScene == this.visionScene &&
+          other.visionObjects == this.visionObjects &&
+          other.visionKeywords == this.visionKeywords &&
+          other.visionColors == this.visionColors &&
+          other.visionModel == this.visionModel &&
+          other.visionImageHash == this.visionImageHash &&
+          other.visionProcessedAt == this.visionProcessedAt &&
           other.createdAt == this.createdAt);
 }
 
@@ -348,6 +712,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
   final Value<String?> content;
   final Value<String?> embedding;
   final Value<String?> originalPath;
+  final Value<String?> visionCaption;
+  final Value<String?> visionScene;
+  final Value<String?> visionObjects;
+  final Value<String?> visionKeywords;
+  final Value<String?> visionColors;
+  final Value<String?> visionModel;
+  final Value<String?> visionImageHash;
+  final Value<DateTime?> visionProcessedAt;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const MemoriesCompanion({
@@ -357,6 +729,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     this.content = const Value.absent(),
     this.embedding = const Value.absent(),
     this.originalPath = const Value.absent(),
+    this.visionCaption = const Value.absent(),
+    this.visionScene = const Value.absent(),
+    this.visionObjects = const Value.absent(),
+    this.visionKeywords = const Value.absent(),
+    this.visionColors = const Value.absent(),
+    this.visionModel = const Value.absent(),
+    this.visionImageHash = const Value.absent(),
+    this.visionProcessedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -367,6 +747,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     this.content = const Value.absent(),
     this.embedding = const Value.absent(),
     this.originalPath = const Value.absent(),
+    this.visionCaption = const Value.absent(),
+    this.visionScene = const Value.absent(),
+    this.visionObjects = const Value.absent(),
+    this.visionKeywords = const Value.absent(),
+    this.visionColors = const Value.absent(),
+    this.visionModel = const Value.absent(),
+    this.visionImageHash = const Value.absent(),
+    this.visionProcessedAt = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -380,6 +768,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Expression<String>? content,
     Expression<String>? embedding,
     Expression<String>? originalPath,
+    Expression<String>? visionCaption,
+    Expression<String>? visionScene,
+    Expression<String>? visionObjects,
+    Expression<String>? visionKeywords,
+    Expression<String>? visionColors,
+    Expression<String>? visionModel,
+    Expression<String>? visionImageHash,
+    Expression<DateTime>? visionProcessedAt,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -390,6 +786,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       if (content != null) 'content': content,
       if (embedding != null) 'embedding': embedding,
       if (originalPath != null) 'original_path': originalPath,
+      if (visionCaption != null) 'vision_caption': visionCaption,
+      if (visionScene != null) 'vision_scene': visionScene,
+      if (visionObjects != null) 'vision_objects': visionObjects,
+      if (visionKeywords != null) 'vision_keywords': visionKeywords,
+      if (visionColors != null) 'vision_colors': visionColors,
+      if (visionModel != null) 'vision_model': visionModel,
+      if (visionImageHash != null) 'vision_image_hash': visionImageHash,
+      if (visionProcessedAt != null) 'vision_processed_at': visionProcessedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -402,6 +806,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Value<String?>? content,
     Value<String?>? embedding,
     Value<String?>? originalPath,
+    Value<String?>? visionCaption,
+    Value<String?>? visionScene,
+    Value<String?>? visionObjects,
+    Value<String?>? visionKeywords,
+    Value<String?>? visionColors,
+    Value<String?>? visionModel,
+    Value<String?>? visionImageHash,
+    Value<DateTime?>? visionProcessedAt,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -412,6 +824,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       content: content ?? this.content,
       embedding: embedding ?? this.embedding,
       originalPath: originalPath ?? this.originalPath,
+      visionCaption: visionCaption ?? this.visionCaption,
+      visionScene: visionScene ?? this.visionScene,
+      visionObjects: visionObjects ?? this.visionObjects,
+      visionKeywords: visionKeywords ?? this.visionKeywords,
+      visionColors: visionColors ?? this.visionColors,
+      visionModel: visionModel ?? this.visionModel,
+      visionImageHash: visionImageHash ?? this.visionImageHash,
+      visionProcessedAt: visionProcessedAt ?? this.visionProcessedAt,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -438,6 +858,30 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     if (originalPath.present) {
       map['original_path'] = Variable<String>(originalPath.value);
     }
+    if (visionCaption.present) {
+      map['vision_caption'] = Variable<String>(visionCaption.value);
+    }
+    if (visionScene.present) {
+      map['vision_scene'] = Variable<String>(visionScene.value);
+    }
+    if (visionObjects.present) {
+      map['vision_objects'] = Variable<String>(visionObjects.value);
+    }
+    if (visionKeywords.present) {
+      map['vision_keywords'] = Variable<String>(visionKeywords.value);
+    }
+    if (visionColors.present) {
+      map['vision_colors'] = Variable<String>(visionColors.value);
+    }
+    if (visionModel.present) {
+      map['vision_model'] = Variable<String>(visionModel.value);
+    }
+    if (visionImageHash.present) {
+      map['vision_image_hash'] = Variable<String>(visionImageHash.value);
+    }
+    if (visionProcessedAt.present) {
+      map['vision_processed_at'] = Variable<DateTime>(visionProcessedAt.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -456,6 +900,14 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
           ..write('content: $content, ')
           ..write('embedding: $embedding, ')
           ..write('originalPath: $originalPath, ')
+          ..write('visionCaption: $visionCaption, ')
+          ..write('visionScene: $visionScene, ')
+          ..write('visionObjects: $visionObjects, ')
+          ..write('visionKeywords: $visionKeywords, ')
+          ..write('visionColors: $visionColors, ')
+          ..write('visionModel: $visionModel, ')
+          ..write('visionImageHash: $visionImageHash, ')
+          ..write('visionProcessedAt: $visionProcessedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -482,6 +934,14 @@ typedef $$MemoriesTableCreateCompanionBuilder =
       Value<String?> content,
       Value<String?> embedding,
       Value<String?> originalPath,
+      Value<String?> visionCaption,
+      Value<String?> visionScene,
+      Value<String?> visionObjects,
+      Value<String?> visionKeywords,
+      Value<String?> visionColors,
+      Value<String?> visionModel,
+      Value<String?> visionImageHash,
+      Value<DateTime?> visionProcessedAt,
       required DateTime createdAt,
       Value<int> rowid,
     });
@@ -493,6 +953,14 @@ typedef $$MemoriesTableUpdateCompanionBuilder =
       Value<String?> content,
       Value<String?> embedding,
       Value<String?> originalPath,
+      Value<String?> visionCaption,
+      Value<String?> visionScene,
+      Value<String?> visionObjects,
+      Value<String?> visionKeywords,
+      Value<String?> visionColors,
+      Value<String?> visionModel,
+      Value<String?> visionImageHash,
+      Value<DateTime?> visionProcessedAt,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -533,6 +1001,46 @@ class $$MemoriesTableFilterComposer
 
   ColumnFilters<String> get originalPath => $composableBuilder(
     column: $table.originalPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionCaption => $composableBuilder(
+    column: $table.visionCaption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionScene => $composableBuilder(
+    column: $table.visionScene,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionObjects => $composableBuilder(
+    column: $table.visionObjects,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionKeywords => $composableBuilder(
+    column: $table.visionKeywords,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionColors => $composableBuilder(
+    column: $table.visionColors,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionModel => $composableBuilder(
+    column: $table.visionModel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get visionImageHash => $composableBuilder(
+    column: $table.visionImageHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get visionProcessedAt => $composableBuilder(
+    column: $table.visionProcessedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -581,6 +1089,46 @@ class $$MemoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get visionCaption => $composableBuilder(
+    column: $table.visionCaption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visionScene => $composableBuilder(
+    column: $table.visionScene,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visionObjects => $composableBuilder(
+    column: $table.visionObjects,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visionKeywords => $composableBuilder(
+    column: $table.visionKeywords,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visionColors => $composableBuilder(
+    column: $table.visionColors,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visionModel => $composableBuilder(
+    column: $table.visionModel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get visionImageHash => $composableBuilder(
+    column: $table.visionImageHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get visionProcessedAt => $composableBuilder(
+    column: $table.visionProcessedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -613,6 +1161,46 @@ class $$MemoriesTableAnnotationComposer
 
   GeneratedColumn<String> get originalPath => $composableBuilder(
     column: $table.originalPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionCaption => $composableBuilder(
+    column: $table.visionCaption,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionScene => $composableBuilder(
+    column: $table.visionScene,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionObjects => $composableBuilder(
+    column: $table.visionObjects,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionKeywords => $composableBuilder(
+    column: $table.visionKeywords,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionColors => $composableBuilder(
+    column: $table.visionColors,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionModel => $composableBuilder(
+    column: $table.visionModel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get visionImageHash => $composableBuilder(
+    column: $table.visionImageHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get visionProcessedAt => $composableBuilder(
+    column: $table.visionProcessedAt,
     builder: (column) => column,
   );
 
@@ -654,6 +1242,14 @@ class $$MemoriesTableTableManager
                 Value<String?> content = const Value.absent(),
                 Value<String?> embedding = const Value.absent(),
                 Value<String?> originalPath = const Value.absent(),
+                Value<String?> visionCaption = const Value.absent(),
+                Value<String?> visionScene = const Value.absent(),
+                Value<String?> visionObjects = const Value.absent(),
+                Value<String?> visionKeywords = const Value.absent(),
+                Value<String?> visionColors = const Value.absent(),
+                Value<String?> visionModel = const Value.absent(),
+                Value<String?> visionImageHash = const Value.absent(),
+                Value<DateTime?> visionProcessedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemoriesCompanion(
@@ -663,6 +1259,14 @@ class $$MemoriesTableTableManager
                 content: content,
                 embedding: embedding,
                 originalPath: originalPath,
+                visionCaption: visionCaption,
+                visionScene: visionScene,
+                visionObjects: visionObjects,
+                visionKeywords: visionKeywords,
+                visionColors: visionColors,
+                visionModel: visionModel,
+                visionImageHash: visionImageHash,
+                visionProcessedAt: visionProcessedAt,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -674,6 +1278,14 @@ class $$MemoriesTableTableManager
                 Value<String?> content = const Value.absent(),
                 Value<String?> embedding = const Value.absent(),
                 Value<String?> originalPath = const Value.absent(),
+                Value<String?> visionCaption = const Value.absent(),
+                Value<String?> visionScene = const Value.absent(),
+                Value<String?> visionObjects = const Value.absent(),
+                Value<String?> visionKeywords = const Value.absent(),
+                Value<String?> visionColors = const Value.absent(),
+                Value<String?> visionModel = const Value.absent(),
+                Value<String?> visionImageHash = const Value.absent(),
+                Value<DateTime?> visionProcessedAt = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => MemoriesCompanion.insert(
@@ -683,6 +1295,14 @@ class $$MemoriesTableTableManager
                 content: content,
                 embedding: embedding,
                 originalPath: originalPath,
+                visionCaption: visionCaption,
+                visionScene: visionScene,
+                visionObjects: visionObjects,
+                visionKeywords: visionKeywords,
+                visionColors: visionColors,
+                visionModel: visionModel,
+                visionImageHash: visionImageHash,
+                visionProcessedAt: visionProcessedAt,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

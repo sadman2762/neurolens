@@ -12,6 +12,8 @@ import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/data/photo_import_service.dart';
 import 'package:neurolens/features/memory/data/photo_picker_service.dart';
+import 'package:neurolens/features/memory/data/image_content_classifier.dart';
+import 'package:neurolens/features/memory/data/vision_service.dart';
 
 final galleryRepositoryProvider = Provider<GalleryRepositoryImpl>((ref) {
   return GalleryRepositoryImpl();
@@ -41,13 +43,35 @@ final ocrProcessingServiceProvider = Provider<OcrProcessingService>((ref) {
   );
 });
 
+final imageContentClassifierProvider = Provider<ImageContentClassifier>((ref) {
+  return const ImageContentClassifier();
+});
+
 final photoPickerServiceProvider = Provider<PhotoPickerService>((ref) {
   return const PhotoPickerService();
+});
+
+final visionServiceProvider = Provider<VisionService>((ref) {
+  const backendBaseUrl = String.fromEnvironment(
+    'NEUROLENS_BACKEND_URL',
+    defaultValue: 'http://10.0.2.2:8000',
+  );
+
+  final service = VisionService(
+    baseUrl: backendBaseUrl,
+  );
+
+  ref.onDispose(service.dispose);
+
+  return service;
 });
 
 final photoImportServiceProvider = Provider<PhotoImportService>((ref) {
   return PhotoImportService(
     memoryRepository: ref.watch(memoryRepositoryProvider),
+    ocrProcessingService: ref.watch(ocrProcessingServiceProvider),
+    imageContentClassifier: ref.watch(imageContentClassifierProvider),
+    visionService: ref.watch(visionServiceProvider),
   );
 });
 
@@ -154,10 +178,23 @@ double _calculateKeywordScore({
 }) {
   final normalizedTitle = _normalizeText(memory.title);
   final normalizedContent = _normalizeText(memory.content ?? '');
+  final normalizedCaption = _normalizeText(memory.visionCaption ?? '');
+  final normalizedScene = _normalizeText(memory.visionScene ?? '');
+  final normalizedObjects = _normalizeText(memory.visionObjects ?? '');
+  final normalizedKeywords = _normalizeText(memory.visionKeywords ?? '');
+  final normalizedColors = _normalizeText(memory.visionColors ?? '');
+
+  final visionSearchText = [
+    normalizedCaption,
+    normalizedScene,
+    normalizedObjects,
+    normalizedKeywords,
+    normalizedColors,
+  ].where((value) => value.isNotEmpty).join(' ');
 
   var score = 0.0;
 
-  // Exact phrase matches are strongest.
+  // Exact phrase matches.
   if (normalizedTitle.contains(normalizedQuery)) {
     score += 10;
   }
@@ -166,7 +203,27 @@ double _calculateKeywordScore({
     score += 6;
   }
 
-  // Individual title words are more important than content words.
+  if (normalizedKeywords.contains(normalizedQuery)) {
+    score += 9;
+  }
+
+  if (normalizedObjects.contains(normalizedQuery)) {
+    score += 8;
+  }
+
+  if (normalizedCaption.contains(normalizedQuery)) {
+    score += 7;
+  }
+
+  if (normalizedScene.contains(normalizedQuery)) {
+    score += 5;
+  }
+
+  if (normalizedColors.contains(normalizedQuery)) {
+    score += 4;
+  }
+
+  // Individual word matches.
   for (final token in queryTokens) {
     if (normalizedTitle.contains(token)) {
       score += 3;
@@ -175,17 +232,38 @@ double _calculateKeywordScore({
     if (normalizedContent.contains(token)) {
       score += 1.5;
     }
+
+    if (normalizedKeywords.contains(token)) {
+      score += 3;
+    }
+
+    if (normalizedObjects.contains(token)) {
+      score += 2.5;
+    }
+
+    if (normalizedCaption.contains(token)) {
+      score += 2;
+    }
+
+    if (normalizedScene.contains(token)) {
+      score += 1.5;
+    }
+
+    if (normalizedColors.contains(token)) {
+      score += 1;
+    }
   }
 
-  // Reward memories matching most of the useful query words.
+  // Reward memories that match most query words.
   if (queryTokens.isNotEmpty) {
     final matchedTokens = queryTokens.where((token) {
       return normalizedTitle.contains(token) ||
-          normalizedContent.contains(token);
+          normalizedContent.contains(token) ||
+          visionSearchText.contains(token);
     }).length;
 
     final coverage = matchedTokens / queryTokens.length;
-    score += coverage * 4;
+    score += coverage * 5;
   }
 
   return score;

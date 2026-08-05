@@ -16,7 +16,16 @@ class MemoryRepositoryImpl implements MemoryRepository {
         type: Value(memory.type),
         title: Value(memory.title),
         content: Value(memory.content),
+        embedding: Value(memory.embedding),
         originalPath: Value(memory.originalPath),
+        visionCaption: Value(memory.visionCaption),
+        visionScene: Value(memory.visionScene),
+        visionObjects: Value(memory.visionObjects),
+        visionKeywords: Value(memory.visionKeywords),
+        visionColors: Value(memory.visionColors),
+        visionModel: Value(memory.visionModel),
+        visionImageHash: Value(memory.visionImageHash),
+        visionProcessedAt: Value(memory.visionProcessedAt),
         createdAt: Value(memory.createdAt),
       ),
     );
@@ -34,6 +43,14 @@ class MemoryRepositoryImpl implements MemoryRepository {
             content: Value(memory.content),
             embedding: Value(memory.embedding),
             originalPath: Value(memory.originalPath),
+            visionCaption: Value(memory.visionCaption),
+            visionScene: Value(memory.visionScene),
+            visionObjects: Value(memory.visionObjects),
+            visionKeywords: Value(memory.visionKeywords),
+            visionColors: Value(memory.visionColors),
+            visionModel: Value(memory.visionModel),
+            visionImageHash: Value(memory.visionImageHash),
+            visionProcessedAt: Value(memory.visionProcessedAt),
             createdAt: Value(memory.createdAt),
           ),
         );
@@ -58,6 +75,14 @@ class MemoryRepositoryImpl implements MemoryRepository {
               content: row.content,
               embedding: row.embedding,
               originalPath: row.originalPath,
+              visionCaption: row.visionCaption,
+              visionScene: row.visionScene,
+              visionObjects: row.visionObjects,
+              visionKeywords: row.visionKeywords,
+              visionColors: row.visionColors,
+              visionModel: row.visionModel,
+              visionImageHash: row.visionImageHash,
+              visionProcessedAt: row.visionProcessedAt,
               createdAt: row.createdAt,
             ),
           )
@@ -70,7 +95,10 @@ class MemoryRepositoryImpl implements MemoryRepository {
     required String id,
     required String content,
   }) {
-    return _database.updateMemoryContent(id: id, content: content);
+    return _database.updateMemoryContent(
+      id: id,
+      content: content,
+    );
   }
 
   @override
@@ -78,7 +106,34 @@ class MemoryRepositoryImpl implements MemoryRepository {
     required String id,
     required String embedding,
   }) {
-    return _database.updateMemoryEmbedding(id: id, embedding: embedding);
+    return _database.updateMemoryEmbedding(
+      id: id,
+      embedding: embedding,
+    );
+  }
+
+  Future<void> updateMemoryVisionMetadata({
+    required String id,
+    required String caption,
+    required String scene,
+    required String objects,
+    required String keywords,
+    required String colors,
+    required String model,
+    required String imageHash,
+    required DateTime processedAt,
+  }) {
+    return _database.updateMemoryVisionMetadata(
+      id: id,
+      caption: caption,
+      scene: scene,
+      objects: objects,
+      keywords: keywords,
+      colors: colors,
+      model: model,
+      imageHash: imageHash,
+      processedAt: processedAt,
+    );
   }
 
   @override

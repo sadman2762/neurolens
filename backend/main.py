@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
+from app.api.routes.vision import router as vision_router
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -18,7 +19,7 @@ logger = logging.getLogger("neurolens")
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="AI indexing and semantic-search backend for NeuroLens.",
+    description="AI-powered image indexing backend for NeuroLens.",
 )
 
 app.add_middleware(
@@ -29,7 +30,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Routes
 app.include_router(health_router)
+app.include_router(vision_router)
 
 
 @app.on_event("startup")
@@ -40,3 +43,12 @@ async def startup_event() -> None:
         settings.app_version,
         settings.environment,
     )
+
+
+@app.get("/")
+async def root():
+    return {
+        "name": settings.app_name,
+        "version": settings.app_version,
+        "status": "running",
+    }

@@ -16,6 +16,22 @@ class Memories extends Table {
 
   TextColumn get originalPath => text().nullable()();
 
+  TextColumn get visionCaption => text().nullable()();
+
+  TextColumn get visionScene => text().nullable()();
+
+  TextColumn get visionObjects => text().nullable()();
+
+  TextColumn get visionKeywords => text().nullable()();
+
+  TextColumn get visionColors => text().nullable()();
+
+  TextColumn get visionModel => text().nullable()();
+
+  TextColumn get visionImageHash => text().nullable()();
+
+  DateTimeColumn get visionProcessedAt => dateTime().nullable()();
+
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -27,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'neurolens'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -42,6 +58,17 @@ class AppDatabase extends _$AppDatabase {
 
         if (from < 3) {
           await migrator.addColumn(memories, memories.embedding);
+        }
+
+        if (from < 4) {
+          await migrator.addColumn(memories, memories.visionCaption);
+          await migrator.addColumn(memories, memories.visionScene);
+          await migrator.addColumn(memories, memories.visionObjects);
+          await migrator.addColumn(memories, memories.visionKeywords);
+          await migrator.addColumn(memories, memories.visionColors);
+          await migrator.addColumn(memories, memories.visionModel);
+          await migrator.addColumn(memories, memories.visionImageHash);
+          await migrator.addColumn(memories, memories.visionProcessedAt);
         }
       },
     );
@@ -72,7 +99,9 @@ class AppDatabase extends _$AppDatabase {
     required String content,
   }) {
     return (update(memories)..where((row) => row.id.equals(id))).write(
-      MemoriesCompanion(content: Value(content)),
+      MemoriesCompanion(
+        content: Value(content),
+      ),
     );
   }
 
@@ -81,7 +110,34 @@ class AppDatabase extends _$AppDatabase {
     required String embedding,
   }) {
     return (update(memories)..where((row) => row.id.equals(id))).write(
-      MemoriesCompanion(embedding: Value(embedding)),
+      MemoriesCompanion(
+        embedding: Value(embedding),
+      ),
+    );
+  }
+
+  Future<void> updateMemoryVisionMetadata({
+    required String id,
+    required String caption,
+    required String scene,
+    required String objects,
+    required String keywords,
+    required String colors,
+    required String model,
+    required String imageHash,
+    required DateTime processedAt,
+  }) {
+    return (update(memories)..where((row) => row.id.equals(id))).write(
+      MemoriesCompanion(
+        visionCaption: Value(caption),
+        visionScene: Value(scene),
+        visionObjects: Value(objects),
+        visionKeywords: Value(keywords),
+        visionColors: Value(colors),
+        visionModel: Value(model),
+        visionImageHash: Value(imageHash),
+        visionProcessedAt: Value(processedAt),
+      ),
     );
   }
 
