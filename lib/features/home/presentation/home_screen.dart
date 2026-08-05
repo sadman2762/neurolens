@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:neurolens/features/memory/data/gallery_permission_service.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
 import 'package:neurolens/features/memory/presentation/memory_detail_screen.dart';
@@ -31,45 +30,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _syncGallery(BuildContext context) async {
-    final permissionService = GalleryPermissionService();
-    final hasAccess = await permissionService.requestPermission();
-
-    if (!context.mounted) return;
-
-    if (!hasAccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gallery access was not granted.')),
-      );
-      return;
-    }
-
+  Future<void> _importPhotos() async {
     try {
-      final syncService = ref.read(gallerySyncServiceProvider);
-      final memoryRepository = ref.read(memoryRepositoryProvider);
+      final selectedAssets = await ref
+          .read(photoPickerServiceProvider)
+          .pickPhotos(context: context);
 
-      final syncedCount = await syncService.syncAllImages();
-      final totalCount = await memoryRepository.getMemoryCount();
+      if (!mounted) {
+        return;
+      }
 
-      if (!context.mounted) return;
+      if (selectedAssets.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No photos selected.'),
+          ),
+        );
+        return;
+      }
+
+      final importedCount = await ref
+          .read(photoImportServiceProvider)
+          .importPhotos(selectedAssets: selectedAssets);
+
+      if (!mounted) {
+        return;
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Synced $syncedCount images. '
-            '$totalCount memories are stored locally.',
+            importedCount == 1
+                ? '1 photo imported successfully.'
+                : '$importedCount photos imported successfully.',
           ),
         ),
       );
     } catch (error, stackTrace) {
-      debugPrint('Gallery sync error: $error');
+      debugPrint('Photo import error: $error');
       debugPrintStack(stackTrace: stackTrace);
 
-      if (!context.mounted) return;
+      if (!mounted) {
+        return;
+      }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Gallery sync failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Photo import failed: $error'),
+        ),
+      );
+    }
+  }
+
+  Future<void> _importPdf() async {
+    try {
+      final imported = await ref.read(pdfImportServiceProvider).importPdf();
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            imported
+                ? 'PDF imported successfully.'
+                : 'No PDF was selected.',
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('PDF import error: $error');
+      debugPrintStack(stackTrace: stackTrace);
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('PDF import failed: $error'),
+        ),
+      );
     }
   }
 
@@ -82,7 +124,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (isListening) {
       await service.stopListening();
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       ref.read(voiceListeningProvider.notifier).state = false;
       return;
@@ -93,31 +137,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       await service.startListening(
         onWords: (words) {
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
           setState(() {
             _searchController.value = TextEditingValue(
               text: words,
-              selection: TextSelection.collapsed(offset: words.length),
+              selection: TextSelection.collapsed(
+                offset: words.length,
+              ),
             );
           });
 
           ref.read(memorySearchQueryProvider.notifier).state = words;
         },
         onFinished: () {
-          if (!mounted) return;
+          if (!mounted) {
+            return;
+          }
 
           ref.read(voiceListeningProvider.notifier).state = false;
         },
       );
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       ref.read(voiceListeningProvider.notifier).state = false;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Voice search failed: $error')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Voice search failed: $error'),
+        ),
+      );
     }
   }
 
@@ -126,7 +180,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(memorySearchQueryProvider.notifier).state = '';
   }
 
-  void _openImportSheet(BuildContext context) {
+  void _openImportSheet() {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -159,21 +213,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     color: Color(0xFFA78BFA),
                   ),
                   title: const Text(
-                    'Sync full gallery',
+                    'Import Photos',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   subtitle: Text(
-                    'Scan and index photos stored on this phone',
+                    'Select one or more photos from your gallery',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.5),
                     ),
                   ),
-                  onTap: () async {
+                  onTap: () {
                     Navigator.pop(bottomSheetContext);
-                    await _syncGallery(context);
+                    _importPhotos();
                   },
                 ),
                 const SizedBox(height: 10),
@@ -199,39 +253,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: Colors.white.withValues(alpha: 0.5),
                     ),
                   ),
-                  onTap: () async {
+                  onTap: () {
                     Navigator.pop(bottomSheetContext);
-
-                    await Future<void>.delayed(
-                      const Duration(milliseconds: 250),
-                    );
-
-                    try {
-                      final imported = await ref
-                          .read(pdfImportServiceProvider)
-                          .importPdf();
-
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            imported
-                                ? 'PDF imported successfully.'
-                                : 'No PDF was selected.',
-                          ),
-                        ),
-                      );
-                    } catch (error, stackTrace) {
-                      debugPrint('PDF import error: $error');
-                      debugPrintStack(stackTrace: stackTrace);
-
-                      if (!context.mounted) return;
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('PDF import failed: $error')),
-                      );
-                    }
+                    _importPdf();
                   },
                 ),
                 const SizedBox(height: 10),
@@ -275,12 +299,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _openMemory(BuildContext context, Memory memory) {
+  void _openMemory(Memory memory) {
     if (memory.type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) =>
-              MemoryDetailScreen(assetId: memory.id, title: memory.title),
+          builder: (_) => MemoryDetailScreen(
+            assetId: memory.id,
+            title: memory.title,
+          ),
         ),
       );
       return;
@@ -325,7 +351,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${memory.type} memory details are not available yet.'),
+        content: Text(
+          '${memory.type} memory details are not available yet.',
+        ),
       ),
     );
   }
@@ -348,20 +376,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: _NeuroLensTitle()),
-                      _AddMemoryButton(onTap: () => _openImportSheet(context)),
+                      const Expanded(
+                        child: _NeuroLensTitle(),
+                      ),
+                      _AddMemoryButton(
+                        onTap: _openImportSheet,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
                   TweenAnimationBuilder<double>(
-                    tween: Tween<double>(begin: 0, end: 1),
+                    tween: Tween<double>(
+                      begin: 0,
+                      end: 1,
+                    ),
                     duration: const Duration(milliseconds: 500),
                     curve: Curves.easeOutCubic,
-                    builder: (context, animationValue, child) {
+                    builder: (
+                      context,
+                      animationValue,
+                      child,
+                    ) {
                       return Opacity(
                         opacity: animationValue,
                         child: Transform.translate(
-                          offset: Offset(0, 18 * (1 - animationValue)),
+                          offset: Offset(
+                            0,
+                            18 * (1 - animationValue),
+                          ),
                           child: child,
                         ),
                       );
@@ -383,8 +425,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           fontSize: 15,
                         ),
                         onChanged: (value) {
-                          ref.read(memorySearchQueryProvider.notifier).state =
-                              value;
+                          ref
+                              .read(memorySearchQueryProvider.notifier)
+                              .state = value;
                         },
                         decoration: InputDecoration(
                           hintText: isListening
@@ -442,37 +485,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         children: [
                           _FilterButton(
                             label: 'All',
-                            selected: selectedFilter == MemoryFilter.all,
+                            selected:
+                                selectedFilter == MemoryFilter.all,
                             onTap: () {
-                              ref.read(memoryFilterProvider.notifier).state =
-                                  MemoryFilter.all;
+                              ref
+                                  .read(memoryFilterProvider.notifier)
+                                  .state = MemoryFilter.all;
                             },
                           ),
                           const SizedBox(width: 8),
                           _FilterButton(
                             label: 'Images',
-                            selected: selectedFilter == MemoryFilter.images,
+                            selected:
+                                selectedFilter == MemoryFilter.images,
                             onTap: () {
-                              ref.read(memoryFilterProvider.notifier).state =
-                                  MemoryFilter.images;
+                              ref
+                                  .read(memoryFilterProvider.notifier)
+                                  .state = MemoryFilter.images;
                             },
                           ),
                           const SizedBox(width: 8),
                           _FilterButton(
                             label: 'PDFs',
-                            selected: selectedFilter == MemoryFilter.pdfs,
+                            selected:
+                                selectedFilter == MemoryFilter.pdfs,
                             onTap: () {
-                              ref.read(memoryFilterProvider.notifier).state =
-                                  MemoryFilter.pdfs;
+                              ref
+                                  .read(memoryFilterProvider.notifier)
+                                  .state = MemoryFilter.pdfs;
                             },
                           ),
                           const SizedBox(width: 8),
                           _FilterButton(
                             label: 'Notes',
-                            selected: selectedFilter == MemoryFilter.notes,
+                            selected:
+                                selectedFilter == MemoryFilter.notes,
                             onTap: () {
-                              ref.read(memoryFilterProvider.notifier).state =
-                                  MemoryFilter.notes;
+                              ref
+                                  .read(memoryFilterProvider.notifier)
+                                  .state = MemoryFilter.notes;
                             },
                           ),
                         ],
@@ -488,7 +539,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Row(
                 children: [
                   Text(
-                    searchQuery.isEmpty ? 'Memories' : 'Search results',
+                    searchQuery.isEmpty
+                        ? 'Memories'
+                        : 'Search results',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -497,13 +550,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const Spacer(),
                   timeline.maybeWhen(
-                    data: (memories) => Text(
-                      '${memories.length}',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 13,
-                      ),
-                    ),
+                    data: (memories) {
+                      return Text(
+                        '${memories.length}',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 13,
+                        ),
+                      );
+                    },
                     orElse: () => const SizedBox.shrink(),
                   ),
                 ],
@@ -516,7 +571,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   if (memories.isEmpty) {
                     return _EmptyMemoriesView(
                       isSearching: searchQuery.isNotEmpty,
-                      onImport: () => _openImportSheet(context),
+                      onImport: _openImportSheet,
                     );
                   }
 
@@ -524,7 +579,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     duration: const Duration(milliseconds: 260),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
+                    transitionBuilder: (
+                      child,
+                      animation,
+                    ) {
                       return FadeTransition(
                         opacity: animation,
                         child: ScaleTransition(
@@ -538,9 +596,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     },
                     child: GridView.builder(
                       key: ValueKey<String>(
-                        '${selectedFilter.name}-${searchQuery.trim()}-${memories.length}',
+                        '${selectedFilter.name}-'
+                        '${searchQuery.trim()}-'
+                        '${memories.length}',
                       ),
-                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
+                      padding: const EdgeInsets.fromLTRB(
+                        18,
+                        0,
+                        18,
+                        28,
+                      ),
                       physics: const BouncingScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -557,7 +622,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: MemoryGridItem(
                             memory: memory,
                             onTap: () {
-                              _openMemory(context, memory);
+                              _openMemory(memory);
                             },
                           ),
                         );
@@ -566,21 +631,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
                 loading: () => const Center(
-                  child: CircularProgressIndicator(color: _purple),
-                ),
-                error: (error, stackTrace) => Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      'Could not load memories:\n$error',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        height: 1.5,
-                      ),
-                    ),
+                  child: CircularProgressIndicator(
+                    color: _purple,
                   ),
                 ),
+                error: (error, stackTrace) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        'Could not load memories:\n$error',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.7),
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -601,12 +670,17 @@ class _NeuroLensTitle extends StatelessWidget {
         shaderCallback: (bounds) {
           return const LinearGradient(
             colors: [
-              Colors.white,
-              Color.fromARGB(255, 221, 154, 251),
-              Color.fromARGB(255, 161, 108, 217), // light purple
-              Color(0xFF8B5CF6), // same purple as your + button
+              Color.fromARGB(255, 177, 209, 232),
+              Color.fromARGB(255, 89, 131, 220),
+              Color.fromARGB(255, 154, 92, 220),
+              Color.fromARGB(255, 93, 34, 230),
             ],
-            stops: [0, 0.43, 0.68, 1],
+            stops: [
+              0,
+              0.43,
+              0.68,
+              1,
+            ],
           ).createShader(bounds);
         },
         child: const Text(
@@ -624,7 +698,9 @@ class _NeuroLensTitle extends StatelessWidget {
 }
 
 class _AddMemoryButton extends StatefulWidget {
-  const _AddMemoryButton({required this.onTap});
+  const _AddMemoryButton({
+    required this.onTap,
+  });
 
   final VoidCallback onTap;
 
@@ -650,12 +726,22 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
     _scaleAnimation = Tween<double>(
       begin: 1,
       end: 1.05,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     _glowAnimation = Tween<double>(
       begin: 0.18,
       end: 0.42,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   @override
@@ -676,9 +762,9 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(
-                    0xFF8B5CF6,
-                  ).withValues(alpha: _glowAnimation.value),
+                  color: const Color(0xFF8B5CF6).withValues(
+                    alpha: _glowAnimation.value,
+                  ),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),
@@ -697,7 +783,11 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
           child: const SizedBox(
             width: 44,
             height: 44,
-            child: Icon(Icons.add_rounded, color: Colors.white, size: 27),
+            child: Icon(
+              Icons.add_rounded,
+              color: Colors.white,
+              size: 27,
+            ),
           ),
         ),
       ),
@@ -734,7 +824,9 @@ class _FilterButton extends StatelessWidget {
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                  color: const Color(0xFF8B5CF6).withValues(
+                    alpha: 0.28,
+                  ),
                   blurRadius: 14,
                   spreadRadius: 1,
                 ),
@@ -762,8 +854,9 @@ class _FilterButton extends StatelessWidget {
                     ? Colors.white
                     : Colors.white.withValues(alpha: 0.68),
                 fontSize: 13,
-                fontWeight:
-                    selected ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: selected
+                    ? FontWeight.w700
+                    : FontWeight.w500,
               ),
               child: Text(label),
             ),
@@ -775,7 +868,10 @@ class _FilterButton extends StatelessWidget {
 }
 
 class _EmptyMemoriesView extends StatelessWidget {
-  const _EmptyMemoriesView({required this.isSearching, required this.onImport});
+  const _EmptyMemoriesView({
+    required this.isSearching,
+    required this.onImport,
+  });
 
   final bool isSearching;
   final VoidCallback onImport;
@@ -797,7 +893,9 @@ class _EmptyMemoriesView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              isSearching ? 'No matching memories' : 'No memories yet',
+              isSearching
+                  ? 'No matching memories'
+                  : 'No memories yet',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,
