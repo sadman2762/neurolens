@@ -1,4 +1,4 @@
-package com.example.neurolens
+package com.sadman.neurolens
 
 import io.flutter.embedding.android.FlutterActivity
 
