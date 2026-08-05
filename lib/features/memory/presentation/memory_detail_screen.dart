@@ -17,8 +17,7 @@ class MemoryDetailScreen extends ConsumerStatefulWidget {
   final String title;
 
   @override
-  ConsumerState<MemoryDetailScreen> createState() =>
-      _MemoryDetailScreenState();
+  ConsumerState<MemoryDetailScreen> createState() => _MemoryDetailScreenState();
 }
 
 class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
@@ -56,9 +55,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('This image is no longer available.'),
-          ),
+          const SnackBar(content: Text('This image is no longer available.')),
         );
         return;
       }
@@ -69,9 +66,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not access this image.'),
-          ),
+          const SnackBar(content: Text('Could not access this image.')),
         );
         return;
       }
@@ -82,12 +77,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
       await SharePlus.instance.share(
         ShareParams(
-          files: [
-            XFile(
-              imageFile.path,
-              name: widget.title,
-            ),
-          ],
+          files: [XFile(imageFile.path, name: widget.title)],
           subject: widget.title,
           sharePositionOrigin: renderBox == null
               ? null
@@ -98,9 +88,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not share this image: $error'),
-        ),
+        SnackBar(content: Text('Could not share this image: $error')),
       );
     } finally {
       if (mounted) {
@@ -127,10 +115,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
           ),
           title: const Text(
             'Remove this image?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           content: Text(
             'This image will be removed from NeuroLens. '
@@ -147,9 +132,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
               },
               child: Text(
                 'Cancel',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.72),
-                ),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
               ),
             ),
             FilledButton(
@@ -178,9 +161,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     });
 
     try {
-      await ref
-          .read(memoryRepositoryProvider)
-          .deleteMemory(widget.assetId);
+      await ref.read(memoryRepositoryProvider).deleteMemory(widget.assetId);
 
       if (!mounted) return;
 
@@ -193,9 +174,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not remove this image: $error'),
-        ),
+        SnackBar(content: Text('Could not remove this image: $error')),
       );
     }
   }
@@ -212,9 +191,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       decoration: BoxDecoration(
         color: _surfaceColor,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: IconButton(
         onPressed: onPressed,
@@ -248,8 +225,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         ),
         actions: [
           _buildActionButton(
-            onPressed:
-                _isSharing || _isDeleting ? null : _shareImage,
+            onPressed: _isSharing || _isDeleting ? null : _shareImage,
             tooltip: 'Share image',
             icon: _isSharing
                 ? const SizedBox(
@@ -260,14 +236,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(
-                    Icons.share_outlined,
-                    size: 21,
-                  ),
+                : const Icon(Icons.share_outlined, size: 21),
           ),
           _buildActionButton(
-            onPressed:
-                _isSharing || _isDeleting ? null : _confirmDelete,
+            onPressed: _isSharing || _isDeleting ? null : _confirmDelete,
             tooltip: 'Remove from NeuroLens',
             icon: _isDeleting
                 ? const SizedBox(
@@ -297,20 +269,15 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.black,
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.06),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             clipBehavior: Clip.antiAlias,
             child: FutureBuilder<Uint8List?>(
               future: _imageFuture,
               builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(
-                      color: _purple,
-                    ),
+                    child: CircularProgressIndicator(color: _purple),
                   );
                 }
 
@@ -333,10 +300,16 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                   maxScale: 5,
                   boundaryMargin: const EdgeInsets.all(40),
                   child: Center(
-                    child: Image.memory(
-                      bytes,
-                      fit: BoxFit.contain,
-                      gaplessPlayback: true,
+                    child: Hero(
+                      tag: 'memory-image-${widget.assetId}',
+                      child: Material(
+                        color: Colors.transparent,
+                        child: Image.memory(
+                          bytes,
+                          fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                        ),
+                      ),
                     ),
                   ),
                 );
@@ -350,9 +323,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 }
 
 class _ImageErrorView extends StatelessWidget {
-  const _ImageErrorView({
-    required this.message,
-  });
+  const _ImageErrorView({required this.message});
 
   final String message;
 
@@ -369,8 +340,7 @@ class _ImageErrorView extends StatelessWidget {
               height: 72,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFF8B5CF6)
-                    .withValues(alpha: 0.12),
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
               ),
               child: const Icon(
                 Icons.broken_image_outlined,

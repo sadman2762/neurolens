@@ -353,65 +353,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: _surfaceColor,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.06),
+                  TweenAnimationBuilder<double>(
+                    tween: Tween<double>(begin: 0, end: 1),
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.easeOutCubic,
+                    builder: (context, animationValue, child) {
+                      return Opacity(
+                        opacity: animationValue,
+                        child: Transform.translate(
+                          offset: Offset(0, 18 * (1 - animationValue)),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: _surfaceColor,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
                       ),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      textInputAction: TextInputAction.search,
-                      cursorColor: _purple,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                      onChanged: (value) {
-                        ref.read(memorySearchQueryProvider.notifier).state =
-                            value;
-                      },
-                      decoration: InputDecoration(
-                        hintText: isListening
-                            ? 'Listening...'
-                            : 'Ask NeuroLens...',
-                        hintStyle: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.45),
+                      child: TextField(
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search,
+                        cursorColor: _purple,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
                         ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          color: Colors.white.withValues(alpha: 0.55),
-                        ),
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (searchQuery.isNotEmpty)
+                        onChanged: (value) {
+                          ref.read(memorySearchQueryProvider.notifier).state =
+                              value;
+                        },
+                        decoration: InputDecoration(
+                          hintText: isListening
+                              ? 'Listening...'
+                              : 'Ask NeuroLens...',
+                          hintStyle: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.45),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: Colors.white.withValues(alpha: 0.55),
+                          ),
+                          suffixIcon: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (searchQuery.isNotEmpty)
+                                IconButton(
+                                  onPressed: _clearSearch,
+                                  tooltip: 'Clear search',
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white.withValues(alpha: 0.65),
+                                  ),
+                                ),
                               IconButton(
-                                onPressed: _clearSearch,
-                                tooltip: 'Clear search',
+                                onPressed: _toggleVoiceSearch,
+                                tooltip: isListening
+                                    ? 'Stop voice search'
+                                    : 'Start voice search',
                                 icon: Icon(
-                                  Icons.close_rounded,
-                                  color: Colors.white.withValues(alpha: 0.65),
+                                  isListening
+                                      ? Icons.mic_rounded
+                                      : Icons.mic_none_rounded,
+                                  color: isListening
+                                      ? _purple
+                                      : Colors.white.withValues(alpha: 0.72),
                                 ),
                               ),
-                            IconButton(
-                              onPressed: _toggleVoiceSearch,
-                              tooltip: isListening
-                                  ? 'Stop voice search'
-                                  : 'Start voice search',
-                              icon: Icon(
-                                isListening
-                                    ? Icons.mic_rounded
-                                    : Icons.mic_none_rounded,
-                                color: isListening
-                                    ? _purple
-                                    : Colors.white.withValues(alpha: 0.72),
-                              ),
-                            ),
-                          ],
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15,
+                            ],
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 15,
+                          ),
                         ),
                       ),
                     ),
@@ -503,29 +520,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     );
                   }
 
-                  return GridView.builder(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
-                    physics: const BouncingScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 9,
-                          mainAxisSpacing: 9,
-                          childAspectRatio: 0.82,
-                        ),
-                    itemCount: memories.length,
-                    itemBuilder: (context, index) {
-                      final memory = memories[index];
-
-                      return RepaintBoundary(
-                        child: MemoryGridItem(
-                          memory: memory,
-                          onTap: () {
-                            _openMemory(context, memory);
-                          },
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: ScaleTransition(
+                          scale: Tween<double>(
+                            begin: 0.98,
+                            end: 1,
+                          ).animate(animation),
+                          child: child,
                         ),
                       );
                     },
+                    child: GridView.builder(
+                      key: ValueKey<String>(
+                        '${selectedFilter.name}-${searchQuery.trim()}-${memories.length}',
+                      ),
+                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 28),
+                      physics: const BouncingScrollPhysics(),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 9,
+                            mainAxisSpacing: 9,
+                            childAspectRatio: 0.82,
+                          ),
+                      itemCount: memories.length,
+                      itemBuilder: (context, index) {
+                        final memory = memories[index];
+
+                        return RepaintBoundary(
+                          child: MemoryGridItem(
+                            memory: memory,
+                            onTap: () {
+                              _openMemory(context, memory);
+                            },
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
                 loading: () => const Center(
@@ -565,9 +602,9 @@ class _NeuroLensTitle extends StatelessWidget {
           return const LinearGradient(
             colors: [
               Colors.white,
-              Colors.white,
-              Color(0xFFC084FC),
-              Color(0xFF22D3EE),
+              Color.fromARGB(255, 221, 154, 251),
+              Color.fromARGB(255, 161, 108, 217), // light purple
+              Color(0xFF8B5CF6), // same purple as your + button
             ],
             stops: [0, 0.43, 0.68, 1],
           ).createShader(bounds);
@@ -586,23 +623,82 @@ class _NeuroLensTitle extends StatelessWidget {
   }
 }
 
-class _AddMemoryButton extends StatelessWidget {
+class _AddMemoryButton extends StatefulWidget {
   const _AddMemoryButton({required this.onTap});
 
   final VoidCallback onTap;
 
   @override
+  State<_AddMemoryButton> createState() => _AddMemoryButtonState();
+}
+
+class _AddMemoryButtonState extends State<_AddMemoryButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(
+      begin: 1,
+      end: 1.05,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+
+    _glowAnimation = Tween<double>(
+      begin: 0.18,
+      end: 0.42,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFF8B5CF6),
-      shape: const CircleBorder(),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: const SizedBox(
-          width: 44,
-          height: 44,
-          child: Icon(Icons.add_rounded, color: Colors.white, size: 27),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Container(
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(
+                    0xFF8B5CF6,
+                  ).withValues(alpha: _glowAnimation.value),
+                  blurRadius: 18,
+                  spreadRadius: 2,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: Material(
+        color: const Color(0xFF8B5CF6),
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: widget.onTap,
+          customBorder: const CircleBorder(),
+          child: const SizedBox(
+            width: 44,
+            height: 44,
+            child: Icon(Icons.add_rounded, color: Colors.white, size: 27),
+          ),
         ),
       ),
     );
@@ -622,22 +718,54 @@ class _FilterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: selected ? const Color(0xFF8B5CF6) : const Color(0xFF0D1321),
-      borderRadius: BorderRadius.circular(30),
-      child: InkWell(
-        onTap: onTap,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: selected
+            ? const Color(0xFF8B5CF6)
+            : const Color(0xFF0D1321),
         borderRadius: BorderRadius.circular(30),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: selected
-                  ? Colors.white
-                  : Colors.white.withValues(alpha: 0.68),
-              fontSize: 13,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        border: Border.all(
+          color: selected
+              ? const Color(0xFF8B5CF6)
+              : Colors.white.withValues(alpha: 0.06),
+        ),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                  blurRadius: 14,
+                  spreadRadius: 1,
+                ),
+              ]
+            : const [],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(30),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(30),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: EdgeInsets.symmetric(
+              horizontal: selected ? 19 : 17,
+              vertical: 9,
+            ),
+            child: AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              style: TextStyle(
+                color: selected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.68),
+                fontSize: 13,
+                fontWeight:
+                    selected ? FontWeight.w700 : FontWeight.w500,
+              ),
+              child: Text(label),
             ),
           ),
         ),
