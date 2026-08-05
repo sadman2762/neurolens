@@ -42,59 +42,61 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
   }
 
   Future<void> _sharePdf() async {
-    if (_isSharing || _isDeleting) return;
+  if (_isSharing || _isDeleting) return;
 
-    final file = File(widget.filePath);
+  final file = File(widget.filePath);
 
-    if (!await file.exists()) {
-      if (!mounted) return;
+  final exists = await file.exists();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('This PDF is no longer available.'),
-        ),
-      );
-      return;
-    }
+  if (!mounted) return;
 
-    setState(() {
-      _isSharing = true;
-    });
+  if (!exists) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('This PDF is no longer available.'),
+      ),
+    );
+    return;
+  }
 
-    try {
-      final renderBox = context.findRenderObject() as RenderBox?;
+  setState(() {
+    _isSharing = true;
+  });
 
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [
-            XFile(
-              widget.filePath,
-              mimeType: 'application/pdf',
-              name: widget.title,
-            ),
-          ],
-          subject: widget.title,
-          sharePositionOrigin: renderBox == null
-              ? null
-              : renderBox.localToGlobal(Offset.zero) & renderBox.size,
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
+  try {
+    final renderBox = context.findRenderObject() as RenderBox?;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not share this PDF: $error'),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSharing = false;
-        });
-      }
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [
+          XFile(
+            widget.filePath,
+            mimeType: 'application/pdf',
+            name: widget.title,
+          ),
+        ],
+        subject: widget.title,
+        sharePositionOrigin: renderBox == null
+            ? null
+            : renderBox.localToGlobal(Offset.zero) & renderBox.size,
+      ),
+    );
+  } catch (error) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Could not share this PDF: $error'),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isSharing = false;
+      });
     }
   }
+}
 
   Future<void> _confirmDelete() async {
     if (_isSharing || _isDeleting) return;

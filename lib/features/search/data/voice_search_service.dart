@@ -26,7 +26,8 @@ class VoiceSearchService {
   }) async {
     final available = await initialize(
       onStatus: (status) {
-        if (status == 'done' || status == 'notListening') {
+        if (status == SpeechToText.doneStatus ||
+            status == SpeechToText.notListeningStatus) {
           onFinished();
         }
       },
@@ -48,12 +49,12 @@ class VoiceSearchService {
           onWords(words);
         }
       },
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 4),
-      listenOptions: SpeechListenOptions(
+      listenOptions:  SpeechListenOptions(
         partialResults: true,
         cancelOnError: true,
         listenMode: ListenMode.search,
+        listenFor: Duration(seconds: 30),
+        pauseFor: Duration(seconds: 4),
       ),
     );
   }

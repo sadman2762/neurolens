@@ -4,12 +4,10 @@ import 'package:neurolens/features/memory/data/repositories/memory_repository_im
 
 class GallerySyncService {
   GallerySyncService({
-    required GalleryRepositoryImpl galleryRepository,
-    required MemoryRepositoryImpl memoryRepository,
-    required OcrProcessingService ocrProcessingService,
-  })  : _galleryRepository = galleryRepository,
-        _memoryRepository = memoryRepository,
-        _ocrProcessingService = ocrProcessingService;
+    required this._galleryRepository,
+    required this._memoryRepository,
+    required this._ocrProcessingService,
+  });
 
   static const int _batchSize = 50;
 
@@ -33,14 +31,12 @@ class GallerySyncService {
 
       await _memoryRepository.saveMemories(memories);
 
-      // Run OCR in the background for every image.
-      // If one image fails, continue processing the rest.
       for (final memory in memories) {
         try {
           await _ocrProcessingService.processImage(
             memoryId: memory.id,
           );
-        } catch (error) {
+        } catch (_) {
           // Ignore OCR failures for individual images.
           // The memory is already saved locally.
         }

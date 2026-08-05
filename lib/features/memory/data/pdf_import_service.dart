@@ -5,12 +5,10 @@ import 'package:neurolens/features/memory/domain/models/memory.dart';
 
 class PdfImportService {
   PdfImportService({
-    required PdfPickerService pickerService,
-    required PdfTextExtractorService textExtractorService,
-    required MemoryRepositoryImpl memoryRepository,
-  })  : _pickerService = pickerService,
-        _textExtractorService = textExtractorService,
-        _memoryRepository = memoryRepository;
+    required this._pickerService,
+    required this._textExtractorService,
+    required this._memoryRepository,
+  });
 
   final PdfPickerService _pickerService;
   final PdfTextExtractorService _textExtractorService;

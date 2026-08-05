@@ -3,10 +3,9 @@ import 'package:neurolens/features/memory/data/repositories/memory_repository_im
 
 class OcrProcessingService {
   OcrProcessingService({
-    required OcrService ocrService,
-    required MemoryRepositoryImpl memoryRepository,
-  })  : _ocrService = ocrService,
-        _memoryRepository = memoryRepository;
+    required this._ocrService,
+    required this._memoryRepository,
+  });
 
   final OcrService _ocrService;
   final MemoryRepositoryImpl _memoryRepository;
