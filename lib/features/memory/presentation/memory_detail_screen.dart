@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
+import 'package:neurolens/features/memory/presentation/photo_editor_screen.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
@@ -42,6 +43,21 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   Future<Uint8List?> _loadImage() async {
     final asset = await AssetEntity.fromId(widget.assetId);
     return asset?.originBytes;
+  }
+
+  Future<void> _openEditor() async {
+    if (_isSharing || _isDeleting) {
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PhotoEditorScreen(
+          assetId: widget.assetId,
+          title: widget.title,
+        ),
+      ),
+    );
   }
 
   Future<void> _shareImage() async {
@@ -284,6 +300,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                   child: Row(
                     children: [
                       _CircleActionButton(
+                        tooltip: 'Edit photo',
+                        icon: Icons.tune_rounded,
+                        onPressed:
+                            _isSharing || _isDeleting ? null : _openEditor,
+                      ),
+                      const SizedBox(width: 9),
+                      _CircleActionButton(
                         tooltip: 'Share',
                         onPressed:
                             _isSharing || _isDeleting ? null : _shareImage,
@@ -325,6 +348,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     extractedText: extractedText,
                     isSharing: _isSharing,
                     isDeleting: _isDeleting,
+                    onEditPressed: _openEditor,
                     onOcrPressed: () {
                       _copyExtractedText(extractedText);
                     },
@@ -357,6 +381,23 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                ListTile(
+                  leading: const Icon(
+                    Icons.tune_rounded,
+                    color: Color(0xFFC4B5FD),
+                  ),
+                  title: const Text(
+                    'Edit photo',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.of(bottomSheetContext).pop();
+                    _openEditor();
+                  },
+                ),
                 ListTile(
                   leading: const Icon(
                     Icons.text_snippet_outlined,
@@ -482,12 +523,7 @@ class _BottomGradient extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            stops: const [
-              0,
-              0.48,
-              0.73,
-              1,
-            ],
+            stops: const [0, 0.48, 0.73, 1],
             colors: [
               Colors.black.withValues(alpha: 0.05),
               Colors.black.withValues(alpha: 0.02),
@@ -508,6 +544,7 @@ class _DetailsPanel extends StatelessWidget {
     required this.extractedText,
     required this.isSharing,
     required this.isDeleting,
+    required this.onEditPressed,
     required this.onOcrPressed,
     required this.onSharePressed,
     required this.onDeletePressed,
@@ -519,6 +556,7 @@ class _DetailsPanel extends StatelessWidget {
   final String extractedText;
   final bool isSharing;
   final bool isDeleting;
+  final VoidCallback onEditPressed;
   final VoidCallback onOcrPressed;
   final VoidCallback onSharePressed;
   final VoidCallback onDeletePressed;
@@ -526,7 +564,7 @@ class _DetailsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final metadataText = _metadataText(createdAt);
+    final isBusy = isSharing || isDeleting;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -563,7 +601,7 @@ class _DetailsPanel extends StatelessWidget {
               ),
               const SizedBox(height: 5),
               Text(
-                metadataText,
+                _metadataText(createdAt),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
@@ -574,23 +612,32 @@ class _DetailsPanel extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _PillActionButton(
-                      icon: Icons.document_scanner_outlined,
-                      label: 'OCR',
-                      onPressed: extractedText.isEmpty
-                          ? null
-                          : onOcrPressed,
+                      icon: Icons.tune_rounded,
+                      label: 'Edit',
+                      foregroundColor: const Color(0xFFC4B5FD),
+                      backgroundColor:
+                          const Color(0xFF36235E).withValues(alpha: 0.8),
+                      onPressed: isBusy ? null : onEditPressed,
                     ),
                   ),
-                  const SizedBox(width: 9),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _PillActionButton(
+                      icon: Icons.document_scanner_outlined,
+                      label: 'OCR',
+                      onPressed:
+                          extractedText.isEmpty ? null : onOcrPressed,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _PillActionButton(
                       icon: Icons.ios_share_rounded,
                       label: 'Share',
-                      onPressed:
-                          isSharing || isDeleting ? null : onSharePressed,
+                      onPressed: isBusy ? null : onSharePressed,
                     ),
                   ),
-                  const SizedBox(width: 9),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _PillActionButton(
                       icon: Icons.delete_outline_rounded,
@@ -598,8 +645,7 @@ class _DetailsPanel extends StatelessWidget {
                       foregroundColor: const Color(0xFFFF4D67),
                       backgroundColor:
                           const Color(0xFF581A29).withValues(alpha: 0.56),
-                      onPressed:
-                          isSharing || isDeleting ? null : onDeletePressed,
+                      onPressed: isBusy ? null : onDeletePressed,
                     ),
                   ),
                 ],
@@ -673,25 +719,23 @@ class _DetailsPanel extends StatelessWidget {
       return 'Image';
     }
 
-    final localDate = createdAt.toLocal();
+    final date = createdAt.toLocal();
     final now = DateTime.now();
 
-    final isToday = now.year == localDate.year &&
-        now.month == localDate.month &&
-        now.day == localDate.day;
+    final isToday = now.year == date.year &&
+        now.month == date.month &&
+        now.day == date.day;
 
-    final hour = localDate.hour == 0
+    final hour = date.hour == 0
         ? 12
-        : localDate.hour > 12
-            ? localDate.hour - 12
-            : localDate.hour;
+        : date.hour > 12
+            ? date.hour - 12
+            : date.hour;
 
-    final minute = localDate.minute.toString().padLeft(2, '0');
-    final period = localDate.hour >= 12 ? 'PM' : 'AM';
-
-    final dateLabel = isToday
-        ? 'Today'
-        : '${localDate.day}/${localDate.month}/${localDate.year}';
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+    final dateLabel =
+        isToday ? 'Today' : '${date.day}/${date.month}/${date.year}';
 
     return 'Image  •  $dateLabel, $hour:$minute $period';
   }
@@ -756,6 +800,8 @@ class _PillActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+
     return Material(
       color: backgroundColor,
       borderRadius: BorderRadius.circular(28),
@@ -765,7 +811,7 @@ class _PillActionButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(28),
         child: Padding(
           padding: const EdgeInsets.symmetric(
-            horizontal: 10,
+            horizontal: 8,
             vertical: 10,
           ),
           child: Row(
@@ -773,21 +819,21 @@ class _PillActionButton extends StatelessWidget {
             children: [
               Icon(
                 icon,
-                color: onPressed == null
-                    ? foregroundColor.withValues(alpha: 0.35)
-                    : foregroundColor,
-                size: 17,
+                color: enabled
+                    ? foregroundColor
+                    : foregroundColor.withValues(alpha: 0.35),
+                size: 16,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
               Flexible(
                 child: Text(
                   label,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: onPressed == null
-                        ? foregroundColor.withValues(alpha: 0.35)
-                        : foregroundColor,
-                    fontSize: 12,
+                    color: enabled
+                        ? foregroundColor
+                        : foregroundColor.withValues(alpha: 0.35),
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
