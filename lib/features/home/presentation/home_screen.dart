@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:neurolens/features/auth/presentation/account_bottom_sheet.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/add_text_memory_screen.dart';
@@ -10,6 +11,7 @@ import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:neurolens/features/search/providers/voice_search_providers.dart';
+import 'package:neurolens/features/subscription/presentation/premium_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -224,200 +226,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
+  Future<void> _openPremiumScreen() async {
+    final purchased = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => const PremiumScreen()),
+    );
+
+    if (!mounted || purchased != true) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Premium activated successfully.')),
+    );
+  }
+
   void _openAccountSheet() {
-    final user = ref.read(currentUserProvider);
-    final profileState = ref.read(userProfileProvider);
-
-    final email = user?.email ?? 'No email available';
-    final displayName = user?.displayName?.trim();
-
-    final profile = profileState.valueOrNull;
-    final planLabel = profile?.isPremium == true ? 'Premium' : 'Free';
-    final creditsLabel = profile == null
-        ? 'Loading...'
-        : '${profile.creditsRemaining} remaining';
-
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: _surfaceColor,
-      builder: (bottomSheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF60A5FA),
-                        Color(0xFF8B5CF6),
-                        Color(0xFFC084FC),
-                      ],
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.35),
-                        blurRadius: 24,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      _accountInitial(displayName: displayName, email: email),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  displayName?.isNotEmpty == true
-                      ? displayName!
-                      : 'NeuroLens account',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  email,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 22),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _AccountStatCard(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'Current plan',
-                        value: planLabel,
-                        iconColor: const Color(0xFFC4B5FD),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _AccountStatCard(
-                        icon: Icons.auto_awesome_rounded,
-                        label: 'AI credits',
-                        value: creditsLabel,
-                        iconColor: const Color(0xFF60A5FA),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF141B2D),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      if (profile?.isPremium != true)
-                        ListTile(
-                          leading: const Icon(
-                            Icons.workspace_premium_outlined,
-                            color: Color(0xFFC4B5FD),
-                          ),
-                          title: const Text(
-                            'Upgrade to Premium',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '500 AI credits and no ads',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
-                            ),
-                          ),
-                          trailing: const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Colors.white38,
-                            size: 16,
-                          ),
-                          onTap: () {
-                            Navigator.of(bottomSheetContext).pop();
-
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Premium subscriptions will be added next.',
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      if (profile?.isPremium != true)
-                        Divider(
-                          height: 1,
-                          color: Colors.white.withValues(alpha: 0.06),
-                        ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.logout_rounded,
-                          color: Color(0xFFF87171),
-                        ),
-                        title: const Text(
-                          'Sign out',
-                          style: TextStyle(
-                            color: Color(0xFFFCA5A5),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        onTap: () {
-                          Navigator.of(bottomSheetContext).pop();
-                          _signOut();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+      builder: (_) {
+        return AccountBottomSheet(
+          onSignOut: _signOut,
+          onUpgrade: _openPremiumScreen,
         );
       },
     );
-  }
-
-  static String _accountInitial({
-    required String? displayName,
-    required String email,
-  }) {
-    if (displayName != null && displayName.trim().isNotEmpty) {
-      return displayName.trim()[0].toUpperCase();
-    }
-
-    if (email.trim().isNotEmpty) {
-      return email.trim()[0].toUpperCase();
-    }
-
-    return 'N';
   }
 
   void _openImportSheet() {
@@ -964,55 +799,6 @@ class _AccountButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _AccountStatCard extends StatelessWidget {
-  const _AccountStatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.iconColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141B2D),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 22),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.45),
-              fontSize: 12,
-            ),
-          ),
-        ],
       ),
     );
   }

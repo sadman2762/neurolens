@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     environment: str = "development"
 
     allowed_origins: str = "*"
+    revenuecat_webhook_secret: str = ""
 
     openai_api_key: SecretStr
     openai_model: str = "gpt-5-mini"

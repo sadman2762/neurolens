@@ -1,14 +1,35 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:neurolens/features/auth/presentation/login_screen.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
 import 'package:neurolens/features/home/presentation/home_screen.dart';
-import 'package:neurolens/features/auth/presentation/login_screen.dart';
+import 'package:neurolens/features/subscription/data/revenuecat_service.dart';
 
-class NeuroLensApp extends StatelessWidget {
+class NeuroLensApp extends ConsumerWidget {
   const NeuroLensApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.listen(authStateProvider, (previous, next) {
+      next.whenData((user) {
+        if (!RevenueCatService.isConfigured) {
+          return;
+        }
+
+        if (user != null) {
+          unawaited(
+            RevenueCatService.identifyUser(user.uid),
+          );
+        } else {
+          unawaited(
+            RevenueCatService.logOut(),
+          );
+        }
+      });
+    });
+
     return MaterialApp(
       title: 'NeuroLens',
       debugShowCheckedModeBanner: false,
@@ -66,8 +87,6 @@ class _AuthLoadingScreen extends StatelessWidget {
     );
   }
 }
-
-
 
 class _AuthErrorScreen extends StatelessWidget {
   const _AuthErrorScreen({
