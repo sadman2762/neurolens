@@ -2,36 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/auth/data/auth_service.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
-import 'package:neurolens/features/auth/presentation/register_screen.dart';
-import 'package:neurolens/features/auth/presentation/forgot_password_screen.dart';
 
-class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends ConsumerStatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  ConsumerState<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends ConsumerState<LoginScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   static const Color _backgroundColor = Color(0xFF050816);
   static const Color _surfaceColor = Color(0xFF0D1321);
   static const Color _purple = Color(0xFF8B5CF6);
 
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _signIn() async {
+  Future<void> _register() async {
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
@@ -45,10 +48,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref
           .read(authServiceProvider)
-          .signIn(
+          .register(
+            name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
           );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pop();
     } on AuthServiceException catch (error) {
       if (!mounted) {
         return;
@@ -80,6 +90,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: _isLoading
+                            ? null
+                            : () {
+                                Navigator.of(context).pop();
+                              },
+                        icon: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     SizedBox(
                       width: 160,
                       height: 160,
@@ -87,7 +112,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 24),
                     const Text(
-                      'Welcome back',
+                      'Create your account',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 30,
@@ -97,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sign in to continue to NeuroLens',
+                      'Start building your private searchable memory.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.55),
@@ -123,6 +149,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       child: Column(
                         children: [
+                          TextFormField(
+                            controller: _nameController,
+                            textCapitalization: TextCapitalization.words,
+                            autofillHints: const [AutofillHints.name],
+                            style: const TextStyle(color: Colors.white),
+                            decoration: _inputDecoration(
+                              label: 'Full name',
+                              icon: Icons.person_outline_rounded,
+                            ),
+                            validator: (value) {
+                              final name = value?.trim() ?? '';
+
+                              if (name.isEmpty) {
+                                return 'Enter your name.';
+                              }
+
+                              if (name.length < 2) {
+                                return 'Enter a valid name.';
+                              }
+
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
                           TextFormField(
                             controller: _emailController,
                             keyboardType: TextInputType.emailAddress,
@@ -150,7 +200,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           TextFormField(
                             controller: _passwordController,
                             obscureText: _obscurePassword,
-                            autofillHints: const [AutofillHints.password],
+                            autofillHints: const [AutofillHints.newPassword],
                             style: const TextStyle(color: Colors.white),
                             decoration:
                                 _inputDecoration(
@@ -174,41 +224,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                             validator: (value) {
-                              if ((value ?? '').isEmpty) {
-                                return 'Enter your password.';
+                              final password = value ?? '';
+
+                              if (password.isEmpty) {
+                                return 'Enter a password.';
+                              }
+
+                              if (password.length < 6) {
+                                return 'Use at least 6 characters.';
                               }
 
                               return null;
                             },
                           ),
-                          const SizedBox(height: 10),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: TextButton(
-                              onPressed: _isLoading
-                                  ? null
-                                  : () {
-                                      Navigator.of(context).push(
-                                        MaterialPageRoute<void>(
-                                          builder: (_) =>
-                                              const ForgotPasswordScreen(),
-                                        ),
-                                      );
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            obscureText: _obscureConfirmPassword,
+                            autofillHints: const [AutofillHints.newPassword],
+                            style: const TextStyle(color: Colors.white),
+                            decoration:
+                                _inputDecoration(
+                                  label: 'Confirm password',
+                                  icon: Icons.lock_reset_rounded,
+                                ).copyWith(
+                                  suffixIcon: IconButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _obscureConfirmPassword =
+                                            !_obscureConfirmPassword;
+                                      });
                                     },
-                              child: const Text(
-                                'Forgot password?',
-                                style: TextStyle(
-                                  color: Color(0xFFC4B5FD),
-                                  fontWeight: FontWeight.w600,
+                                    icon: Icon(
+                                      _obscureConfirmPassword
+                                          ? Icons.visibility_off_outlined
+                                          : Icons.visibility_outlined,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
+                            validator: (value) {
+                              if ((value ?? '').isEmpty) {
+                                return 'Confirm your password.';
+                              }
+
+                              if (value != _passwordController.text) {
+                                return 'Passwords do not match.';
+                              }
+
+                              return null;
+                            },
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton(
-                              onPressed: _isLoading ? null : _signIn,
+                              onPressed: _isLoading ? null : _register,
                               style: FilledButton.styleFrom(
                                 backgroundColor: _purple,
                                 foregroundColor: Colors.white,
@@ -232,7 +305,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       ),
                                     )
                                   : const Text(
-                                      'Sign in',
+                                      'Create account',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w700,
@@ -248,7 +321,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'New to NeuroLens?',
+                          'Already have an account?',
                           style: TextStyle(
                             color: Colors.white.withValues(alpha: 0.55),
                           ),
@@ -257,14 +330,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           onPressed: _isLoading
                               ? null
                               : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute<void>(
-                                      builder: (_) => const RegisterScreen(),
-                                    ),
-                                  );
+                                  Navigator.of(context).pop();
                                 },
                           child: const Text(
-                            'Create account',
+                            'Sign in',
                             style: TextStyle(
                               color: Color(0xFFC4B5FD),
                               fontWeight: FontWeight.w700,
