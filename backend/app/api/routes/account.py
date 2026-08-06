@@ -30,33 +30,36 @@ async def delete_account(
     user_ref = db.collection("users").document(uid)
 
     try:
-        await _delete_subcollection(
+        await _delete_collection(
             user_ref.collection("ai_requests"),
         )
 
         user_ref.delete()
 
-        auth.delete_user(uid)
+        deleted_snapshot = user_ref.get()
+
+        if deleted_snapshot.exists:
+            raise RuntimeError(
+                "Firestore user document still exists after deletion."
+            )
+
+        try:
+            auth.delete_user(uid)
+        except auth.UserNotFoundError:
+            logger.warning(
+                "Firebase Authentication user %s was already deleted.",
+                uid,
+            )
 
         logger.info(
-            "Deleted NeuroLens account for Firebase user %s",
+            "Deleted Firestore profile and Firebase Auth user %s",
             uid,
         )
 
         return {
             "status": "deleted",
         }
-    except auth.UserNotFoundError:
-        logger.warning(
-            "Firebase Authentication user %s was already deleted.",
-            uid,
-        )
 
-        return {
-            "status": "deleted",
-        }
-    except HTTPException:
-        raise
     except Exception as error:
         logger.exception(
             "Failed to delete NeuroLens account for user %s",
@@ -69,7 +72,7 @@ async def delete_account(
         ) from error
 
 
-async def _delete_subcollection(collection_reference) -> None:
+async def _delete_collection(collection_reference) -> None:
     batch_size = 100
 
     while True:
@@ -78,7 +81,7 @@ async def _delete_subcollection(collection_reference) -> None:
         )
 
         if not documents:
-            return
+            break
 
         batch = db.batch()
 

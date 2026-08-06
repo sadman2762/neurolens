@@ -52,6 +52,7 @@ class AccountService {
           ),
         );
       }
+      await _firebaseAuth.signOut();
     } on AccountServiceException {
       rethrow;
     } on Exception catch (error) {
