@@ -32,6 +32,9 @@ class Memories extends Table {
 
   DateTimeColumn get visionProcessedAt => dateTime().nullable()();
 
+  BoolColumn get isFavorite =>
+      boolean().withDefault(const Constant(false))();
+
   DateTimeColumn get createdAt => dateTime()();
 
   @override
@@ -43,7 +46,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'neurolens'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -53,41 +56,85 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
-          await migrator.addColumn(memories, memories.content);
+          await migrator.addColumn(
+            memories,
+            memories.content,
+          );
         }
 
         if (from < 3) {
-          await migrator.addColumn(memories, memories.embedding);
+          await migrator.addColumn(
+            memories,
+            memories.embedding,
+          );
         }
 
         if (from < 4) {
-          await migrator.addColumn(memories, memories.visionCaption);
-          await migrator.addColumn(memories, memories.visionScene);
-          await migrator.addColumn(memories, memories.visionObjects);
-          await migrator.addColumn(memories, memories.visionKeywords);
-          await migrator.addColumn(memories, memories.visionColors);
-          await migrator.addColumn(memories, memories.visionModel);
-          await migrator.addColumn(memories, memories.visionImageHash);
-          await migrator.addColumn(memories, memories.visionProcessedAt);
+          await migrator.addColumn(
+            memories,
+            memories.visionCaption,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionScene,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionObjects,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionKeywords,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionColors,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionModel,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionImageHash,
+          );
+          await migrator.addColumn(
+            memories,
+            memories.visionProcessedAt,
+          );
+        }
+
+        if (from < 5) {
+          await migrator.addColumn(
+            memories,
+            memories.isFavorite,
+          );
         }
       },
     );
   }
 
-  Future<void> insertMemory(MemoriesCompanion memory) {
+  Future<void> insertMemory(
+    MemoriesCompanion memory,
+  ) {
     return into(memories).insertOnConflictUpdate(memory);
   }
 
   Stream<List<Memory>> watchAllMemories() {
-    return (select(
-      memories,
-    )..orderBy([(table) => OrderingTerm.desc(table.createdAt)])).watch();
+    return (select(memories)
+          ..orderBy([
+            (table) => OrderingTerm.desc(
+              table.createdAt,
+            ),
+          ]))
+        .watch();
   }
 
   Future<int> getMemoryCount() async {
     final countExpression = memories.id.count();
 
-    final query = selectOnly(memories)..addColumns([countExpression]);
+    final query = selectOnly(memories)
+      ..addColumns([countExpression]);
 
     final row = await query.getSingle();
 
@@ -98,7 +145,9 @@ class AppDatabase extends _$AppDatabase {
     required String id,
     required String content,
   }) {
-    return (update(memories)..where((row) => row.id.equals(id))).write(
+    return (update(memories)
+          ..where((row) => row.id.equals(id)))
+        .write(
       MemoriesCompanion(
         content: Value(content),
       ),
@@ -109,7 +158,9 @@ class AppDatabase extends _$AppDatabase {
     required String id,
     required String embedding,
   }) {
-    return (update(memories)..where((row) => row.id.equals(id))).write(
+    return (update(memories)
+          ..where((row) => row.id.equals(id)))
+        .write(
       MemoriesCompanion(
         embedding: Value(embedding),
       ),
@@ -127,7 +178,9 @@ class AppDatabase extends _$AppDatabase {
     required String imageHash,
     required DateTime processedAt,
   }) {
-    return (update(memories)..where((row) => row.id.equals(id))).write(
+    return (update(memories)
+          ..where((row) => row.id.equals(id)))
+        .write(
       MemoriesCompanion(
         visionCaption: Value(caption),
         visionScene: Value(scene),
@@ -141,7 +194,22 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  Future<void> setMemoryFavorite({
+    required String id,
+    required bool isFavorite,
+  }) {
+    return (update(memories)
+          ..where((row) => row.id.equals(id)))
+        .write(
+      MemoriesCompanion(
+        isFavorite: Value(isFavorite),
+      ),
+    );
+  }
+
   Future<void> deleteMemory(String id) {
-    return (delete(memories)..where((row) => row.id.equals(id))).go();
+    return (delete(memories)
+          ..where((row) => row.id.equals(id)))
+        .go();
   }
 }

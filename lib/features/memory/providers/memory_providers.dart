@@ -13,7 +13,7 @@ import 'package:neurolens/features/memory/providers/memory_filter_provider.dart'
 import 'package:neurolens/features/memory/data/photo_import_service.dart';
 import 'package:neurolens/features/memory/data/photo_picker_service.dart';
 import 'package:neurolens/features/memory/data/image_content_classifier.dart';
-import 'package:neurolens/features/memory/data/vision_service.dart';
+import 'package:neurolens/features/memory/data/local_image_labeling_service.dart';
 
 final galleryRepositoryProvider = Provider<GalleryRepositoryImpl>((ref) {
   return GalleryRepositoryImpl();
@@ -51,14 +51,11 @@ final photoPickerServiceProvider = Provider<PhotoPickerService>((ref) {
   return const PhotoPickerService();
 });
 
-final visionServiceProvider = Provider<VisionService>((ref) {
-  const backendBaseUrl = String.fromEnvironment(
-    'NEUROLENS_BACKEND_URL',
-    defaultValue: 'http://10.0.2.2:8000',
-  );
-
-  final service = VisionService(
-    baseUrl: backendBaseUrl,
+final localImageLabelingServiceProvider =
+    Provider<LocalImageLabelingService>((ref) {
+  final service = LocalImageLabelingService(
+    confidenceThreshold: 0.65,
+    maximumLabels: 3,
   );
 
   ref.onDispose(service.dispose);
@@ -71,7 +68,9 @@ final photoImportServiceProvider = Provider<PhotoImportService>((ref) {
     memoryRepository: ref.watch(memoryRepositoryProvider),
     ocrProcessingService: ref.watch(ocrProcessingServiceProvider),
     imageContentClassifier: ref.watch(imageContentClassifierProvider),
-    visionService: ref.watch(visionServiceProvider),
+    imageLabelingService: ref.watch(
+      localImageLabelingServiceProvider,
+    ),
   );
 });
 

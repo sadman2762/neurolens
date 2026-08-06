@@ -15,6 +15,7 @@ class Memory {
     this.visionModel,
     this.visionImageHash,
     this.visionProcessedAt,
+    this.isFavorite = false,
   });
 
   final String id;
@@ -33,5 +34,6 @@ class Memory {
   final String? visionImageHash;
   final DateTime? visionProcessedAt;
 
+  final bool isFavorite;
   final DateTime createdAt;
 }

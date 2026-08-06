@@ -157,6 +157,21 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         type: DriftSqlType.dateTime,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _isFavoriteMeta = const VerificationMeta(
+    'isFavorite',
+  );
+  @override
+  late final GeneratedColumn<bool> isFavorite = GeneratedColumn<bool>(
+    'is_favorite',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_favorite" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -184,6 +199,7 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
     visionModel,
     visionImageHash,
     visionProcessedAt,
+    isFavorite,
     createdAt,
   ];
   @override
@@ -312,6 +328,12 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         ),
       );
     }
+    if (data.containsKey('is_favorite')) {
+      context.handle(
+        _isFavoriteMeta,
+        isFavorite.isAcceptableOrUnknown(data['is_favorite']!, _isFavoriteMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -385,6 +407,10 @@ class $MemoriesTable extends Memories with TableInfo<$MemoriesTable, Memory> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}vision_processed_at'],
       ),
+      isFavorite: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_favorite'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -413,6 +439,7 @@ class Memory extends DataClass implements Insertable<Memory> {
   final String? visionModel;
   final String? visionImageHash;
   final DateTime? visionProcessedAt;
+  final bool isFavorite;
   final DateTime createdAt;
   const Memory({
     required this.id,
@@ -429,6 +456,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     this.visionModel,
     this.visionImageHash,
     this.visionProcessedAt,
+    required this.isFavorite,
     required this.createdAt,
   });
   @override
@@ -470,6 +498,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     if (!nullToAbsent || visionProcessedAt != null) {
       map['vision_processed_at'] = Variable<DateTime>(visionProcessedAt);
     }
+    map['is_favorite'] = Variable<bool>(isFavorite);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -512,6 +541,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       visionProcessedAt: visionProcessedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(visionProcessedAt),
+      isFavorite: Value(isFavorite),
       createdAt: Value(createdAt),
     );
   }
@@ -538,6 +568,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       visionProcessedAt: serializer.fromJson<DateTime?>(
         json['visionProcessedAt'],
       ),
+      isFavorite: serializer.fromJson<bool>(json['isFavorite']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -559,6 +590,7 @@ class Memory extends DataClass implements Insertable<Memory> {
       'visionModel': serializer.toJson<String?>(visionModel),
       'visionImageHash': serializer.toJson<String?>(visionImageHash),
       'visionProcessedAt': serializer.toJson<DateTime?>(visionProcessedAt),
+      'isFavorite': serializer.toJson<bool>(isFavorite),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -578,6 +610,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     Value<String?> visionModel = const Value.absent(),
     Value<String?> visionImageHash = const Value.absent(),
     Value<DateTime?> visionProcessedAt = const Value.absent(),
+    bool? isFavorite,
     DateTime? createdAt,
   }) => Memory(
     id: id ?? this.id,
@@ -604,6 +637,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     visionProcessedAt: visionProcessedAt.present
         ? visionProcessedAt.value
         : this.visionProcessedAt,
+    isFavorite: isFavorite ?? this.isFavorite,
     createdAt: createdAt ?? this.createdAt,
   );
   Memory copyWithCompanion(MemoriesCompanion data) {
@@ -640,6 +674,9 @@ class Memory extends DataClass implements Insertable<Memory> {
       visionProcessedAt: data.visionProcessedAt.present
           ? data.visionProcessedAt.value
           : this.visionProcessedAt,
+      isFavorite: data.isFavorite.present
+          ? data.isFavorite.value
+          : this.isFavorite,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -661,6 +698,7 @@ class Memory extends DataClass implements Insertable<Memory> {
           ..write('visionModel: $visionModel, ')
           ..write('visionImageHash: $visionImageHash, ')
           ..write('visionProcessedAt: $visionProcessedAt, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -682,6 +720,7 @@ class Memory extends DataClass implements Insertable<Memory> {
     visionModel,
     visionImageHash,
     visionProcessedAt,
+    isFavorite,
     createdAt,
   );
   @override
@@ -702,6 +741,7 @@ class Memory extends DataClass implements Insertable<Memory> {
           other.visionModel == this.visionModel &&
           other.visionImageHash == this.visionImageHash &&
           other.visionProcessedAt == this.visionProcessedAt &&
+          other.isFavorite == this.isFavorite &&
           other.createdAt == this.createdAt);
 }
 
@@ -720,6 +760,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
   final Value<String?> visionModel;
   final Value<String?> visionImageHash;
   final Value<DateTime?> visionProcessedAt;
+  final Value<bool> isFavorite;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
   const MemoriesCompanion({
@@ -737,6 +778,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     this.visionModel = const Value.absent(),
     this.visionImageHash = const Value.absent(),
     this.visionProcessedAt = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -755,6 +797,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     this.visionModel = const Value.absent(),
     this.visionImageHash = const Value.absent(),
     this.visionProcessedAt = const Value.absent(),
+    this.isFavorite = const Value.absent(),
     required DateTime createdAt,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -776,6 +819,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Expression<String>? visionModel,
     Expression<String>? visionImageHash,
     Expression<DateTime>? visionProcessedAt,
+    Expression<bool>? isFavorite,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
   }) {
@@ -794,6 +838,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       if (visionModel != null) 'vision_model': visionModel,
       if (visionImageHash != null) 'vision_image_hash': visionImageHash,
       if (visionProcessedAt != null) 'vision_processed_at': visionProcessedAt,
+      if (isFavorite != null) 'is_favorite': isFavorite,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -814,6 +859,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     Value<String?>? visionModel,
     Value<String?>? visionImageHash,
     Value<DateTime?>? visionProcessedAt,
+    Value<bool>? isFavorite,
     Value<DateTime>? createdAt,
     Value<int>? rowid,
   }) {
@@ -832,6 +878,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
       visionModel: visionModel ?? this.visionModel,
       visionImageHash: visionImageHash ?? this.visionImageHash,
       visionProcessedAt: visionProcessedAt ?? this.visionProcessedAt,
+      isFavorite: isFavorite ?? this.isFavorite,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
@@ -882,6 +929,9 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
     if (visionProcessedAt.present) {
       map['vision_processed_at'] = Variable<DateTime>(visionProcessedAt.value);
     }
+    if (isFavorite.present) {
+      map['is_favorite'] = Variable<bool>(isFavorite.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -908,6 +958,7 @@ class MemoriesCompanion extends UpdateCompanion<Memory> {
           ..write('visionModel: $visionModel, ')
           ..write('visionImageHash: $visionImageHash, ')
           ..write('visionProcessedAt: $visionProcessedAt, ')
+          ..write('isFavorite: $isFavorite, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -942,6 +993,7 @@ typedef $$MemoriesTableCreateCompanionBuilder =
       Value<String?> visionModel,
       Value<String?> visionImageHash,
       Value<DateTime?> visionProcessedAt,
+      Value<bool> isFavorite,
       required DateTime createdAt,
       Value<int> rowid,
     });
@@ -961,6 +1013,7 @@ typedef $$MemoriesTableUpdateCompanionBuilder =
       Value<String?> visionModel,
       Value<String?> visionImageHash,
       Value<DateTime?> visionProcessedAt,
+      Value<bool> isFavorite,
       Value<DateTime> createdAt,
       Value<int> rowid,
     });
@@ -1041,6 +1094,11 @@ class $$MemoriesTableFilterComposer
 
   ColumnFilters<DateTime> get visionProcessedAt => $composableBuilder(
     column: $table.visionProcessedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1129,6 +1187,11 @@ class $$MemoriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1204,6 +1267,11 @@ class $$MemoriesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get isFavorite => $composableBuilder(
+    column: $table.isFavorite,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
@@ -1250,6 +1318,7 @@ class $$MemoriesTableTableManager
                 Value<String?> visionModel = const Value.absent(),
                 Value<String?> visionImageHash = const Value.absent(),
                 Value<DateTime?> visionProcessedAt = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MemoriesCompanion(
@@ -1267,6 +1336,7 @@ class $$MemoriesTableTableManager
                 visionModel: visionModel,
                 visionImageHash: visionImageHash,
                 visionProcessedAt: visionProcessedAt,
+                isFavorite: isFavorite,
                 createdAt: createdAt,
                 rowid: rowid,
               ),
@@ -1286,6 +1356,7 @@ class $$MemoriesTableTableManager
                 Value<String?> visionModel = const Value.absent(),
                 Value<String?> visionImageHash = const Value.absent(),
                 Value<DateTime?> visionProcessedAt = const Value.absent(),
+                Value<bool> isFavorite = const Value.absent(),
                 required DateTime createdAt,
                 Value<int> rowid = const Value.absent(),
               }) => MemoriesCompanion.insert(
@@ -1303,6 +1374,7 @@ class $$MemoriesTableTableManager
                 visionModel: visionModel,
                 visionImageHash: visionImageHash,
                 visionProcessedAt: visionProcessedAt,
+                isFavorite: isFavorite,
                 createdAt: createdAt,
                 rowid: rowid,
               ),

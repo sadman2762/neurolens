@@ -1,25 +1,26 @@
 import 'dart:convert';
 
 import 'package:neurolens/features/memory/data/image_content_classifier.dart';
+import 'package:neurolens/features/memory/data/local_image_labeling_service.dart';
 import 'package:neurolens/features/memory/data/mappers/gallery_asset_mapper.dart';
 import 'package:neurolens/features/memory/data/ocr_processing_service.dart';
 import 'package:neurolens/features/memory/data/repositories/memory_repository_impl.dart';
-import 'package:neurolens/features/memory/data/vision_service.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 class PhotoImportService {
   PhotoImportService({
-    required this._memoryRepository,
-    required this._ocrProcessingService,
-    required this._imageContentClassifier,
-    required this._visionService,
-    GalleryAssetMapper? galleryAssetMapper,
-  }) : _galleryAssetMapper = galleryAssetMapper ?? GalleryAssetMapper();
+  required this._memoryRepository,
+  required this._ocrProcessingService,
+  required this._imageContentClassifier,
+  required this._imageLabelingService,
+  GalleryAssetMapper? galleryAssetMapper,
+}) : _galleryAssetMapper =
+         galleryAssetMapper ?? GalleryAssetMapper();
 
   final MemoryRepositoryImpl _memoryRepository;
   final OcrProcessingService _ocrProcessingService;
   final ImageContentClassifier _imageContentClassifier;
-  final VisionService _visionService;
+  final LocalImageLabelingService _imageLabelingService;
   final GalleryAssetMapper _galleryAssetMapper;
 
   Future<int> importPhotos({
@@ -44,34 +45,27 @@ class PhotoImportService {
           memoryId: memory.id,
         );
 
-        final contentType = _imageContentClassifier.classify(extractedText);
+        final contentType = _imageContentClassifier.classify(
+          extractedText,
+        );
 
-        switch (contentType) {
-          case ImageContentType.text:
-            // Strong OCR result: keep everything local.
-            break;
+        final labels = await _imageLabelingService.labelAsset(
+          asset: asset,
+        );
 
-          case ImageContentType.photo:
-            // Weak or empty OCR result: use backend vision analysis.
-            final metadata = await _visionService.analyzeAsset(
-              asset: asset,
-            );
-
-            await _memoryRepository.updateMemoryVisionMetadata(
-              id: memory.id,
-              caption: metadata.caption,
-              scene: metadata.scene,
-              objects: jsonEncode(metadata.objects),
-              keywords: jsonEncode(metadata.keywords),
-              colors: jsonEncode(metadata.colors),
-              model: metadata.model,
-              imageHash: metadata.imageHash,
-              processedAt: DateTime.now(),
-            );
-            break;
-        }
+        await _memoryRepository.updateMemoryVisionMetadata(
+          id: memory.id,
+          caption: '',
+          scene: contentType.name,
+          objects: jsonEncode(labels),
+          keywords: jsonEncode(labels),
+          colors: '[]',
+          model: 'mlkit-image-labeling',
+          imageHash: '',
+          processedAt: DateTime.now(),
+        );
       } catch (_) {
-        // One failed OCR or vision request must not stop other imports.
+        // One failed OCR or local-labeling task must not stop other imports.
       }
     }
 
