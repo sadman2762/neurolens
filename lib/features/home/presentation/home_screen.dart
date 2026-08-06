@@ -42,11 +42,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
 
       if (selectedAssets.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('No photos selected.'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('No photos selected.')));
         return;
       }
 
@@ -75,11 +73,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Photo import failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Photo import failed: $error')));
     }
   }
 
@@ -94,9 +90,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            imported
-                ? 'PDF imported successfully.'
-                : 'No PDF was selected.',
+            imported ? 'PDF imported successfully.' : 'No PDF was selected.',
           ),
         ),
       );
@@ -108,11 +102,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('PDF import failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('PDF import failed: $error')));
     }
   }
 
@@ -145,9 +137,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           setState(() {
             _searchController.value = TextEditingValue(
               text: words,
-              selection: TextSelection.collapsed(
-                offset: words.length,
-              ),
+              selection: TextSelection.collapsed(offset: words.length),
             );
           });
 
@@ -168,11 +158,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       ref.read(voiceListeningProvider.notifier).state = false;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Voice search failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Voice search failed: $error')));
     }
   }
 
@@ -189,10 +177,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           backgroundColor: _surfaceColor,
           title: const Text(
             'Sign out?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           content: Text(
             'Your memories remain stored locally on this device.',
@@ -233,18 +218,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not sign out: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not sign out: $error')));
     }
   }
 
   void _openAccountSheet() {
     final user = ref.read(currentUserProvider);
+    final profileState = ref.read(userProfileProvider);
+
     final email = user?.email ?? 'No email available';
     final displayName = user?.displayName?.trim();
+
+    final profile = profileState.valueOrNull;
+    final planLabel = profile?.isPremium == true ? 'Premium' : 'Free';
+    final creditsLabel = profile == null
+        ? 'Loading...'
+        : '${profile.creditsRemaining} remaining';
 
     showModalBottomSheet<void>(
       context: context,
@@ -274,9 +265,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF8B5CF6).withValues(
-                          alpha: 0.35,
-                        ),
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.35),
                         blurRadius: 24,
                         spreadRadius: 2,
                       ),
@@ -284,10 +273,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   child: Center(
                     child: Text(
-                      _accountInitial(
-                        displayName: displayName,
-                        email: email,
-                      ),
+                      _accountInitial(displayName: displayName, email: email),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -324,17 +310,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: _AccountStatCard(
                         icon: Icons.workspace_premium_outlined,
                         label: 'Current plan',
-                        value: 'Free',
+                        value: planLabel,
                         iconColor: const Color(0xFFC4B5FD),
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: _AccountStatCard(
                         icon: Icons.auto_awesome_rounded,
                         label: 'AI credits',
-                        value: '20 / month',
-                        iconColor: Color(0xFF60A5FA),
+                        value: creditsLabel,
+                        iconColor: const Color(0xFF60A5FA),
                       ),
                     ),
                   ],
@@ -350,45 +336,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   child: Column(
                     children: [
-                      ListTile(
-                        leading: const Icon(
-                          Icons.workspace_premium_outlined,
-                          color: Color(0xFFC4B5FD),
-                        ),
-                        title: const Text(
-                          'Upgrade to Premium',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
+                      if (profile?.isPremium != true)
+                        ListTile(
+                          leading: const Icon(
+                            Icons.workspace_premium_outlined,
+                            color: Color(0xFFC4B5FD),
                           ),
-                        ),
-                        subtitle: Text(
-                          '500 AI credits and no ads',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.45),
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.white38,
-                          size: 16,
-                        ),
-                        onTap: () {
-                          Navigator.of(bottomSheetContext).pop();
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Premium subscriptions will be added next.',
-                              ),
+                          title: const Text(
+                            'Upgrade to Premium',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
                             ),
-                          );
-                        },
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
+                          ),
+                          subtitle: Text(
+                            '500 AI credits and no ads',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: Colors.white38,
+                            size: 16,
+                          ),
+                          onTap: () {
+                            Navigator.of(bottomSheetContext).pop();
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Premium subscriptions will be added next.',
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      if (profile?.isPremium != true)
+                        Divider(
+                          height: 1,
+                          color: Colors.white.withValues(alpha: 0.06),
+                        ),
                       ListTile(
                         leading: const Icon(
                           Icons.logout_rounded,
@@ -555,10 +543,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (memory.type == 'image') {
       Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => MemoryDetailScreen(
-            assetId: memory.id,
-            title: memory.title,
-          ),
+          builder: (_) =>
+              MemoryDetailScreen(assetId: memory.id, title: memory.title),
         ),
       );
       return;
@@ -603,9 +589,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          '${memory.type} memory details are not available yet.',
-        ),
+        content: Text('${memory.type} memory details are not available yet.'),
       ),
     );
   }
@@ -620,9 +604,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      floatingActionButton: _AddMemoryButton(
-        onTap: _openImportSheet,
-      ),
+      floatingActionButton: _AddMemoryButton(onTap: _openImportSheet),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
@@ -633,9 +615,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(
-                        child: _NeuroLensTitle(),
-                      ),
+                      const Expanded(child: _NeuroLensTitle()),
                       _AccountButton(
                         displayName: currentUser?.displayName,
                         email: currentUser?.email,
@@ -645,24 +625,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 16),
                   TweenAnimationBuilder<double>(
-                    tween: Tween<double>(
-                      begin: 0,
-                      end: 1,
-                    ),
+                    tween: Tween<double>(begin: 0, end: 1),
                     duration: const Duration(milliseconds: 500),
                     curve: Curves.easeOutCubic,
-                    builder: (
-                      context,
-                      animationValue,
-                      child,
-                    ) {
+                    builder: (context, animationValue, child) {
                       return Opacity(
                         opacity: animationValue,
                         child: Transform.translate(
-                          offset: Offset(
-                            0,
-                            18 * (1 - animationValue),
-                          ),
+                          offset: Offset(0, 18 * (1 - animationValue)),
                           child: child,
                         ),
                       );
@@ -684,9 +654,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           fontSize: 15,
                         ),
                         onChanged: (value) {
-                          ref
-                              .read(memorySearchQueryProvider.notifier)
-                              .state = value;
+                          ref.read(memorySearchQueryProvider.notifier).state =
+                              value;
                         },
                         decoration: InputDecoration(
                           hintText: isListening
@@ -744,45 +713,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         children: [
                           _FilterButton(
                             label: 'All',
-                            selected:
-                                selectedFilter == MemoryFilter.all,
+                            selected: selectedFilter == MemoryFilter.all,
                             onTap: () {
-                              ref
-                                  .read(memoryFilterProvider.notifier)
-                                  .state = MemoryFilter.all;
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.all;
                             },
                           ),
                           const SizedBox(width: 8),
                           _FilterButton(
                             label: 'Images',
-                            selected:
-                                selectedFilter == MemoryFilter.images,
+                            selected: selectedFilter == MemoryFilter.images,
                             onTap: () {
-                              ref
-                                  .read(memoryFilterProvider.notifier)
-                                  .state = MemoryFilter.images;
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.images;
                             },
                           ),
                           const SizedBox(width: 8),
                           _FilterButton(
                             label: 'PDFs',
-                            selected:
-                                selectedFilter == MemoryFilter.pdfs,
+                            selected: selectedFilter == MemoryFilter.pdfs,
                             onTap: () {
-                              ref
-                                  .read(memoryFilterProvider.notifier)
-                                  .state = MemoryFilter.pdfs;
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.pdfs;
                             },
                           ),
                           const SizedBox(width: 8),
                           _FilterButton(
                             label: 'Notes',
-                            selected:
-                                selectedFilter == MemoryFilter.notes,
+                            selected: selectedFilter == MemoryFilter.notes,
                             onTap: () {
-                              ref
-                                  .read(memoryFilterProvider.notifier)
-                                  .state = MemoryFilter.notes;
+                              ref.read(memoryFilterProvider.notifier).state =
+                                  MemoryFilter.notes;
                             },
                           ),
                         ],
@@ -798,9 +759,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Row(
                 children: [
                   Text(
-                    searchQuery.isEmpty
-                        ? 'Memories'
-                        : 'Search results',
+                    searchQuery.isEmpty ? 'Memories' : 'Search results',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -837,10 +796,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     duration: const Duration(milliseconds: 260),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (
-                      child,
-                      animation,
-                    ) {
+                    transitionBuilder: (child, animation) {
                       return FadeTransition(
                         opacity: animation,
                         child: ScaleTransition(
@@ -858,12 +814,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         '${searchQuery.trim()}-'
                         '${memories.length}',
                       ),
-                      padding: const EdgeInsets.fromLTRB(
-                        18,
-                        0,
-                        18,
-                        90,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 90),
                       physics: const BouncingScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -889,9 +840,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
                 loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: _purple,
-                  ),
+                  child: CircularProgressIndicator(color: _purple),
                 ),
                 error: (error, stackTrace) {
                   return Center(
@@ -933,12 +882,7 @@ class _NeuroLensTitle extends StatelessWidget {
               Color.fromARGB(255, 154, 92, 220),
               Color.fromARGB(255, 93, 34, 230),
             ],
-            stops: [
-              0,
-              0.43,
-              0.68,
-              1,
-            ],
+            stops: [0, 0.43, 0.68, 1],
           ).createShader(bounds);
         },
         child: const Text(
@@ -974,8 +918,8 @@ class _AccountButton extends StatelessWidget {
     final initial = name != null && name.isNotEmpty
         ? name[0].toUpperCase()
         : address != null && address.isNotEmpty
-            ? address[0].toUpperCase()
-            : 'N';
+        ? address[0].toUpperCase()
+        : 'N';
 
     return Tooltip(
       message: 'Account',
@@ -999,14 +943,10 @@ class _AccountButton extends StatelessWidget {
                   Color(0xFFC084FC),
                 ],
               ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.16),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(
-                    alpha: 0.3,
-                  ),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
                   blurRadius: 16,
                   spreadRadius: 1,
                 ),
@@ -1049,18 +989,12 @@ class _AccountStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF141B2D),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: iconColor,
-            size: 22,
-          ),
+          Icon(icon, color: iconColor, size: 22),
           const SizedBox(height: 12),
           Text(
             value,
@@ -1085,9 +1019,7 @@ class _AccountStatCard extends StatelessWidget {
 }
 
 class _AddMemoryButton extends StatefulWidget {
-  const _AddMemoryButton({
-    required this.onTap,
-  });
+  const _AddMemoryButton({required this.onTap});
 
   final VoidCallback onTap;
 
@@ -1113,22 +1045,12 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
     _scaleAnimation = Tween<double>(
       begin: 1,
       end: 1.05,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeInOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _glowAnimation = Tween<double>(
       begin: 0.18,
       end: 0.42,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeInOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1149,9 +1071,9 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(
-                    alpha: _glowAnimation.value,
-                  ),
+                  color: const Color(
+                    0xFF8B5CF6,
+                  ).withValues(alpha: _glowAnimation.value),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),
@@ -1170,11 +1092,7 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
           child: const SizedBox(
             width: 58,
             height: 58,
-            child: Icon(
-              Icons.add_rounded,
-              color: Colors.white,
-              size: 31,
-            ),
+            child: Icon(Icons.add_rounded, color: Colors.white, size: 31),
           ),
         ),
       ),
@@ -1199,9 +1117,7 @@ class _FilterButton extends StatelessWidget {
       duration: const Duration(milliseconds: 220),
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
-        color: selected
-            ? const Color(0xFF8B5CF6)
-            : const Color(0xFF0D1321),
+        color: selected ? const Color(0xFF8B5CF6) : const Color(0xFF0D1321),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: selected
@@ -1211,9 +1127,7 @@ class _FilterButton extends StatelessWidget {
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(
-                    alpha: 0.28,
-                  ),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
                   blurRadius: 14,
                   spreadRadius: 1,
                 ),
@@ -1241,9 +1155,7 @@ class _FilterButton extends StatelessWidget {
                     ? Colors.white
                     : Colors.white.withValues(alpha: 0.68),
                 fontSize: 13,
-                fontWeight: selected
-                    ? FontWeight.w700
-                    : FontWeight.w500,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
               child: Text(label),
             ),
@@ -1255,9 +1167,7 @@ class _FilterButton extends StatelessWidget {
 }
 
 class _EmptyMemoriesView extends StatelessWidget {
-  const _EmptyMemoriesView({
-    required this.isSearching,
-  });
+  const _EmptyMemoriesView({required this.isSearching});
 
   final bool isSearching;
 
@@ -1278,9 +1188,7 @@ class _EmptyMemoriesView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              isSearching
-                  ? 'No matching memories'
-                  : 'No memories yet',
+              isSearching ? 'No matching memories' : 'No memories yet',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white,

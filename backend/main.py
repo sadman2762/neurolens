@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.health import router as health_router
 from app.api.routes.vision import router as vision_router
 from app.core.config import get_settings
+from app.core.firebase_admin import db
 
 settings = get_settings()
 

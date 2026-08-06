@@ -46,13 +46,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      await ref
+      final credential = await ref
           .read(authServiceProvider)
           .register(
             name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
           );
+
+      final user = credential.user;
+
+      if (user != null) {
+        await ref.read(userProfileServiceProvider).createProfileIfMissing(user);
+      }
 
       if (!mounted) {
         return;

@@ -1,32 +1,60 @@
 import 'dart:convert';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:neurolens/features/memory/data/models/vision_metadata.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 class VisionService {
-  VisionService({required String baseUrl, http.Client? client})
-    : _baseUrl = baseUrl.replaceAll(RegExp(r'/$'), ''),
-      _client = client ?? http.Client();
+  VisionService({
+    required String baseUrl,
+    FirebaseAuth? firebaseAuth,
+    http.Client? client,
+  }) : _baseUrl = baseUrl.replaceAll(RegExp(r'/$'), ''),
+       _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance,
+       _client = client ?? http.Client();
 
   final String _baseUrl;
+  final FirebaseAuth _firebaseAuth;
   final http.Client _client;
 
-  Future<VisionMetadata> analyzeAsset({required AssetEntity asset}) async {
+  Future<VisionMetadata> analyzeAsset({
+    required AssetEntity asset,
+  }) async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      throw const VisionServiceException(
+        'You must be signed in to use AI image analysis.',
+      );
+    }
+
+    final idToken = await user.getIdToken();
+
+    if (idToken == null || idToken.isEmpty) {
+      throw const VisionServiceException(
+        'Could not create an authentication token.',
+      );
+    }
+
     final imageBytes = await asset.thumbnailDataWithSize(
       const ThumbnailSize(1280, 1280),
       quality: 85,
     );
 
     if (imageBytes == null || imageBytes.isEmpty) {
-      throw const VisionServiceException('Could not load the selected image.');
+      throw const VisionServiceException(
+        'Could not load the selected image.',
+      );
     }
 
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('$_baseUrl/api/v1/vision/analyze'),
     );
+
+    request.headers['Authorization'] = 'Bearer $idToken';
 
     request.files.add(
       http.MultipartFile.fromBytes(
@@ -40,13 +68,16 @@ class VisionService {
     try {
       final streamedResponse = await _client
           .send(request)
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 90));
 
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw VisionServiceException(
-          _extractErrorMessage(response.body, response.statusCode),
+          _extractErrorMessage(
+            response.body,
+            response.statusCode,
+          ),
         );
       }
 
@@ -66,7 +97,9 @@ class VisionService {
         'The vision backend returned invalid JSON.',
       );
     } on Exception catch (error) {
-      throw VisionServiceException('Vision analysis failed: $error');
+      throw VisionServiceException(
+        'Vision analysis failed: $error',
+      );
     }
   }
 
@@ -74,7 +107,10 @@ class VisionService {
     _client.close();
   }
 
-  static String _extractErrorMessage(String responseBody, int statusCode) {
+  static String _extractErrorMessage(
+    String responseBody,
+    int statusCode,
+  ) {
     try {
       final decodedBody = jsonDecode(responseBody);
 
@@ -86,10 +122,16 @@ class VisionService {
         }
       }
     } on FormatException {
-      // Use the fallback message below.
+      // Use the fallback messages below.
     }
 
-    return 'Vision backend request failed with status $statusCode.';
+    return switch (statusCode) {
+      401 => 'Your session has expired. Please sign in again.',
+      403 => 'You do not have enough AI credits.',
+      413 => 'The selected image is too large.',
+      429 => 'Too many AI requests. Please try again shortly.',
+      _ => 'Vision backend request failed with status $statusCode.',
+    };
   }
 }
 
