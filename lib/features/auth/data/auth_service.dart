@@ -25,8 +25,13 @@ class AuthService {
         password: password,
       );
 
-      await credential.user?.updateDisplayName(name.trim());
-      await credential.user?.reload();
+      final user = credential.user;
+
+      if (user != null) {
+        await user.updateDisplayName(name.trim());
+        await user.sendEmailVerification();
+        await user.reload();
+      }
 
       return credential;
     } on FirebaseAuthException catch (error) {
@@ -56,6 +61,54 @@ class AuthService {
     } catch (_) {
       throw const AuthServiceException(
         'Could not sign in. Please try again.',
+      );
+    }
+  }
+
+  Future<void> sendEmailVerification() async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      throw const AuthServiceException(
+        'You must be signed in to verify your email.',
+      );
+    }
+
+    if (user.emailVerified) {
+      return;
+    }
+
+    try {
+      await user.sendEmailVerification();
+    } on FirebaseAuthException catch (error) {
+      throw AuthServiceException(
+        _messageForCode(error.code),
+      );
+    } catch (_) {
+      throw const AuthServiceException(
+        'Could not send the verification email.',
+      );
+    }
+  }
+
+  Future<bool> reloadAndCheckEmailVerification() async {
+    final user = _firebaseAuth.currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    try {
+      await user.reload();
+
+      return _firebaseAuth.currentUser?.emailVerified ?? false;
+    } on FirebaseAuthException catch (error) {
+      throw AuthServiceException(
+        _messageForCode(error.code),
+      );
+    } catch (_) {
+      throw const AuthServiceException(
+        'Could not refresh your verification status.',
       );
     }
   }
@@ -106,6 +159,8 @@ class AuthService {
       'network-request-failed' =>
         'Check your internet connection and try again.',
       'missing-email' => 'Enter your email address.',
+      'requires-recent-login' =>
+        'Please sign in again before continuing.',
       _ => 'Authentication failed. Please try again.',
     };
   }

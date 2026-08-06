@@ -6,6 +6,7 @@ import 'package:neurolens/features/auth/presentation/login_screen.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
 import 'package:neurolens/features/home/presentation/home_screen.dart';
 import 'package:neurolens/features/subscription/data/revenuecat_service.dart';
+import 'package:neurolens/features/auth/presentation/email_verification_screen.dart';
 
 class NeuroLensApp extends ConsumerWidget {
   const NeuroLensApp({super.key});
@@ -19,13 +20,9 @@ class NeuroLensApp extends ConsumerWidget {
         }
 
         if (user != null) {
-          unawaited(
-            RevenueCatService.identifyUser(user.uid),
-          );
+          unawaited(RevenueCatService.identifyUser(user.uid));
         } else {
-          unawaited(
-            RevenueCatService.logOut(),
-          );
+          unawaited(RevenueCatService.logOut());
         }
       });
     });
@@ -56,17 +53,19 @@ class _AuthGate extends ConsumerWidget {
 
     return authState.when(
       data: (user) {
-        if (user != null) {
-          return const HomeScreen();
+        if (user == null) {
+          return const LoginScreen();
         }
 
-        return const LoginScreen();
+        if (!user.emailVerified) {
+          return const EmailVerificationScreen();
+        }
+
+        return const HomeScreen();
       },
       loading: () => const _AuthLoadingScreen(),
       error: (error, stackTrace) {
-        return _AuthErrorScreen(
-          message: error.toString(),
-        );
+        return _AuthErrorScreen(message: error.toString());
       },
     );
   }
@@ -79,19 +78,13 @@ class _AuthLoadingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: Color(0xFF050816),
-      body: Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF8B5CF6),
-        ),
-      ),
+      body: Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6))),
     );
   }
 }
 
 class _AuthErrorScreen extends StatelessWidget {
-  const _AuthErrorScreen({
-    required this.message,
-  });
+  const _AuthErrorScreen({required this.message});
 
   final String message;
 

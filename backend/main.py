@@ -8,6 +8,7 @@ from app.api.routes.vision import router as vision_router
 from app.core.config import get_settings
 from app.core.firebase_admin import db
 from app.api.routes.revenuecat import router as revenuecat_router
+from app.api.routes.account import router as account_router
 
 settings = get_settings()
 
@@ -36,6 +37,7 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(vision_router)
 app.include_router(revenuecat_router)
+app.include_router(account_router)
 
 
 @app.on_event("startup")

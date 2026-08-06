@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
+import 'package:neurolens/features/auth/presentation/change_password_screen.dart';
+import 'package:neurolens/features/auth/presentation/delete_account_screen.dart';
 
 class AccountBottomSheet extends ConsumerWidget {
   const AccountBottomSheet({
@@ -29,9 +31,7 @@ class AccountBottomSheet extends ConsumerWidget {
           loading: () => const SizedBox(
             height: 360,
             child: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF8B5CF6),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
             ),
           ),
           error: (error, stackTrace) {
@@ -77,9 +77,7 @@ class AccountBottomSheet extends ConsumerWidget {
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFF8B5CF6).withValues(
-                          alpha: 0.35,
-                        ),
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.35),
                         blurRadius: 24,
                         spreadRadius: 2,
                       ),
@@ -87,10 +85,7 @@ class AccountBottomSheet extends ConsumerWidget {
                   ),
                   child: Center(
                     child: Text(
-                      _accountInitial(
-                        displayName: displayName,
-                        email: email,
-                      ),
+                      _accountInitial(displayName: displayName, email: email),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 28,
@@ -214,6 +209,74 @@ class AccountBottomSheet extends ConsumerWidget {
                             onUpgrade();
                           },
                         ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.lock_outline_rounded,
+                          color: Color(0xFF60A5FA),
+                        ),
+                        title: const Text(
+                          'Change password',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Colors.white38,
+                          size: 16,
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ChangePasswordScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(
+                          Icons.delete_forever_rounded,
+                          color: Color(0xFFF87171),
+                        ),
+                        title: const Text(
+                          'Delete account',
+                          style: TextStyle(
+                            color: Color(0xFFFCA5A5),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Permanently remove your account and cloud data',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.42),
+                          ),
+                        ),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Colors.white38,
+                          size: 16,
+                        ),
+                        onTap: () {
+                          Navigator.of(context).pop();
+
+                          Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const DeleteAccountScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      Divider(
+                        height: 1,
+                        color: Colors.white.withValues(alpha: 0.06),
+                      ),
+                      Divider(
+                        height: 1,
+                        color: Colors.white.withValues(alpha: 0.06),
+                      ),
                       if (!isPremium)
                         Divider(
                           height: 1,
@@ -283,18 +346,12 @@ class _AccountStatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AccountBottomSheet._cardColor,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: iconColor,
-            size: 22,
-          ),
+          Icon(icon, color: iconColor, size: 22),
           const SizedBox(height: 12),
           Text(
             value,

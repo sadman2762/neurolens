@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/auth/data/auth_service.dart';
 import 'package:neurolens/features/auth/data/user_profile_service.dart';
 import 'package:neurolens/features/auth/domain/models/user_profile.dart';
+import 'package:neurolens/features/auth/data/account_service.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -32,4 +33,18 @@ final userProfileProvider = StreamProvider<UserProfile?>((ref) {
   return ref
       .watch(userProfileServiceProvider)
       .watchProfile(user.uid);
+});
+
+final accountServiceProvider = Provider<AccountService>((ref) {
+  const backendUrl = String.fromEnvironment(
+    'NEUROLENS_BACKEND_URL',
+  );
+
+  final service = AccountService(
+    baseUrl: backendUrl,
+  );
+
+  ref.onDispose(service.dispose);
+
+  return service;
 });
