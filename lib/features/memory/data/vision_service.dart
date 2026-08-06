@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
@@ -55,6 +56,7 @@ class VisionService {
     );
 
     request.headers['Authorization'] = 'Bearer $idToken';
+    request.headers['X-Request-ID'] = _createRequestId();
 
     request.files.add(
       http.MultipartFile.fromBytes(
@@ -70,7 +72,9 @@ class VisionService {
           .send(request)
           .timeout(const Duration(seconds: 90));
 
-      final response = await http.Response.fromStream(streamedResponse);
+      final response = await http.Response.fromStream(
+        streamedResponse,
+      );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw VisionServiceException(
@@ -107,6 +111,13 @@ class VisionService {
     _client.close();
   }
 
+  static String _createRequestId() {
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final random = Random.secure().nextInt(1 << 32);
+
+    return '$timestamp-$random';
+  }
+
   static String _extractErrorMessage(
     String responseBody,
     int statusCode,
@@ -122,12 +133,14 @@ class VisionService {
         }
       }
     } on FormatException {
-      // Use the fallback messages below.
+      // Use one of the fallback messages below.
     }
 
     return switch (statusCode) {
+      400 => 'The AI request was invalid.',
       401 => 'Your session has expired. Please sign in again.',
       403 => 'You do not have enough AI credits.',
+      409 => 'This AI request has already been submitted.',
       413 => 'The selected image is too large.',
       429 => 'Too many AI requests. Please try again shortly.',
       _ => 'Vision backend request failed with status $statusCode.',
