@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/data/image_edit_api_service.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/ai_tools_bottom_sheet.dart';
+import 'package:neurolens/features/memory/presentation/manual_object_eraser_screen.dart';
 import 'package:neurolens/features/memory/presentation/object_selection_screen.dart';
 import 'package:neurolens/features/memory/presentation/photo_editor_screen.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
@@ -50,13 +51,16 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   }
 
   Future<Uint8List?> _loadImage() async {
-    final asset =
-        await AssetEntity.fromId(
+    final asset = await AssetEntity.fromId(
       widget.assetId,
     );
 
     return asset?.originBytes;
   }
+
+  // ---------------------------------------------------------------------------
+  // AI TOOLS
+  // ---------------------------------------------------------------------------
 
   Future<void> _openAiTools() async {
     if (_isAiEditing ||
@@ -66,8 +70,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       return;
     }
 
-    final imageBytes =
-        await _imageFuture;
+    final imageBytes = await _imageFuture;
 
     if (!mounted) {
       return;
@@ -95,33 +98,49 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
               bottomSheetContext,
             ).pop();
 
-            final result =
-                await Navigator.of(
-              context,
-            ).push<ObjectSelectionResult>(
-              MaterialPageRoute<
-                  ObjectSelectionResult>(
-                builder: (_) =>
-                    ObjectSelectionScreen(
-                  imageBytes: imageBytes,
-                  title: widget.title,
-                ),
-              ),
+            await _openAutomaticObjectEraser(
+              imageBytes,
             );
+          },
+          onManualEraser: () async {
+            Navigator.of(
+              bottomSheetContext,
+            ).pop();
 
-            if (!mounted ||
-                result == null) {
-              return;
-            }
-
-            await _removeSelectedObject(
-              imageBytes: imageBytes,
-              maskBytes:
-                  result.maskBytes,
+            await _openManualObjectEraser(
+              imageBytes,
             );
           },
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // AUTOMATIC OBJECT ERASER
+  // ---------------------------------------------------------------------------
+
+  Future<void> _openAutomaticObjectEraser(
+    Uint8List imageBytes,
+  ) async {
+    final result =
+        await Navigator.of(context).push<ObjectSelectionResult>(
+      MaterialPageRoute<ObjectSelectionResult>(
+        builder: (_) => ObjectSelectionScreen(
+          imageBytes: imageBytes,
+          title: widget.title,
+        ),
+      ),
+    );
+
+    if (!mounted ||
+        result == null) {
+      return;
+    }
+
+    await _removeSelectedObject(
+      imageBytes: imageBytes,
+      maskBytes: result.maskBytes,
     );
   }
 
@@ -141,8 +160,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
     try {
       final editedBytes =
-          await _imageEditApiService
-              .removeObject(
+          await _imageEditApiService.removeObject(
         imageBytes: imageBytes,
         maskBytes: maskBytes,
       );
@@ -161,16 +179,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         return;
       }
 
-      await _saveEditedCopy(
+      //
+      // IMPORTANT:
+      // Replace the existing NeuroLens memory instead
+      // of importing another copy into NeuroLens.
+      //
+      await _replaceWithAiEditedImage(
         editedBytes,
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      _showMessage(
-        'Object removed successfully.',
       );
     } on ImageEditException catch (error) {
       if (!mounted) {
@@ -208,6 +223,202 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       }
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // MANUAL OBJECT ERASER
+  // ---------------------------------------------------------------------------
+
+  Future<void> _openManualObjectEraser(
+    Uint8List imageBytes,
+  ) async {
+    final editedBytes =
+        await Navigator.of(context).push<Uint8List>(
+      MaterialPageRoute<Uint8List>(
+        builder: (_) => ManualObjectEraserScreen(
+          imageBytes: imageBytes,
+          title: widget.title,
+        ),
+      ),
+    );
+
+    if (!mounted ||
+        editedBytes == null ||
+        editedBytes.isEmpty) {
+      return;
+    }
+
+    //
+    // Same replacement behavior as automatic eraser.
+    //
+    await _replaceWithAiEditedImage(
+      editedBytes,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // REPLACE CURRENT NEUROLENS IMAGE WITH AI IMAGE
+  // ---------------------------------------------------------------------------
+
+  Future<void> _replaceWithAiEditedImage(
+    Uint8List editedBytes,
+  ) async {
+    if (_isSavingEdit) {
+      return;
+    }
+
+    setState(() {
+      _isSavingEdit = true;
+    });
+
+    try {
+      final permission =
+          await PhotoManager.requestPermissionExtend();
+
+      if (!permission.hasAccess) {
+        _showMessage(
+          'Gallery permission is required to save the AI-edited photo.',
+        );
+
+        return;
+      }
+
+      //
+      // Read the existing NeuroLens memory before replacing it.
+      //
+      final repository =
+          ref.read(
+        memoryRepositoryProvider,
+      );
+
+      final oldMemory =
+          await repository.getMemoryById(
+        widget.assetId,
+      );
+
+      if (oldMemory == null) {
+        _showMessage(
+          'Could not find the current NeuroLens memory.',
+        );
+
+        return;
+      }
+
+      final timestamp =
+          DateTime.now().millisecondsSinceEpoch;
+
+      final cleanTitle =
+          oldMemory.title
+              .replaceAll(
+                RegExp(
+                  r'[^\w\s-]',
+                ),
+                '',
+              )
+              .trim()
+              .replaceAll(
+                RegExp(
+                  r'\s+',
+                ),
+                '_',
+              );
+
+      final fileName =
+          cleanTitle.isEmpty
+              ? 'neurolens_ai_$timestamp.png'
+              : '${cleanTitle}_ai_$timestamp.png';
+
+      //
+      // Save AI result as a NEW physical gallery image.
+      //
+      // We deliberately do NOT delete the original gallery image.
+      //
+      final savedAsset =
+          await PhotoManager.editor.saveImage(
+        editedBytes,
+        title: fileName,
+        filename: fileName,
+      );
+
+      final newAssetId =
+          savedAsset.id;
+
+      if (newAssetId.isEmpty) {
+        throw StateError(
+          'The edited gallery image has no asset ID.',
+        );
+      }
+
+      //
+      // Replace the old NeuroLens DB record.
+      //
+      // This preserves:
+      //
+      // - original title
+      // - favorite state
+      // - original createdAt
+      //
+      // But changes:
+      //
+      // old gallery asset ID
+      //          ↓
+      // new AI-generated gallery asset ID
+      //
+      await repository.replaceImageMemory(
+        oldId: oldMemory.id,
+        newId: newAssetId,
+        title: oldMemory.title,
+        createdAt: oldMemory.createdAt,
+        isFavorite: oldMemory.isFavorite,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      //
+      // Replace the current detail route itself.
+      //
+      // Without this, this screen would still point at
+      // widget.assetId (the OLD gallery asset).
+      //
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => MemoryDetailScreen(
+            assetId: newAssetId,
+            title: oldMemory.title,
+          ),
+        ),
+      );
+
+      _showMessage(
+        'AI edit saved and replaced in NeuroLens.',
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        'AI image replacement error: $error',
+      );
+
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
+
+      if (mounted) {
+        _showMessage(
+          'Could not replace the image: $error',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingEdit = false;
+        });
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // AI LOADING DIALOG
+  // ---------------------------------------------------------------------------
 
   void _showAiEditingDialog() {
     showDialog<void>(
@@ -282,6 +493,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // NORMAL PHOTO EDITOR
+  //
+  // This keeps the previous behavior:
+  // save as another edited copy in NeuroLens.
+  // ---------------------------------------------------------------------------
+
   Future<void> _openEditor() async {
     if (_isSharing ||
         _isDeleting ||
@@ -291,12 +509,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
 
     final editedBytes =
-        await Navigator.of(
-      context,
-    ).push<Uint8List>(
+        await Navigator.of(context).push<Uint8List>(
       MaterialPageRoute<Uint8List>(
-        builder: (_) =>
-            PhotoEditorScreen(
+        builder: (_) => PhotoEditorScreen(
           assetId: widget.assetId,
           title: widget.title,
         ),
@@ -327,8 +542,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
     try {
       final permission =
-          await PhotoManager
-              .requestPermissionExtend();
+          await PhotoManager.requestPermissionExtend();
 
       if (!permission.hasAccess) {
         _showMessage(
@@ -339,8 +553,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       }
 
       final timestamp =
-          DateTime.now()
-              .millisecondsSinceEpoch;
+          DateTime.now().millisecondsSinceEpoch;
 
       final cleanTitle =
           widget.title
@@ -364,8 +577,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
               : '${cleanTitle}_edited_$timestamp.png';
 
       final savedAsset =
-          await PhotoManager.editor
-              .saveImage(
+          await PhotoManager.editor.saveImage(
         editedBytes,
         title: fileName,
         filename: fileName,
@@ -395,10 +607,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
           'Edited copy was saved to your gallery.',
         );
       }
-    } catch (
-      error,
-      stackTrace
-    ) {
+    } catch (error, stackTrace) {
       debugPrint(
         'Edited photo save error: $error',
       );
@@ -418,6 +627,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       }
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // FAVORITE
+  // ---------------------------------------------------------------------------
 
   Future<void> _toggleFavorite(
     Memory memory,
@@ -445,12 +658,15 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isUpdatingFavorite =
-              false;
+          _isUpdatingFavorite = false;
         });
       }
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // SHARE
+  // ---------------------------------------------------------------------------
 
   Future<void> _shareImage() async {
     if (_isSharing ||
@@ -498,8 +714,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
           context.findRenderObject()
               as RenderBox?;
 
-      await SharePlus.instance
-          .share(
+      await SharePlus.instance.share(
         ShareParams(
           files: [
             XFile(
@@ -511,10 +726,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
           sharePositionOrigin:
               renderBox == null
                   ? null
-                  : renderBox
-                          .localToGlobal(
-                            Offset.zero,
-                          ) &
+                  : renderBox.localToGlobal(
+                        Offset.zero,
+                      ) &
                       renderBox.size,
         ),
       );
@@ -530,6 +744,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       }
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // OCR COPY
+  // ---------------------------------------------------------------------------
 
   Future<void> _copyExtractedText(
     String text,
@@ -556,6 +774,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // DELETE
+  // ---------------------------------------------------------------------------
+
   Future<void> _confirmDelete() async {
     if (_isSharing ||
         _isDeleting ||
@@ -577,8 +799,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
           surfaceTintColor:
               Colors.transparent,
           icon: const Icon(
-            Icons
-                .delete_outline_rounded,
+            Icons.delete_outline_rounded,
             color:
                 Color(0xFFF87171),
             size: 34,
@@ -652,8 +873,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     await _deleteImageMemory();
   }
 
-  Future<void>
-      _deleteImageMemory() async {
+  Future<void> _deleteImageMemory() async {
     setState(() {
       _isDeleting = true;
     });
@@ -687,6 +907,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // HELPERS
+  // ---------------------------------------------------------------------------
+
   void _showMessage(
     String message,
   ) {
@@ -708,8 +932,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   Memory? _findMemory(
     List<Memory> memories,
   ) {
-    for (final memory
-        in memories) {
+    for (final memory in memories) {
       if (memory.id ==
           widget.assetId) {
         return memory;
@@ -721,11 +944,14 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
   @override
   void dispose() {
-    _imageEditApiService
-        .dispose();
+    _imageEditApiService.dispose();
 
     super.dispose();
   }
+
+  // ---------------------------------------------------------------------------
+  // UI
+  // ---------------------------------------------------------------------------
 
   @override
   Widget build(
@@ -743,9 +969,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     );
 
     final extractedText =
-        memory?.content
-                ?.trim() ??
-            '';
+        memory?.content?.trim() ?? '';
 
     final createdAt =
         memory?.createdAt;
@@ -762,8 +986,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       body: SafeArea(
         child: Padding(
           padding:
-              const EdgeInsets
-                  .fromLTRB(
+              const EdgeInsets.fromLTRB(
             18,
             14,
             18,
@@ -774,8 +997,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                 BoxDecoration(
               color: Colors.black,
               borderRadius:
-                  BorderRadius
-                      .circular(
+                  BorderRadius.circular(
                 28,
               ),
               border:
@@ -804,8 +1026,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
             clipBehavior:
                 Clip.antiAlias,
             child: Stack(
-              fit:
-                  StackFit.expand,
+              fit: StackFit.expand,
               children: [
                 _PhotoBackground(
                   imageFuture:
@@ -813,7 +1034,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                   assetId:
                       widget.assetId,
                 ),
+
                 const _BottomGradient(),
+
                 Positioned(
                   top: 16,
                   left: 14,
@@ -832,6 +1055,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                               },
                   ),
                 ),
+
                 Positioned(
                   top: 16,
                   right: 14,
@@ -882,9 +1106,11 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                                         21,
                                   ),
                       ),
+
                       const SizedBox(
                         width: 9,
                       ),
+
                       _CircleActionButton(
                         tooltip:
                             'Edit photo',
@@ -916,9 +1142,11 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                                         22,
                                   ),
                       ),
+
                       const SizedBox(
                         width: 9,
                       ),
+
                       _CircleActionButton(
                         tooltip:
                             'AI tools',
@@ -954,12 +1182,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                                         21,
                                   ),
                       ),
+
                       const SizedBox(
                         width: 9,
                       ),
+
                       _CircleActionButton(
-                        tooltip:
-                            'Share',
+                        tooltip: 'Share',
                         onPressed:
                             isBusy
                                 ? null
@@ -988,12 +1217,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                                         21,
                                   ),
                       ),
+
                       const SizedBox(
                         width: 9,
                       ),
+
                       _CircleActionButton(
-                        tooltip:
-                            'More',
+                        tooltip: 'More',
                         icon: Icons
                             .more_horiz_rounded,
                         onPressed:
@@ -1009,6 +1239,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     ],
                   ),
                 ),
+
                 Positioned(
                   left: 14,
                   right: 14,
@@ -1072,8 +1303,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         return SafeArea(
           child: Padding(
             padding:
-                const EdgeInsets
-                    .fromLTRB(
+                const EdgeInsets.fromLTRB(
               18,
               4,
               18,
@@ -1101,8 +1331,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                       color:
                           Colors.white,
                       fontWeight:
-                          FontWeight
-                              .w600,
+                          FontWeight.w600,
                     ),
                   ),
                   onTap: () {
@@ -1113,6 +1342,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     _openEditor();
                   },
                 ),
+
                 ListTile(
                   leading:
                       const Icon(
@@ -1131,8 +1361,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                       color:
                           Colors.white,
                       fontWeight:
-                          FontWeight
-                              .w600,
+                          FontWeight.w600,
                     ),
                   ),
                   enabled:
@@ -1149,6 +1378,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     );
                   },
                 ),
+
                 ListTile(
                   leading:
                       const Icon(
@@ -1167,8 +1397,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                       color:
                           Colors.white,
                       fontWeight:
-                          FontWeight
-                              .w600,
+                          FontWeight.w600,
                     ),
                   ),
                   onTap: () {
@@ -1179,6 +1408,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     _shareImage();
                   },
                 ),
+
                 ListTile(
                   leading:
                       const Icon(
@@ -1199,8 +1429,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                         0xFFFCA5A5,
                       ),
                       fontWeight:
-                          FontWeight
-                              .w600,
+                          FontWeight.w600,
                     ),
                   ),
                   onTap: () {
@@ -1220,8 +1449,7 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   }
 }
 
-class _PhotoBackground
-    extends StatelessWidget {
+class _PhotoBackground extends StatelessWidget {
   const _PhotoBackground({
     required this.imageFuture,
     required this.assetId,
@@ -1234,17 +1462,14 @@ class _PhotoBackground
   Widget build(
     BuildContext context,
   ) {
-    return FutureBuilder<
-        Uint8List?>(
+    return FutureBuilder<Uint8List?>(
       future: imageFuture,
       builder: (
         context,
         snapshot,
       ) {
-        if (snapshot
-                .connectionState ==
-            ConnectionState
-                .waiting) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
           return const ColoredBox(
             color: Colors.black,
             child: Center(
@@ -1260,8 +1485,7 @@ class _PhotoBackground
         }
 
         if (snapshot.hasError ||
-            snapshot.data ==
-                null) {
+            snapshot.data == null) {
           return const _ImageErrorView(
             message:
                 'This photo is no longer available.',
@@ -1296,8 +1520,7 @@ class _PhotoBackground
   }
 }
 
-class _BottomGradient
-    extends StatelessWidget {
+class _BottomGradient extends StatelessWidget {
   const _BottomGradient();
 
   @override
@@ -1310,10 +1533,10 @@ class _BottomGradient
             BoxDecoration(
           gradient:
               LinearGradient(
-            begin: Alignment
-                .topCenter,
-            end: Alignment
-                .bottomCenter,
+            begin:
+                Alignment.topCenter,
+            end:
+                Alignment.bottomCenter,
             stops: const [
               0,
               0.48,
@@ -1321,20 +1544,16 @@ class _BottomGradient
               1,
             ],
             colors: [
-              Colors.black
-                  .withValues(
+              Colors.black.withValues(
                 alpha: 0.05,
               ),
-              Colors.black
-                  .withValues(
+              Colors.black.withValues(
                 alpha: 0.02,
               ),
-              Colors.black
-                  .withValues(
+              Colors.black.withValues(
                 alpha: 0.34,
               ),
-              Colors.black
-                  .withValues(
+              Colors.black.withValues(
                 alpha: 0.88,
               ),
             ],
@@ -1345,8 +1564,7 @@ class _BottomGradient
   }
 }
 
-class _DetailsPanel
-    extends StatelessWidget {
+class _DetailsPanel extends StatelessWidget {
   const _DetailsPanel({
     required this.title,
     required this.createdAt,
@@ -1369,20 +1587,11 @@ class _DetailsPanel
   final bool isDeleting;
   final bool isSavingEdit;
 
-  final VoidCallback
-      onEditPressed;
-
-  final VoidCallback
-      onOcrPressed;
-
-  final VoidCallback
-      onSharePressed;
-
-  final VoidCallback
-      onDeletePressed;
-
-  final VoidCallback
-      onCopyPressed;
+  final VoidCallback onEditPressed;
+  final VoidCallback onOcrPressed;
+  final VoidCallback onSharePressed;
+  final VoidCallback onDeletePressed;
+  final VoidCallback onCopyPressed;
 
   @override
   Widget build(
@@ -1401,8 +1610,7 @@ class _DetailsPanel
           width:
               double.infinity,
           padding:
-              const EdgeInsets
-                  .fromLTRB(
+              const EdgeInsets.fromLTRB(
             15,
             15,
             15,
@@ -1414,8 +1622,7 @@ class _DetailsPanel
                 _MemoryDetailScreenState
                     ._surfaceColor,
             borderRadius:
-                BorderRadius
-                    .circular(
+                BorderRadius.circular(
               20,
             ),
             border:
@@ -1442,23 +1649,20 @@ class _DetailsPanel
           ),
           child: Column(
             crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+                CrossAxisAlignment.start,
             children: [
               Text(
                 title,
                 maxLines: 1,
                 overflow:
-                    TextOverflow
-                        .ellipsis,
+                    TextOverflow.ellipsis,
                 style:
                     const TextStyle(
                   color:
                       Colors.white,
                   fontSize: 18,
                   fontWeight:
-                      FontWeight
-                          .w800,
+                      FontWeight.w800,
                 ),
               ),
               const SizedBox(
@@ -1495,8 +1699,7 @@ class _DetailsPanel
                           const Color(
                         0xFF36235E,
                       ).withValues(
-                        alpha:
-                            0.8,
+                        alpha: 0.8,
                       ),
                       onPressed:
                           isBusy
@@ -1504,9 +1707,11 @@ class _DetailsPanel
                               : onEditPressed,
                     ),
                   ),
+
                   const SizedBox(
                     width: 8,
                   ),
+
                   Expanded(
                     child:
                         _PillActionButton(
@@ -1520,32 +1725,34 @@ class _DetailsPanel
                               : onOcrPressed,
                     ),
                   ),
+
                   const SizedBox(
                     width: 8,
                   ),
+
                   Expanded(
                     child:
                         _PillActionButton(
                       icon: Icons
                           .ios_share_rounded,
-                      label:
-                          'Share',
+                      label: 'Share',
                       onPressed:
                           isBusy
                               ? null
                               : onSharePressed,
                     ),
                   ),
+
                   const SizedBox(
                     width: 8,
                   ),
+
                   Expanded(
                     child:
                         _PillActionButton(
                       icon: Icons
                           .delete_outline_rounded,
-                      label:
-                          'Delete',
+                      label: 'Delete',
                       foregroundColor:
                           const Color(
                         0xFFFF4D67,
@@ -1554,8 +1761,7 @@ class _DetailsPanel
                           const Color(
                         0xFF581A29,
                       ).withValues(
-                        alpha:
-                            0.56,
+                        alpha: 0.56,
                       ),
                       onPressed:
                           isBusy
@@ -1568,15 +1774,16 @@ class _DetailsPanel
             ],
           ),
         ),
+
         const SizedBox(
           height: 11,
         ),
+
         Container(
           width:
               double.infinity,
           padding:
-              const EdgeInsets
-                  .fromLTRB(
+              const EdgeInsets.fromLTRB(
             15,
             14,
             13,
@@ -1588,8 +1795,7 @@ class _DetailsPanel
                 _MemoryDetailScreenState
                     ._cardColor,
             borderRadius:
-                BorderRadius
-                    .circular(
+                BorderRadius.circular(
               18,
             ),
             border:
@@ -1602,14 +1808,12 @@ class _DetailsPanel
           ),
           child: Row(
             crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+                CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
+                      CrossAxisAlignment.start,
                   children: [
                     const Text(
                       'Extracted text',
@@ -1617,51 +1821,44 @@ class _DetailsPanel
                           TextStyle(
                         color:
                             Colors.white,
-                        fontSize:
-                            13,
+                        fontSize: 13,
                         fontWeight:
-                            FontWeight
-                                .w700,
+                            FontWeight.w700,
                       ),
                     ),
                     const SizedBox(
                       height: 8,
                     ),
                     Text(
-                      extractedText
-                              .isEmpty
+                      extractedText.isEmpty
                           ? 'No readable text was detected in this photo.'
                           : extractedText,
                       maxLines: 3,
                       overflow:
-                          TextOverflow
-                              .ellipsis,
+                          TextOverflow.ellipsis,
                       style:
                           TextStyle(
-                        color: Colors
-                            .white
+                        color: Colors.white
                             .withValues(
-                          alpha:
-                              0.58,
+                          alpha: 0.58,
                         ),
-                        fontSize:
-                            13,
-                        height:
-                            1.45,
+                        fontSize: 13,
+                        height: 1.45,
                       ),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(
                 width: 10,
               ),
+
               IconButton(
                 tooltip:
                     'Copy text',
                 onPressed:
-                    extractedText
-                            .isEmpty
+                    extractedText.isEmpty
                         ? null
                         : onCopyPressed,
                 icon: Icon(
@@ -1669,12 +1866,9 @@ class _DetailsPanel
                       .content_copy_rounded,
                   size: 18,
                   color:
-                      extractedText
-                              .isEmpty
-                          ? Colors
-                              .white24
-                          : Colors
-                              .white70,
+                      extractedText.isEmpty
+                          ? Colors.white24
+                          : Colors.white70,
                 ),
               ),
             ],
@@ -1698,19 +1892,15 @@ class _DetailsPanel
         DateTime.now();
 
     final isToday =
-        now.year ==
-                date.year &&
-            now.month ==
-                date.month &&
-            now.day ==
-                date.day;
+        now.year == date.year &&
+            now.month == date.month &&
+            now.day == date.day;
 
     final hour =
         date.hour == 0
             ? 12
             : date.hour > 12
-                ? date.hour -
-                    12
+                ? date.hour - 12
                 : date.hour;
 
     final minute =
@@ -1735,8 +1925,7 @@ class _DetailsPanel
   }
 }
 
-class _CircleActionButton
-    extends StatelessWidget {
+class _CircleActionButton extends StatelessWidget {
   const _CircleActionButton({
     required this.tooltip,
     required this.onPressed,
@@ -1788,8 +1977,7 @@ class _CircleActionButton
   }
 }
 
-class _PillActionButton
-    extends StatelessWidget {
+class _PillActionButton extends StatelessWidget {
   const _PillActionButton({
     required this.icon,
     required this.label,
@@ -1806,11 +1994,8 @@ class _PillActionButton
   final String label;
   final VoidCallback? onPressed;
 
-  final Color
-      foregroundColor;
-
-  final Color
-      backgroundColor;
+  final Color foregroundColor;
+  final Color backgroundColor;
 
   @override
   Widget build(
@@ -1835,15 +2020,13 @@ class _PillActionButton
         ),
         child: Padding(
           padding:
-              const EdgeInsets
-                  .symmetric(
+              const EdgeInsets.symmetric(
             horizontal: 8,
             vertical: 10,
           ),
           child: Row(
             mainAxisAlignment:
-                MainAxisAlignment
-                    .center,
+                MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
@@ -1851,34 +2034,31 @@ class _PillActionButton
                     ? foregroundColor
                     : foregroundColor
                         .withValues(
-                        alpha:
-                            0.35,
+                        alpha: 0.35,
                       ),
                 size: 16,
               ),
+
               const SizedBox(
                 width: 5,
               ),
+
               Flexible(
                 child: Text(
                   label,
                   overflow:
-                      TextOverflow
-                          .ellipsis,
+                      TextOverflow.ellipsis,
                   style:
                       TextStyle(
                     color: enabled
                         ? foregroundColor
                         : foregroundColor
                             .withValues(
-                            alpha:
-                                0.35,
+                            alpha: 0.35,
                           ),
-                    fontSize:
-                        11,
+                    fontSize: 11,
                     fontWeight:
-                        FontWeight
-                            .w700,
+                        FontWeight.w700,
                   ),
                 ),
               ),
@@ -1890,8 +2070,7 @@ class _PillActionButton
   }
 }
 
-class _ImageErrorView
-    extends StatelessWidget {
+class _ImageErrorView extends StatelessWidget {
   const _ImageErrorView({
     required this.message,
   });
@@ -1907,8 +2086,7 @@ class _ImageErrorView
       child: Center(
         child: Padding(
           padding:
-              const EdgeInsets
-                  .all(
+              const EdgeInsets.all(
             24,
           ),
           child: Column(
@@ -1926,8 +2104,7 @@ class _ImageErrorView
                       const Color(
                     0xFF8B5CF6,
                   ).withValues(
-                    alpha:
-                        0.12,
+                    alpha: 0.12,
                   ),
                 ),
                 child:
@@ -1941,9 +2118,11 @@ class _ImageErrorView
                   ),
                 ),
               ),
+
               const SizedBox(
                 height: 18,
               ),
+
               Text(
                 message,
                 textAlign:
@@ -1954,8 +2133,7 @@ class _ImageErrorView
                       Colors.white,
                   fontSize: 16,
                   fontWeight:
-                      FontWeight
-                          .w600,
+                      FontWeight.w600,
                 ),
               ),
             ],

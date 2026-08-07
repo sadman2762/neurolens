@@ -1,7 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:neurolens/core/database/app_database.dart';
-import 'package:neurolens/features/memory/domain/models/memory.dart'
-    as domain;
+import 'package:neurolens/features/memory/domain/models/memory.dart' as domain;
 import 'package:neurolens/features/memory/domain/repositories/memory_repository.dart';
 
 class MemoryRepositoryImpl implements MemoryRepository {
@@ -10,23 +9,15 @@ class MemoryRepositoryImpl implements MemoryRepository {
   final AppDatabase _database;
 
   @override
-  Future<void> saveMemory(
-    domain.Memory memory,
-  ) {
-    return _database.insertMemory(
-      _toCompanion(memory),
-    );
+  Future<void> saveMemory(domain.Memory memory) {
+    return _database.insertMemory(_toCompanion(memory));
   }
 
   @override
-  Future<void> saveMemories(
-    List<domain.Memory> memories,
-  ) {
+  Future<void> saveMemories(List<domain.Memory> memories) {
     return _database.transaction(() async {
       for (final memory in memories) {
-        await _database.insertMemory(
-          _toCompanion(memory),
-        );
+        await _database.insertMemory(_toCompanion(memory));
       }
     });
   }
@@ -38,33 +29,30 @@ class MemoryRepositoryImpl implements MemoryRepository {
 
   @override
   Stream<List<domain.Memory>> watchAllMemories() {
-    return _database.watchAllMemories().map(
-      (rows) {
-        return rows
-            .map(
-              (row) => domain.Memory(
-                id: row.id,
-                type: row.type,
-                title: row.title,
-                content: row.content,
-                embedding: row.embedding,
-                originalPath: row.originalPath,
-                visionCaption: row.visionCaption,
-                visionScene: row.visionScene,
-                visionObjects: row.visionObjects,
-                visionKeywords: row.visionKeywords,
-                visionColors: row.visionColors,
-                visionModel: row.visionModel,
-                visionImageHash: row.visionImageHash,
-                visionProcessedAt:
-                    row.visionProcessedAt,
-                isFavorite: row.isFavorite,
-                createdAt: row.createdAt,
-              ),
-            )
-            .toList(growable: false);
-      },
-    );
+    return _database.watchAllMemories().map((rows) {
+      return rows
+          .map(
+            (row) => domain.Memory(
+              id: row.id,
+              type: row.type,
+              title: row.title,
+              content: row.content,
+              embedding: row.embedding,
+              originalPath: row.originalPath,
+              visionCaption: row.visionCaption,
+              visionScene: row.visionScene,
+              visionObjects: row.visionObjects,
+              visionKeywords: row.visionKeywords,
+              visionColors: row.visionColors,
+              visionModel: row.visionModel,
+              visionImageHash: row.visionImageHash,
+              visionProcessedAt: row.visionProcessedAt,
+              isFavorite: row.isFavorite,
+              createdAt: row.createdAt,
+            ),
+          )
+          .toList(growable: false);
+    });
   }
 
   @override
@@ -72,10 +60,7 @@ class MemoryRepositoryImpl implements MemoryRepository {
     required String id,
     required String content,
   }) {
-    return _database.updateMemoryContent(
-      id: id,
-      content: content,
-    );
+    return _database.updateMemoryContent(id: id, content: content);
   }
 
   @override
@@ -83,10 +68,7 @@ class MemoryRepositoryImpl implements MemoryRepository {
     required String id,
     required String embedding,
   }) {
-    return _database.updateMemoryEmbedding(
-      id: id,
-      embedding: embedding,
-    );
+    return _database.updateMemoryEmbedding(id: id, embedding: embedding);
   }
 
   Future<void> updateMemoryVisionMetadata({
@@ -117,19 +99,11 @@ class MemoryRepositoryImpl implements MemoryRepository {
     required String id,
     required bool isFavorite,
   }) {
-    return _database.setMemoryFavorite(
-      id: id,
-      isFavorite: isFavorite,
-    );
+    return _database.setMemoryFavorite(id: id, isFavorite: isFavorite);
   }
 
-  Future<void> toggleMemoryFavorite(
-    domain.Memory memory,
-  ) {
-    return setMemoryFavorite(
-      id: memory.id,
-      isFavorite: !memory.isFavorite,
-    );
+  Future<void> toggleMemoryFavorite(domain.Memory memory) {
+    return setMemoryFavorite(id: memory.id, isFavorite: !memory.isFavorite);
   }
 
   @override
@@ -137,9 +111,52 @@ class MemoryRepositoryImpl implements MemoryRepository {
     return _database.deleteMemory(id);
   }
 
-  static MemoriesCompanion _toCompanion(
-    domain.Memory memory,
-  ) {
+  @override
+  Future<domain.Memory?> getMemoryById(String id) async {
+    final row = await _database.getMemoryById(id);
+
+    if (row == null) {
+      return null;
+    }
+
+    return domain.Memory(
+      id: row.id,
+      type: row.type,
+      title: row.title,
+      content: row.content,
+      embedding: row.embedding,
+      originalPath: row.originalPath,
+      visionCaption: row.visionCaption,
+      visionScene: row.visionScene,
+      visionObjects: row.visionObjects,
+      visionKeywords: row.visionKeywords,
+      visionColors: row.visionColors,
+      visionModel: row.visionModel,
+      visionImageHash: row.visionImageHash,
+      visionProcessedAt: row.visionProcessedAt,
+      isFavorite: row.isFavorite,
+      createdAt: row.createdAt,
+    );
+  }
+
+  @override
+  Future<void> replaceImageMemory({
+    required String oldId,
+    required String newId,
+    required String title,
+    required DateTime createdAt,
+    required bool isFavorite,
+  }) {
+    return _database.replaceImageMemory(
+      oldId: oldId,
+      newId: newId,
+      title: title,
+      createdAt: createdAt,
+      isFavorite: isFavorite,
+    );
+  }
+
+  static MemoriesCompanion _toCompanion(domain.Memory memory) {
     return MemoriesCompanion(
       id: Value(memory.id),
       type: Value(memory.type),
@@ -154,9 +171,7 @@ class MemoryRepositoryImpl implements MemoryRepository {
       visionColors: Value(memory.visionColors),
       visionModel: Value(memory.visionModel),
       visionImageHash: Value(memory.visionImageHash),
-      visionProcessedAt: Value(
-        memory.visionProcessedAt,
-      ),
+      visionProcessedAt: Value(memory.visionProcessedAt),
       isFavorite: Value(memory.isFavorite),
       createdAt: Value(memory.createdAt),
     );

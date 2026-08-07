@@ -19,12 +19,6 @@ class ObjectSelectionScreen extends StatefulWidget {
       _ObjectSelectionScreenState();
 }
 
-enum _SelectionMode {
-  tap,
-  brush,
-  erase,
-}
-
 class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
   static const Color _background = Color(0xFF050816);
   static const Color _surface = Color(0xFF0D1321);
@@ -36,20 +30,12 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
   final LocalSegmentationService _segmentationService =
       LocalSegmentationService();
 
-  final List<List<Offset>> _strokes = <List<Offset>>[];
-
-  List<Offset>? _activeStroke;
-
   ui.Image? _decodedImage;
 
   Offset? _selectedCanvasPoint;
   Offset? _selectedImagePoint;
 
   SegmentationResult? _segmentationResult;
-
-  double _brushSize = 34;
-
-  _SelectionMode _selectionMode = _SelectionMode.tap;
 
   bool _isLoadingImage = true;
   bool _isLoadingModels = true;
@@ -69,6 +55,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
           await _segmentationService.debugInitialize();
 
       debugPrint(message);
+
       await _segmentationService.debugRunEncoder(
         widget.imageBytes,
       );
@@ -146,23 +133,13 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     }
   }
 
-  void _setMode(_SelectionMode mode) {
-    if (_isSegmenting) {
-      return;
-    }
-
-    setState(() {
-      _selectionMode = mode;
-      _activeStroke = null;
-    });
-  }
-
   Future<void> _handleTap({
     required Offset localPosition,
     required Size canvasSize,
   }) async {
-    if (_selectionMode != _SelectionMode.tap ||
-        _isSegmenting) {
+    if (_isSegmenting ||
+        _isLoadingImage ||
+        _isLoadingModels) {
       return;
     }
 
@@ -224,8 +201,12 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
         stackTrace: stackTrace,
       );
 
+      if (!mounted) {
+        return;
+      }
+
       _showMessage(
-        'Could not segment this object.',
+        'Could not select this object.',
       );
     } finally {
       if (mounted) {
@@ -316,85 +297,16 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     return origin & displayedSize;
   }
 
-  void _startStroke(Offset point) {
-    if (_selectionMode == _SelectionMode.tap ||
-        _isSegmenting) {
-      return;
-    }
-
-    setState(() {
-      _activeStroke = <Offset>[point];
-
-      if (_selectionMode ==
-          _SelectionMode.brush) {
-        _strokes.add(
-          _activeStroke!,
-        );
-      }
-    });
-  }
-
-  void _updateStroke(Offset point) {
-    if (_activeStroke == null) {
-      return;
-    }
-
-    setState(() {
-      if (_selectionMode ==
-          _SelectionMode.erase) {
-        _eraseNear(point);
-      } else if (_selectionMode ==
-          _SelectionMode.brush) {
-        _activeStroke!.add(point);
-      }
-    });
-  }
-
-  void _endStroke() {
-    setState(() {
-      _activeStroke = null;
-    });
-  }
-
-  void _eraseNear(Offset point) {
-    final eraseRadius =
-        _brushSize * 0.7;
-
-    _strokes.removeWhere(
-      (stroke) {
-        for (final strokePoint in stroke) {
-          if ((strokePoint - point).distance <=
-              eraseRadius) {
-            return true;
-          }
-        }
-
-        return false;
-      },
-    );
-  }
-
   void _undo() {
     if (_isSegmenting) {
       return;
     }
 
-    if (_strokes.isNotEmpty) {
-      setState(() {
-        _strokes.removeLast();
-      });
-
-      return;
-    }
-
-    if (_segmentationResult != null ||
-        _selectedCanvasPoint != null) {
-      setState(() {
-        _segmentationResult = null;
-        _selectedCanvasPoint = null;
-        _selectedImagePoint = null;
-      });
-    }
+    setState(() {
+      _segmentationResult = null;
+      _selectedCanvasPoint = null;
+      _selectedImagePoint = null;
+    });
   }
 
   void _clear() {
@@ -403,149 +315,29 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     }
 
     setState(() {
-      _strokes.clear();
-      _activeStroke = null;
+      _segmentationResult = null;
       _selectedCanvasPoint = null;
       _selectedImagePoint = null;
-      _segmentationResult = null;
     });
   }
 
-  Future<Uint8List?> _generateManualMask({
-    required Size size,
-  }) async {
-    if (_strokes.isEmpty) {
-      return null;
-    }
-
-    final recorder =
-        ui.PictureRecorder();
-
-    final canvas =
-        Canvas(recorder);
-
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()
-        ..color = Colors.black,
-    );
-
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = _brushSize
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..style = PaintingStyle.stroke;
-
-    for (final stroke in _strokes) {
-      if (stroke.isEmpty) {
-        continue;
-      }
-
-      if (stroke.length == 1) {
-        canvas.drawCircle(
-          stroke.first,
-          _brushSize / 2,
-          Paint()
-            ..color = Colors.white,
-        );
-
-        continue;
-      }
-
-      final path = Path()
-        ..moveTo(
-          stroke.first.dx,
-          stroke.first.dy,
-        );
-
-      for (
-        var index = 1;
-        index < stroke.length;
-        index++
-      ) {
-        path.lineTo(
-          stroke[index].dx,
-          stroke[index].dy,
-        );
-      }
-
-      canvas.drawPath(
-        path,
-        paint,
-      );
-    }
-
-    final picture =
-        recorder.endRecording();
-
-    final image =
-        await picture.toImage(
-      size.width.ceil(),
-      size.height.ceil(),
-    );
-
-    final byteData =
-        await image.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
-
-    image.dispose();
-
-    return byteData
-        ?.buffer
-        .asUint8List();
-  }
-
-  Future<void> _done(
-    Size canvasSize,
-  ) async {
+  void _done() {
     if (_isSegmenting) {
       return;
     }
 
-    final automaticResult =
-        _segmentationResult;
+    final result = _segmentationResult;
 
-    if (automaticResult != null &&
-        _strokes.isEmpty) {
-      Navigator.of(context)
-          .pop<ObjectSelectionResult>(
-        ObjectSelectionResult(
-          maskBytes:
-              automaticResult.maskBytes,
-          brushSize:
-              _brushSize,
-          selectedImagePoint:
-              _selectedImagePoint,
-        ),
-      );
-
-      return;
-    }
-
-    final manualMask =
-        await _generateManualMask(
-      size: canvasSize,
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (manualMask == null) {
+    if (result == null) {
       _showMessage(
-        'Tap an object or use the brush to select something first.',
+        'Tap an object first.',
       );
-
       return;
     }
 
-    Navigator.of(context)
-        .pop<ObjectSelectionResult>(
+    Navigator.of(context).pop<ObjectSelectionResult>(
       ObjectSelectionResult(
-        maskBytes: manualMask,
-        brushSize: _brushSize,
+        maskBytes: result.maskBytes,
         selectedImagePoint:
             _selectedImagePoint,
       ),
@@ -559,8 +351,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
+    ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
       ),
@@ -603,11 +394,10 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
         ),
         actions: [
           IconButton(
-            tooltip: 'Undo',
+            tooltip: 'Undo selection',
             onPressed:
                 _isSegmenting ||
-                        (_strokes.isEmpty &&
-                            _selectedCanvasPoint ==
+                        (_selectedCanvasPoint ==
                                 null &&
                             _segmentationResult ==
                                 null)
@@ -622,8 +412,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                 'Clear selection',
             onPressed:
                 _isSegmenting ||
-                        (_strokes.isEmpty &&
-                            _selectedCanvasPoint ==
+                        (_selectedCanvasPoint ==
                                 null &&
                             _segmentationResult ==
                                 null)
@@ -650,7 +439,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                 Size(
               constraints.maxWidth,
               constraints.maxHeight -
-                  150,
+                  130,
             );
 
             return Column(
@@ -681,13 +470,8 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                                     _transformationController,
                                 minScale: 1,
                                 maxScale: 8,
-                                panEnabled:
-                                    _activeStroke ==
-                                        null,
-                                scaleEnabled:
-                                    _selectionMode ==
-                                        _SelectionMode
-                                            .tap,
+                                panEnabled: true,
+                                scaleEnabled: true,
                                 child:
                                     SizedBox(
                                   width:
@@ -701,23 +485,19 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                                     fit: StackFit
                                         .expand,
                                     children: [
-                                      Image
-                                          .memory(
+                                      Image.memory(
                                         widget
                                             .imageBytes,
-                                        fit: BoxFit
-                                            .contain,
+                                        fit:
+                                            BoxFit
+                                                .contain,
                                         gaplessPlayback:
                                             true,
                                       ),
 
-                                      // Exact bitmap outline generated
-                                      // from the same binary mask that
-                                      // already aligned perfectly.
                                       if (_segmentationResult !=
                                           null)
-                                        Positioned
-                                            .fill(
+                                        Positioned.fill(
                                           child:
                                               IgnorePointer(
                                             child:
@@ -737,8 +517,8 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                                                     Image.memory(
                                                   _segmentationResult!
                                                       .outlineBytes,
-                                                  fit: BoxFit
-                                                      .contain,
+                                                  fit:
+                                                      BoxFit.contain,
                                                   filterQuality:
                                                       FilterQuality.none,
                                                   gaplessPlayback:
@@ -751,16 +531,15 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
 
                                       if (_segmentationResult !=
                                           null)
-                                        Positioned
-                                            .fill(
+                                        Positioned.fill(
                                           child:
                                               IgnorePointer(
                                             child:
                                                 Image.memory(
                                               _segmentationResult!
                                                   .outlineBytes,
-                                              fit: BoxFit
-                                                  .contain,
+                                              fit:
+                                                  BoxFit.contain,
                                               filterQuality:
                                                   FilterQuality.none,
                                               gaplessPlayback:
@@ -783,32 +562,10 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                                                 canvasSize,
                                           );
                                         },
-                                        onPanStart:
-                                            (details) {
-                                          _startStroke(
-                                            details
-                                                .localPosition,
-                                          );
-                                        },
-                                        onPanUpdate:
-                                            (details) {
-                                          _updateStroke(
-                                            details
-                                                .localPosition,
-                                          );
-                                        },
-                                        onPanEnd:
-                                            (_) {
-                                          _endStroke();
-                                        },
                                         child:
                                             CustomPaint(
                                           painter:
-                                              _SelectionOverlayPainter(
-                                            strokes:
-                                                _strokes,
-                                            brushSize:
-                                                _brushSize,
+                                              _SelectionPointPainter(
                                             selectedPoint:
                                                 _selectedCanvasPoint,
                                             isSegmenting:
@@ -855,268 +612,119 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                _ToolButton(
-                              icon: Icons
-                                  .touch_app_rounded,
-                              label:
-                                  'Select',
-                              selected:
-                                  _selectionMode ==
-                                      _SelectionMode
-                                          .tap,
-                              onTap: () {
-                                _setMode(
-                                  _SelectionMode
-                                      .tap,
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 8,
-                          ),
-                          Expanded(
-                            child:
-                                _ToolButton(
-                              icon: Icons
-                                  .brush_rounded,
-                              label:
-                                  'Brush',
-                              selected:
-                                  _selectionMode ==
-                                      _SelectionMode
-                                          .brush,
-                              onTap: () {
-                                _setMode(
-                                  _SelectionMode
-                                      .brush,
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 8,
-                          ),
-                          Expanded(
-                            child:
-                                _ToolButton(
-                              icon: Icons
-                                  .auto_fix_off_rounded,
-                              label:
-                                  'Erase',
-                              selected:
-                                  _selectionMode ==
-                                      _SelectionMode
-                                          .erase,
-                              onTap: () {
-                                _setMode(
-                                  _SelectionMode
-                                      .erase,
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(
-                            width: 8,
-                          ),
-                          Expanded(
-                            child:
-                                FilledButton
-                                    .icon(
-                              onPressed:
-                                  isPreparing ||
-                                          _isSegmenting
-                                      ? null
-                                      : () {
-                                          _done(
-                                            canvasSize,
-                                          );
-                                        },
-                              style:
-                                  FilledButton
-                                      .styleFrom(
-                                backgroundColor:
-                                    _purple,
-                                foregroundColor:
-                                    Colors.white,
-                                padding:
-                                    const EdgeInsets
-                                        .symmetric(
-                                  vertical: 14,
-                                ),
-                                shape:
-                                    RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius
-                                          .circular(
-                                    16,
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _isSegmenting
+                                      ? 'Detecting object...'
+                                      : _segmentationResult !=
+                                              null
+                                          ? 'Object selected'
+                                          : 'Tap an object',
+                                  style:
+                                      const TextStyle(
+                                    color:
+                                        Colors.white,
+                                    fontSize:
+                                        15,
+                                    fontWeight:
+                                        FontWeight.w700,
                                   ),
                                 ),
-                              ),
-                              icon:
-                                  _isSegmenting
-                                      ? const SizedBox(
-                                          width:
-                                              16,
-                                          height:
-                                              16,
-                                          child:
-                                              CircularProgressIndicator(
-                                            strokeWidth:
-                                                2,
-                                            color:
-                                                Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons
-                                              .auto_awesome_rounded,
-                                          size:
-                                              17,
-                                        ),
-                              label: Text(
-                                _isSegmenting
-                                    ? 'Selecting'
-                                    : _segmentationResult !=
-                                            null
-                                        ? 'Remove'
-                                        : 'Next',
-                                style:
-                                    const TextStyle(
-                                  fontWeight:
-                                      FontWeight
-                                          .w700,
+                                const SizedBox(
+                                  height: 4,
                                 ),
+                                Text(
+                                  _isSegmenting
+                                      ? 'NeuroLens is finding its exact shape.'
+                                      : _segmentationResult !=
+                                              null
+                                          ? 'Tap another object to change the selection.'
+                                          : 'Tap directly on the person or object you want to remove.',
+                                  style:
+                                      TextStyle(
+                                    color: Colors.white
+                                        .withValues(
+                                      alpha: 0.48,
+                                    ),
+                                    fontSize:
+                                        12,
+                                    height:
+                                        1.35,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            width: 14,
+                          ),
+                          FilledButton.icon(
+                            onPressed:
+                                isPreparing ||
+                                        _isSegmenting ||
+                                        _segmentationResult ==
+                                            null
+                                    ? null
+                                    : _done,
+                            style:
+                                FilledButton
+                                    .styleFrom(
+                              backgroundColor:
+                                  _purple,
+                              foregroundColor:
+                                  Colors.white,
+                              padding:
+                                  const EdgeInsets
+                                      .symmetric(
+                                horizontal: 18,
+                                vertical: 14,
+                              ),
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                  16,
+                                ),
+                              ),
+                            ),
+                            icon:
+                                _isSegmenting
+                                    ? const SizedBox(
+                                        width:
+                                            16,
+                                        height:
+                                            16,
+                                        child:
+                                            CircularProgressIndicator(
+                                          strokeWidth:
+                                              2,
+                                          color:
+                                              Colors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons
+                                            .auto_fix_high_rounded,
+                                        size:
+                                            18,
+                                      ),
+                            label:
+                                const Text(
+                              'Remove',
+                              style:
+                                  TextStyle(
+                                fontWeight:
+                                    FontWeight
+                                        .w700,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      if (_selectionMode !=
-                          _SelectionMode
-                              .tap) ...[
-                        const SizedBox(
-                          height: 15,
-                        ),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons
-                                  .circle_outlined,
-                              color: Colors
-                                  .white54,
-                              size: 17,
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ),
-                            const Text(
-                              'Brush size',
-                              style:
-                                  TextStyle(
-                                color: Colors
-                                    .white70,
-                                fontSize:
-                                    12,
-                                fontWeight:
-                                    FontWeight
-                                        .w600,
-                              ),
-                            ),
-                            const SizedBox(
-                              width: 10,
-                            ),
-                            Expanded(
-                              child:
-                                  Slider(
-                                value:
-                                    _brushSize,
-                                min: 12,
-                                max: 90,
-                                activeColor:
-                                    _purple,
-                                inactiveColor:
-                                    Colors
-                                        .white12,
-                                onChanged:
-                                    _isSegmenting
-                                        ? null
-                                        : (value) {
-                                            setState(
-                                              () {
-                                                _brushSize =
-                                                    value;
-                                              },
-                                            );
-                                          },
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      if (_selectionMode ==
-                              _SelectionMode
-                                  .tap &&
-                          _selectedImagePoint !=
-                              null) ...[
-                        const SizedBox(
-                          height: 13,
-                        ),
-                        Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment
-                                  .center,
-                          children: [
-                            if (_isSegmenting)
-                              const SizedBox(
-                                width: 15,
-                                height: 15,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
-                                  color:
-                                      _purple,
-                                ),
-                              )
-                            else
-                              const Icon(
-                                Icons
-                                    .check_circle_rounded,
-                                color:
-                                    Color(
-                                  0xFF4ADE80,
-                                ),
-                                size: 17,
-                              ),
-                            const SizedBox(
-                              width: 7,
-                            ),
-                            Text(
-                              _isSegmenting
-                                  ? 'Detecting object...'
-                                  : _segmentationResult !=
-                                          null
-                                      ? 'Object selected'
-                                      : 'Object point selected',
-                              style:
-                                  TextStyle(
-                                color: Colors
-                                    .white
-                                    .withValues(
-                                  alpha: 0.7,
-                                ),
-                                fontSize:
-                                    12,
-                                fontWeight:
-                                    FontWeight
-                                        .w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -1157,24 +765,30 @@ class _PreparingView extends StatelessWidget {
                   FontWeight.w600,
             ),
           ),
+          SizedBox(
+            height: 6,
+          ),
+          Text(
+            'AI selection runs on your device.',
+            style: TextStyle(
+              color: Colors.white38,
+              fontSize: 11,
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _SelectionOverlayPainter
+class _SelectionPointPainter
     extends CustomPainter {
-  const _SelectionOverlayPainter({
-    required this.strokes,
-    required this.brushSize,
+  const _SelectionPointPainter({
     required this.selectedPoint,
     required this.isSegmenting,
     required this.hasAutomaticSelection,
   });
 
-  final List<List<Offset>> strokes;
-  final double brushSize;
   final Offset? selectedPoint;
   final bool isSegmenting;
   final bool hasAutomaticSelection;
@@ -1184,77 +798,6 @@ class _SelectionOverlayPainter
     Canvas canvas,
     Size size,
   ) {
-    _paintManualStrokes(
-      canvas,
-    );
-
-    _paintTapPoint(
-      canvas,
-    );
-  }
-
-  void _paintManualStrokes(
-    Canvas canvas,
-  ) {
-    final strokePaint = Paint()
-      ..color =
-          const Color(0xAA8B5CF6)
-      ..strokeWidth = brushSize
-      ..strokeCap =
-          StrokeCap.round
-      ..strokeJoin =
-          StrokeJoin.round
-      ..style =
-          PaintingStyle.stroke;
-
-    for (final stroke in strokes) {
-      if (stroke.isEmpty) {
-        continue;
-      }
-
-      if (stroke.length == 1) {
-        canvas.drawCircle(
-          stroke.first,
-          brushSize / 2,
-          Paint()
-            ..color =
-                const Color(
-              0xAA8B5CF6,
-            )
-            ..style =
-                PaintingStyle.fill,
-        );
-
-        continue;
-      }
-
-      final path = Path()
-        ..moveTo(
-          stroke.first.dx,
-          stroke.first.dy,
-        );
-
-      for (
-        var index = 1;
-        index < stroke.length;
-        index++
-      ) {
-        path.lineTo(
-          stroke[index].dx,
-          stroke[index].dy,
-        );
-      }
-
-      canvas.drawPath(
-        path,
-        strokePaint,
-      );
-    }
-  }
-
-  void _paintTapPoint(
-    Canvas canvas,
-  ) {
     final point =
         selectedPoint;
 
@@ -1262,8 +805,6 @@ class _SelectionOverlayPainter
       return;
     }
 
-    // Once MobileSAM finishes, hide the tap indicator
-    // and leave only the exact object outline.
     if (hasAutomaticSelection &&
         !isSegmenting) {
       return;
@@ -1315,14 +856,10 @@ class _SelectionOverlayPainter
 
   @override
   bool shouldRepaint(
-    covariant _SelectionOverlayPainter
+    covariant _SelectionPointPainter
         oldDelegate,
   ) {
-    return oldDelegate.strokes !=
-            strokes ||
-        oldDelegate.brushSize !=
-            brushSize ||
-        oldDelegate.selectedPoint !=
+    return oldDelegate.selectedPoint !=
             selectedPoint ||
         oldDelegate.isSegmenting !=
             isSegmenting ||
@@ -1331,93 +868,13 @@ class _SelectionOverlayPainter
   }
 }
 
-class _ToolButton extends StatelessWidget {
-  const _ToolButton({
-    required this.icon,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return Material(
-      color: selected
-          ? const Color(
-              0xFF312052,
-            )
-          : const Color(
-              0xFF141B2D,
-            ),
-      borderRadius:
-          BorderRadius.circular(
-        16,
-      ),
-      clipBehavior:
-          Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding:
-              const EdgeInsets
-                  .symmetric(
-            horizontal: 6,
-            vertical: 13,
-          ),
-          child: Column(
-            children: [
-              Icon(
-                icon,
-                color: selected
-                    ? const Color(
-                        0xFFC4B5FD,
-                      )
-                    : Colors.white70,
-                size: 21,
-              ),
-              const SizedBox(
-                height: 6,
-              ),
-              Text(
-                label,
-                maxLines: 1,
-                overflow:
-                    TextOverflow
-                        .ellipsis,
-                style: TextStyle(
-                  color: selected
-                      ? Colors.white
-                      : Colors
-                          .white60,
-                  fontSize: 10,
-                  fontWeight:
-                      FontWeight.w700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class ObjectSelectionResult {
   const ObjectSelectionResult({
     required this.maskBytes,
-    required this.brushSize,
     this.selectedImagePoint,
   });
 
   final Uint8List maskBytes;
-  final double brushSize;
 
   final Offset? selectedImagePoint;
 }
