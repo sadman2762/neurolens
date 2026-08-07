@@ -5,10 +5,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.health import router as health_router
 from app.api.routes.vision import router as vision_router
-from app.core.config import get_settings
-from app.core.firebase_admin import db
 from app.api.routes.revenuecat import router as revenuecat_router
 from app.api.routes.account import router as account_router
+from app.api.routes.image_edit import router as image_edit_router
+
+from app.core.config import get_settings
+from app.core.firebase_admin import db
 
 settings = get_settings()
 
@@ -22,7 +24,7 @@ logger = logging.getLogger("neurolens")
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="AI-powered image indexing backend for NeuroLens.",
+    description="AI-powered image indexing and editing backend for NeuroLens.",
 )
 
 app.add_middleware(
@@ -38,6 +40,7 @@ app.include_router(health_router)
 app.include_router(vision_router)
 app.include_router(revenuecat_router)
 app.include_router(account_router)
+app.include_router(image_edit_router)
 
 
 @app.on_event("startup")
