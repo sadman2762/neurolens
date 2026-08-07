@@ -42,16 +42,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  Future<void> _toggleFavorite(Memory memory) async {
-    try {
-      await ref
-          .read(memoryRepositoryProvider)
-          .toggleMemoryFavorite(memory);
-    } catch (error) {
-      _showMessage('Could not update favorite: $error');
-    }
-  }
-
   Future<void> _importPhotos() async {
     try {
       final selectedAssets = await ref
@@ -97,9 +87,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       }
 
       _showMessage(
-        imported
-            ? 'PDF imported successfully.'
-            : 'No PDF was selected.',
+        imported ? 'PDF imported successfully.' : 'No PDF was selected.',
       );
     } catch (error, stackTrace) {
       debugPrint('PDF import error: $error');
@@ -138,9 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           setState(() {
             _searchController.value = TextEditingValue(
               text: words,
-              selection: TextSelection.collapsed(
-                offset: words.length,
-              ),
+              selection: TextSelection.collapsed(offset: words.length),
             );
           });
 
@@ -178,10 +164,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           surfaceTintColor: Colors.transparent,
           title: const Text(
             'Sign out?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           content: Text(
             'Your locally imported memories remain stored on this device.',
@@ -224,9 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Future<void> _openPremiumScreen() async {
     final purchased = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => const PremiumScreen(),
-      ),
+      MaterialPageRoute<bool>(builder: (_) => const PremiumScreen()),
     );
 
     if (!mounted || purchased != true) {
@@ -333,10 +314,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case 'image':
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) => MemoryDetailScreen(
-              assetId: memory.id,
-              title: memory.title,
-            ),
+            builder: (_) =>
+                MemoryDetailScreen(assetId: memory.id, title: memory.title),
           ),
         );
         return;
@@ -373,9 +352,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
 
       default:
-        _showMessage(
-          '${memory.type} memory details are unavailable.',
-        );
+        _showMessage('${memory.type} memory details are unavailable.');
     }
   }
 
@@ -384,11 +361,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -401,9 +376,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      floatingActionButton: _AddMemoryButton(
-        onTap: _openImportSheet,
-      ),
+      floatingActionButton: _AddMemoryButton(onTap: _openImportSheet),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
@@ -414,9 +387,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(
-                        child: _NeuroLensTitle(),
-                      ),
+                      const Expanded(child: _NeuroLensTitle()),
                       _AccountButton(
                         displayName: currentUser?.displayName,
                         email: currentUser?.email,
@@ -430,9 +401,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     isListening: isListening,
                     searchQuery: searchQuery,
                     onChanged: (value) {
-                      ref
-                          .read(memorySearchQueryProvider.notifier)
-                          .state = value;
+                      ref.read(memorySearchQueryProvider.notifier).state =
+                          value;
                     },
                     onClear: _clearSearch,
                     onVoicePressed: _toggleVoiceSearch,
@@ -496,9 +466,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 return _FavoriteMemoryCard(
                                   memory: memory,
                                   onTap: () => _openMemory(memory),
-                                  onFavoritePressed: () {
-                                    _toggleFavorite(memory);
-                                  },
                                 );
                               },
                             ),
@@ -514,29 +481,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(
-                          18,
-                          12,
-                          18,
-                          96,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
                         sliver: SliverGrid(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final memory = memories[index];
-                              final isFavorite = memory.isFavorite;
+                          delegate: SliverChildBuilderDelegate((
+                            context,
+                            index,
+                          ) {
+                            final memory = memories[index];
 
-                              return _MemoryCardWithFavorite(
+                            return RepaintBoundary(
+                              child: MemoryGridItem(
                                 memory: memory,
-                                isFavorite: isFavorite,
                                 onTap: () => _openMemory(memory),
-                                onFavoritePressed: () {
-                                  _toggleFavorite(memory);
-                                },
-                              );
-                            },
-                            childCount: memories.length,
-                          ),
+                              ),
+                            );
+                          }, childCount: memories.length),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 3,
@@ -550,9 +509,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   );
                 },
                 loading: () => const Center(
-                  child: CircularProgressIndicator(
-                    color: _purple,
-                  ),
+                  child: CircularProgressIndicator(color: _purple),
                 ),
                 error: (error, stackTrace) {
                   return Center(
@@ -601,9 +558,7 @@ class _SearchBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0D1321),
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.16),
@@ -616,18 +571,13 @@ class _SearchBar extends StatelessWidget {
         controller: controller,
         textInputAction: TextInputAction.search,
         cursorColor: const Color(0xFFA855F7),
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-        ),
+        style: const TextStyle(color: Colors.white, fontSize: 15),
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: isListening
               ? 'Listening...'
               : 'Search photos, PDFs and notes...',
-          hintStyle: TextStyle(
-            color: Colors.white.withValues(alpha: 0.42),
-          ),
+          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.42)),
           prefixIcon: Icon(
             Icons.search_rounded,
             color: Colors.white.withValues(alpha: 0.55),
@@ -650,9 +600,7 @@ class _SearchBar extends StatelessWidget {
                     ? 'Stop voice search'
                     : 'Start voice search',
                 icon: Icon(
-                  isListening
-                      ? Icons.mic_rounded
-                      : Icons.mic_none_rounded,
+                  isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
                   color: isListening
                       ? const Color(0xFFA855F7)
                       : Colors.white.withValues(alpha: 0.72),
@@ -661,9 +609,7 @@ class _SearchBar extends StatelessWidget {
             ],
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 15,
-          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 15),
         ),
       ),
     );
@@ -723,11 +669,7 @@ class _MemoryFilters extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    required this.count,
-    this.icon,
-  });
+  const _SectionHeader({required this.title, required this.count, this.icon});
 
   final String title;
   final int count;
@@ -736,17 +678,11 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 18,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(
-              icon,
-              size: 18,
-              color: const Color(0xFFC084FC),
-            ),
+            Icon(icon, size: 18, color: const Color(0xFFC084FC)),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -760,10 +696,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 9,
-              vertical: 4,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
             decoration: BoxDecoration(
               color: const Color(0xFF141B2D),
               borderRadius: BorderRadius.circular(20),
@@ -783,54 +716,15 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _MemoryCardWithFavorite extends StatelessWidget {
-  const _MemoryCardWithFavorite({
-    required this.memory,
-    required this.isFavorite,
-    required this.onTap,
-    required this.onFavoritePressed,
-  });
-
-  final Memory memory;
-  final bool isFavorite;
-  final VoidCallback onTap;
-  final VoidCallback onFavoritePressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: RepaintBoundary(
-            child: MemoryGridItem(
-              memory: memory,
-              onTap: onTap,
-            ),
-          ),
-        ),
-        Positioned(
-          top: 7,
-          right: 7,
-          child: _FavoriteButton(
-            isFavorite: isFavorite,
-            onPressed: onFavoritePressed,
-          ),
-        ),
-      ],
-    );
-  }
-}
 
 class _FavoriteMemoryCard extends StatelessWidget {
   const _FavoriteMemoryCard({
     required this.memory,
     required this.onTap,
-    required this.onFavoritePressed,
   });
 
   final Memory memory;
   final VoidCallback onTap;
-  final VoidCallback onFavoritePressed;
 
   @override
   Widget build(BuildContext context) {
@@ -840,11 +734,11 @@ class _FavoriteMemoryCard extends StatelessWidget {
         color: const Color(0xFF101729),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+          color: Colors.white.withValues(alpha: 0.07),
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+            color: Colors.black.withValues(alpha: 0.24),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -859,12 +753,26 @@ class _FavoriteMemoryCard extends StatelessWidget {
               onTap: onTap,
             ),
           ),
+
+          // Small favorite indicator only.
           Positioned(
-            top: 7,
-            right: 7,
-            child: _FavoriteButton(
-              isFavorite: true,
-              onPressed: onFavoritePressed,
+            top: 9,
+            right: 9,
+            child: Container(
+              width: 27,
+              height: 27,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.32),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.10),
+                ),
+              ),
+              child: const Icon(
+                Icons.star_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
             ),
           ),
         ],
@@ -873,41 +781,6 @@ class _FavoriteMemoryCard extends StatelessWidget {
   }
 }
 
-class _FavoriteButton extends StatelessWidget {
-  const _FavoriteButton({
-    required this.isFavorite,
-    required this.onPressed,
-  });
-
-  final bool isFavorite;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xB3050816),
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 34,
-          height: 34,
-          child: Icon(
-            isFavorite
-                ? Icons.star_rounded
-                : Icons.star_border_rounded,
-            color: isFavorite
-                ? const Color(0xFFFBBF24)
-                : Colors.white70,
-            size: 21,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _ImportTile extends StatelessWidget {
   const _ImportTile({
@@ -940,10 +813,7 @@ class _ImportTile extends StatelessWidget {
               color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              icon,
-              color: iconColor,
-            ),
+            child: Icon(icon, color: iconColor),
           ),
           title: Text(
             title,
@@ -1035,8 +905,8 @@ class _AccountButton extends StatelessWidget {
     final initial = name != null && name.isNotEmpty
         ? name[0].toUpperCase()
         : address != null && address.isNotEmpty
-            ? address[0].toUpperCase()
-            : 'N';
+        ? address[0].toUpperCase()
+        : 'N';
 
     return Tooltip(
       message: 'Account',
@@ -1060,9 +930,7 @@ class _AccountButton extends StatelessWidget {
                   Color(0xFFC084FC),
                 ],
               ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.16),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
               boxShadow: [
                 BoxShadow(
                   color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
@@ -1089,9 +957,7 @@ class _AccountButton extends StatelessWidget {
 }
 
 class _AddMemoryButton extends StatefulWidget {
-  const _AddMemoryButton({
-    required this.onTap,
-  });
+  const _AddMemoryButton({required this.onTap});
 
   final VoidCallback onTap;
 
@@ -1117,22 +983,12 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
     _scaleAnimation = Tween<double>(
       begin: 1,
       end: 1.05,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeInOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
 
     _glowAnimation = Tween<double>(
       begin: 0.18,
       end: 0.42,
-    ).animate(
-      CurvedAnimation(
-        parent: _controller,
-        curve: Curves.easeInOut,
-      ),
-    );
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1153,9 +1009,9 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(
-                    alpha: _glowAnimation.value,
-                  ),
+                  color: const Color(
+                    0xFF8B5CF6,
+                  ).withValues(alpha: _glowAnimation.value),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),
@@ -1175,11 +1031,7 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
           child: const SizedBox(
             width: 58,
             height: 58,
-            child: Icon(
-              Icons.add_rounded,
-              color: Colors.white,
-              size: 31,
-            ),
+            child: Icon(Icons.add_rounded, color: Colors.white, size: 31),
           ),
         ),
       ),
@@ -1205,9 +1057,7 @@ class _FilterButton extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       decoration: BoxDecoration(
-        color: selected
-            ? const Color(0xFF8B5CF6)
-            : const Color(0xFF0D1321),
+        color: selected ? const Color(0xFF8B5CF6) : const Color(0xFF0D1321),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: selected
@@ -1231,10 +1081,7 @@ class _FilterButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(30),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 15,
-              vertical: 9,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
             child: Row(
               children: [
                 Icon(
@@ -1252,9 +1099,7 @@ class _FilterButton extends StatelessWidget {
                         ? Colors.white
                         : Colors.white.withValues(alpha: 0.68),
                     fontSize: 13,
-                    fontWeight: selected
-                        ? FontWeight.w700
-                        : FontWeight.w500,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   ),
                 ),
               ],

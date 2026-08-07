@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
+import 'package:pro_image_editor/pro_image_editor.dart';
 
 class PhotoEditorScreen extends StatefulWidget {
   const PhotoEditorScreen({
@@ -21,13 +22,9 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   static const Color _background = Color(0xFF050816);
   static const Color _surface = Color(0xFF0D1321);
   static const Color _purple = Color(0xFF8B5CF6);
+  static const Color _purpleLight = Color(0xFFC4B5FD);
 
   late final Future<Uint8List?> _imageFuture;
-
-  double _brightness = 0;
-  double _contrast = 1;
-  double _saturation = 1;
-  int _quarterTurns = 0;
 
   @override
   void initState() {
@@ -37,413 +34,356 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
 
   Future<Uint8List?> _loadImage() async {
     final asset = await AssetEntity.fromId(widget.assetId);
-    return asset?.originBytes;
+
+    if (asset == null) {
+      return null;
+    }
+
+    return asset.originBytes;
   }
 
-  void _rotateLeft() {
-    setState(() {
-      _quarterTurns = (_quarterTurns - 1) % 4;
-    });
+  Future<void> _handleEditingComplete(
+    Uint8List editedBytes,
+  ) async {
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop<Uint8List>(
+      editedBytes,
+    );
   }
 
-  void _rotateRight() {
-    setState(() {
-      _quarterTurns = (_quarterTurns + 1) % 4;
-    });
-  }
-
-  void _reset() {
-    setState(() {
-      _brightness = 0;
-      _contrast = 1;
-      _saturation = 1;
-      _quarterTurns = 0;
-    });
-  }
-
-  void _showComingNext() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Image rendering and save-as-new-photo will be connected next.',
+  ThemeData _editorTheme() {
+    return ThemeData(
+      brightness: Brightness.dark,
+      useMaterial3: true,
+      scaffoldBackgroundColor: _background,
+      canvasColor: _background,
+      cardColor: _surface,
+      dialogTheme: const DialogThemeData(
+        backgroundColor: _surface,
+        surfaceTintColor: Colors.transparent,
+      ),
+      colorScheme: const ColorScheme.dark(
+        primary: _purple,
+        secondary: _purpleLight,
+        surface: _surface,
+        error: Color(0xFFF87171),
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _background,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+      ),
+      iconTheme: const IconThemeData(
+        color: Colors.white,
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: _purpleLight,
         ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: _purple,
+          foregroundColor: Colors.white,
+        ),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: _purple,
+        inactiveTrackColor: Colors.white.withValues(
+          alpha: 0.12,
+        ),
+        thumbColor: _purple,
+        overlayColor: _purple.withValues(
+          alpha: 0.14,
+        ),
+      ),
+      dividerColor: Colors.white.withValues(
+        alpha: 0.08,
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: _surface,
+        surfaceTintColor: Colors.transparent,
       ),
     );
   }
 
-  List<double> _colorMatrix() {
-    final saturation = _saturation;
-    final inverseSaturation = 1 - saturation;
+  ProImageEditorConfigs _editorConfigs() {
+    return ProImageEditorConfigs(
+      designMode: ImageEditorDesignMode.material,
 
-    final red = inverseSaturation * 0.2126;
-    final green = inverseSaturation * 0.7152;
-    final blue = inverseSaturation * 0.0722;
+      mainEditor: MainEditorConfigs(
+        enableZoom: true,
+        enableDoubleTapZoom: true,
+        editorMaxScale: 5,
+        tools: [
+          SubEditorMode.cropRotate,
+          SubEditorMode.tune,
+          SubEditorMode.filter,
+          SubEditorMode.text,
+          SubEditorMode.paint,
+          SubEditorMode.blur,
+        ],
+      ),
 
-    final contrastTranslate = 128 * (1 - _contrast);
-    final brightnessTranslate = _brightness * 255;
+      cropRotateEditor: CropRotateEditorConfigs(
+        enableKeepAspectRatioOnRotate: true,
+        tools: [
+          CropRotateTool.rotate,
+          CropRotateTool.flip,
+          CropRotateTool.aspectRatio,
+          CropRotateTool.reset,
+        ],
+        aspectRatios: [
+          AspectRatioItem(
+            text: 'Free',
+            value: -1,
+          ),
+          AspectRatioItem(
+            text: 'Original',
+            value: 0,
+          ),
+          AspectRatioItem(
+            text: '1:1',
+            value: 1,
+          ),
+          AspectRatioItem(
+            text: '4:5',
+            value: 4 / 5,
+          ),
+          AspectRatioItem(
+            text: '5:4',
+            value: 5 / 4,
+          ),
+          AspectRatioItem(
+            text: '16:9',
+            value: 16 / 9,
+          ),
+          AspectRatioItem(
+            text: '9:16',
+            value: 9 / 16,
+          ),
+        ],
+      ),
 
-    return <double>[
-      (red + saturation) * _contrast,
-      green * _contrast,
-      blue * _contrast,
-      0,
-      contrastTranslate + brightnessTranslate,
-      red * _contrast,
-      (green + saturation) * _contrast,
-      blue * _contrast,
-      0,
-      contrastTranslate + brightnessTranslate,
-      red * _contrast,
-      green * _contrast,
-      (blue + saturation) * _contrast,
-      0,
-      contrastTranslate + brightnessTranslate,
-      0,
-      0,
-      0,
-      1,
-      0,
-    ];
+      filterEditor: FilterEditorConfigs(
+        filterList: [
+          PresetFilters.none,
+          PresetFilters.clarendon,
+          PresetFilters.juno,
+          PresetFilters.lark,
+          PresetFilters.valencia,
+          PresetFilters.nashville,
+          PresetFilters.moon,
+          PresetFilters.inkwell,
+          PresetFilters.willow,
+          PresetFilters.xProII,
+        ],
+      ),
+
+      stateHistory: StateHistoryConfigs(
+        stateHistoryLimit: 100,
+      ),
+
+      imageGeneration: ImageGenerationConfigs(
+        outputFormat: OutputFormat.jpg,
+        jpegQuality: 92,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
-      appBar: AppBar(
-        backgroundColor: _background,
-        foregroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          widget.title,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _reset,
-            child: const Text('Reset'),
-          ),
-          const SizedBox(width: 4),
-          FilledButton(
-            onPressed: _showComingNext,
-            style: FilledButton.styleFrom(
-              backgroundColor: _purple,
-              foregroundColor: Colors.white,
+      body: FutureBuilder<Uint8List?>(
+        future: _imageFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState ==
+              ConnectionState.waiting) {
+            return const _LoadingView();
+          }
+
+          if (snapshot.hasError ||
+              snapshot.data == null) {
+            return _EditorErrorView(
+              onClose: () {
+                Navigator.of(context).pop();
+              },
+            );
+          }
+
+          return Theme(
+            data: _editorTheme(),
+            child: ColoredBox(
+              color: _background,
+              child: ProImageEditor.memory(
+                snapshot.data!,
+                callbacks: ProImageEditorCallbacks(
+                  onImageEditingComplete:
+                      _handleEditingComplete,
+                ),
+                configs: _editorConfigs(),
+              ),
             ),
-            child: const Text('Save'),
-          ),
-          const SizedBox(width: 12),
-        ],
+          );
+        },
       ),
+    );
+  }
+}
+
+class _LoadingView extends StatelessWidget {
+  const _LoadingView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFF050816),
       body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.black,
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: _purple.withValues(alpha: 0.55),
-                    ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: FutureBuilder<Uint8List?>(
-                    future: _imageFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return const Center(
-                          child: CircularProgressIndicator(
-                            color: _purple,
-                          ),
-                        );
-                      }
-
-                      final imageBytes = snapshot.data;
-
-                      if (snapshot.hasError || imageBytes == null) {
-                        return const _EditorErrorView();
-                      }
-
-                      return InteractiveViewer(
-                        minScale: 0.8,
-                        maxScale: 5,
-                        child: Center(
-                          child: RotatedBox(
-                            quarterTurns: _quarterTurns,
-                            child: ColorFiltered(
-                              colorFilter: ColorFilter.matrix(
-                                _colorMatrix(),
-                              ),
-                              child: Image.memory(
-                                imageBytes,
-                                fit: BoxFit.contain,
-                                gaplessPlayback: true,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-            Container(
-              decoration: const BoxDecoration(
-                color: _surface,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(28),
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 24),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _EditorAction(
-                          icon: Icons.rotate_left_rounded,
-                          label: 'Rotate left',
-                          onPressed: _rotateLeft,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _EditorAction(
-                          icon: Icons.rotate_right_rounded,
-                          label: 'Rotate right',
-                          onPressed: _rotateRight,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _EditorAction(
-                          icon: Icons.crop_rounded,
-                          label: 'Crop',
-                          onPressed: _showComingNext,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _EditorAction(
-                          icon: Icons.auto_awesome_rounded,
-                          label: 'AI edit',
-                          isPremium: true,
-                          onPressed: _showComingNext,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 22),
-                  _AdjustmentSlider(
-                    label: 'Brightness',
-                    icon: Icons.brightness_6_outlined,
-                    value: _brightness,
-                    minimum: -0.5,
-                    maximum: 0.5,
-                    onChanged: (value) {
-                      setState(() {
-                        _brightness = value;
-                      });
-                    },
-                  ),
-                  _AdjustmentSlider(
-                    label: 'Contrast',
-                    icon: Icons.contrast_rounded,
-                    value: _contrast,
-                    minimum: 0.5,
-                    maximum: 1.5,
-                    onChanged: (value) {
-                      setState(() {
-                        _contrast = value;
-                      });
-                    },
-                  ),
-                  _AdjustmentSlider(
-                    label: 'Saturation',
-                    icon: Icons.color_lens_outlined,
-                    value: _saturation,
-                    minimum: 0,
-                    maximum: 2,
-                    onChanged: (value) {
-                      setState(() {
-                        _saturation = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EditorAction extends StatelessWidget {
-  const _EditorAction({
-    required this.icon,
-    required this.label,
-    required this.onPressed,
-    this.isPremium = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onPressed;
-  final bool isPremium;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: const Color(0xFF141B2D),
-      borderRadius: BorderRadius.circular(17),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 5,
-            vertical: 12,
-          ),
+        child: Center(
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(
-                    icon,
-                    color: isPremium
-                        ? const Color(0xFFC4B5FD)
-                        : Colors.white,
-                    size: 23,
-                  ),
-                  if (isPremium)
-                    const Positioned(
-                      top: -7,
-                      right: -9,
-                      child: Icon(
-                        Icons.workspace_premium_rounded,
-                        color: Color(0xFFFBBF24),
-                        size: 13,
-                      ),
-                    ),
-                ],
+              CircularProgressIndicator(
+                color: Color(0xFF8B5CF6),
               ),
-              const SizedBox(height: 7),
+              SizedBox(height: 16),
               Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                'Preparing your editor...',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.72),
-                  fontSize: 10,
+                  color: Colors.white70,
                   fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Everything stays on this device.',
+                style: TextStyle(
+                  color: Colors.white38,
+                  fontSize: 12,
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-class _AdjustmentSlider extends StatelessWidget {
-  const _AdjustmentSlider({
-    required this.label,
-    required this.icon,
-    required this.value,
-    required this.minimum,
-    required this.maximum,
-    required this.onChanged,
-  });
-
-  final String label;
-  final IconData icon;
-  final double value;
-  final double minimum;
-  final double maximum;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 104,
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                color: const Color(0xFFC4B5FD),
-                size: 19,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Slider(
-            value: value,
-            min: minimum,
-            max: maximum,
-            activeColor: const Color(0xFF8B5CF6),
-            inactiveColor: Colors.white12,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
     );
   }
 }
 
 class _EditorErrorView extends StatelessWidget {
-  const _EditorErrorView();
+  const _EditorErrorView({
+    required this.onClose,
+  });
+
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.broken_image_outlined,
-              color: Color(0xFFC084FC),
-              size: 46,
+    return Scaffold(
+      backgroundColor: const Color(0xFF050816),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF050816),
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Container(
+            constraints: const BoxConstraints(
+              maxWidth: 420,
             ),
-            SizedBox(height: 14),
-            Text(
-              'This photo is no longer available.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+            padding: const EdgeInsets.all(26),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0D1321),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: Colors.white.withValues(
+                  alpha: 0.07,
+                ),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF8B5CF6)
+                      .withValues(alpha: 0.12),
+                  blurRadius: 28,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 82,
+                  height: 82,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFF8B5CF6)
+                        .withValues(alpha: 0.14),
+                  ),
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    color: Color(0xFFC4B5FD),
+                    size: 40,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Photo unavailable',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  'NeuroLens could not access the original photo.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withValues(
+                      alpha: 0.52,
+                    ),
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: onClose,
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                    ),
+                    label: const Text(
+                      'Go back',
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor:
+                          const Color(0xFF8B5CF6),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
