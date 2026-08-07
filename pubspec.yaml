@@ -56,6 +56,7 @@ dependencies:
   google_mlkit_image_labeling: ^0.15.0
   pro_image_editor: ^13.3.0
   gal: ^2.3.3
+  flutter_onnxruntime: ^1.8.3
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -84,6 +85,7 @@ flutter:
 
   assets:
     - assets/logo/
+    - assets/models/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

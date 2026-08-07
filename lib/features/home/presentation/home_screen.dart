@@ -425,6 +425,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       .where((memory) => memory.isFavorite)
                       .toList(growable: false);
 
+                  final regularMemories = memories
+                      .where((memory) => !memory.isFavorite)
+                      .toList(growable: false);
+
                   if (memories.isEmpty) {
                     return _EmptyMemoriesView(
                       isSearching: searchQuery.isNotEmpty,
@@ -477,7 +481,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           title: searchQuery.isEmpty
                               ? 'Your memories'
                               : 'Search results',
-                          count: memories.length,
+                          count: regularMemories.length,
                         ),
                       ),
                       SliverPadding(
@@ -487,7 +491,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             context,
                             index,
                           ) {
-                            final memory = memories[index];
+                            final memory = regularMemories[index];
 
                             return RepaintBoundary(
                               child: MemoryGridItem(
@@ -495,7 +499,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                 onTap: () => _openMemory(memory),
                               ),
                             );
-                          }, childCount: memories.length),
+                          }, childCount: regularMemories.length),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 3,
@@ -716,12 +720,8 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-
 class _FavoriteMemoryCard extends StatelessWidget {
-  const _FavoriteMemoryCard({
-    required this.memory,
-    required this.onTap,
-  });
+  const _FavoriteMemoryCard({required this.memory, required this.onTap});
 
   final Memory memory;
   final VoidCallback onTap;
@@ -733,9 +733,7 @@ class _FavoriteMemoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF101729),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.07),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.24),
@@ -748,10 +746,7 @@ class _FavoriteMemoryCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: MemoryGridItem(
-              memory: memory,
-              onTap: onTap,
-            ),
+            child: MemoryGridItem(memory: memory, onTap: onTap),
           ),
 
           // Small favorite indicator only.
@@ -764,9 +759,7 @@ class _FavoriteMemoryCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.32),
                 shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.10),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
               ),
               child: const Icon(
                 Icons.star_rounded,
@@ -780,7 +773,6 @@ class _FavoriteMemoryCard extends StatelessWidget {
     );
   }
 }
-
 
 class _ImportTile extends StatelessWidget {
   const _ImportTile({

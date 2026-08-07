@@ -6,6 +6,8 @@ import 'package:neurolens/features/memory/presentation/photo_editor_screen.dart'
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:neurolens/features/memory/presentation/ai_tools_bottom_sheet.dart';
+import 'package:neurolens/features/memory/presentation/object_selection_screen.dart';
 
 class MemoryDetailScreen extends ConsumerStatefulWidget {
   const MemoryDetailScreen({
@@ -43,6 +45,49 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   Future<Uint8List?> _loadImage() async {
     final asset = await AssetEntity.fromId(widget.assetId);
     return asset?.originBytes;
+  }
+
+  Future<void> _openAiTools() async {
+    final imageBytes = await _imageFuture;
+
+    if (!mounted) {
+      return;
+    }
+
+    if (imageBytes == null || imageBytes.isEmpty) {
+      _showMessage('Could not load this photo for AI editing.');
+      return;
+    }
+
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0D1321),
+      builder: (bottomSheetContext) {
+        return AiToolsBottomSheet(
+          onObjectEraser: () async {
+            Navigator.of(bottomSheetContext).pop();
+
+            final result = await Navigator.of(context)
+                .push<ObjectSelectionResult>(
+                  MaterialPageRoute<ObjectSelectionResult>(
+                    builder: (_) => ObjectSelectionScreen(
+                      imageBytes: imageBytes,
+                      title: widget.title,
+                    ),
+                  ),
+                );
+
+            if (!mounted || result == null) {
+              return;
+            }
+
+            _showMessage('Object mask created successfully.');
+          },
+        );
+      },
+    );
   }
 
   Future<void> _openEditor() async {
@@ -422,6 +467,18 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                                 color: Colors.white,
                                 size: 22,
                               ),
+                      ),
+                      const SizedBox(width: 9),
+                      _CircleActionButton(
+                        tooltip: 'AI tools',
+                        onPressed: _isSharing || _isDeleting || _isSavingEdit
+                            ? null
+                            : _openAiTools,
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Color(0xFFC4B5FD),
+                          size: 21,
+                        ),
                       ),
                       const SizedBox(width: 9),
                       _CircleActionButton(
