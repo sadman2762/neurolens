@@ -7,3 +7,4 @@ Pillow
 python-multipart
 openai>=1.100.0
 firebase-admin
+python-multipart

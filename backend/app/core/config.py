@@ -13,7 +13,12 @@ class Settings(BaseSettings):
     revenuecat_webhook_secret: str = ""
 
     openai_api_key: SecretStr
+
+    # Existing vision/text model
     openai_model: str = "gpt-5-mini"
+
+    # Image editing model
+    openai_image_model: str = "gpt-image-2"
 
     model_config = SettingsConfigDict(
         env_file=".env",
