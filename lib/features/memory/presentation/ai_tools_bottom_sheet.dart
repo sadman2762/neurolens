@@ -3,12 +3,10 @@ import 'package:flutter/material.dart';
 class AiToolsBottomSheet extends StatelessWidget {
   const AiToolsBottomSheet({
     required this.onObjectEraser,
-    required this.onManualEraser,
     super.key,
   });
 
   final VoidCallback onObjectEraser;
-  final VoidCallback onManualEraser;
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +15,12 @@ class AiToolsBottomSheet extends StatelessWidget {
     return SafeArea(
       child: Container(
         color: background,
-        padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
+        padding: const EdgeInsets.fromLTRB(
+          18,
+          6,
+          18,
+          24,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,33 +33,36 @@ class AiToolsBottomSheet extends StatelessWidget {
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const SizedBox(height: 6),
+
+            const SizedBox(
+              height: 6,
+            ),
+
             Text(
               'Powerful AI editing tools.',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.48),
+                color: Colors.white.withValues(
+                  alpha: 0.48,
+                ),
                 fontSize: 13,
               ),
             ),
-            const SizedBox(height: 18),
+
+            const SizedBox(
+              height: 18,
+            ),
 
             _AiToolTile(
               icon: Icons.auto_fix_high_rounded,
               title: 'Object Eraser',
-              subtitle: 'Tap an object and let AI select it automatically',
+              subtitle:
+                  'Tap multiple objects or refine the selection with a brush',
               onTap: onObjectEraser,
             ),
 
-            const SizedBox(height: 10),
-
-            _AiToolTile(
-              icon: Icons.brush_rounded,
-              title: 'Manual Eraser',
-              subtitle: 'Paint over anything you want to remove',
-              onTap: onManualEraser,
+            const SizedBox(
+              height: 10,
             ),
-
-            const SizedBox(height: 10),
 
             const _AiToolTile(
               icon: Icons.person_remove_alt_1_rounded,
@@ -64,7 +70,9 @@ class AiToolsBottomSheet extends StatelessWidget {
               subtitle: 'Coming soon',
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(
+              height: 10,
+            ),
 
             const _AiToolTile(
               icon: Icons.auto_awesome_rounded,
@@ -72,7 +80,9 @@ class AiToolsBottomSheet extends StatelessWidget {
               subtitle: 'Coming soon',
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(
+              height: 10,
+            ),
 
             const _AiToolTile(
               icon: Icons.crop_free_rounded,
@@ -104,14 +114,23 @@ class _AiToolTile extends StatelessWidget {
     final enabled = onTap != null;
 
     return Material(
-      color: const Color(0xFF141B2D),
-      borderRadius: BorderRadius.circular(16),
+      color: const Color(
+        0xFF141B2D,
+      ),
+      borderRadius: BorderRadius.circular(
+        16,
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(
+          16,
+        ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 14,
+          ),
           child: Row(
             children: [
               Container(
@@ -119,37 +138,62 @@ class _AiToolTile extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: enabled
-                      ? const Color(0xFF8B5CF6).withValues(alpha: 0.14)
-                      : Colors.white.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(13),
+                      ? const Color(
+                          0xFF8B5CF6,
+                        ).withValues(
+                          alpha: 0.14,
+                        )
+                      : Colors.white.withValues(
+                          alpha: 0.04,
+                        ),
+                  borderRadius: BorderRadius.circular(
+                    13,
+                  ),
                 ),
                 child: Icon(
                   icon,
-                  color: enabled ? const Color(0xFFC4B5FD) : Colors.white24,
+                  color: enabled
+                      ? const Color(
+                          0xFFC4B5FD,
+                        )
+                      : Colors.white24,
                   size: 22,
                 ),
               ),
 
-              const SizedBox(width: 14),
+              const SizedBox(
+                width: 14,
+              ),
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       style: TextStyle(
-                        color: enabled ? Colors.white : Colors.white38,
+                        color: enabled
+                            ? Colors.white
+                            : Colors.white38,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: 3),
+
+                    const SizedBox(
+                      height: 3,
+                    ),
+
                     Text(
                       subtitle,
                       style: TextStyle(
                         color: enabled
-                            ? Colors.white.withValues(alpha: 0.46)
-                            : Colors.white.withValues(alpha: 0.25),
+                            ? Colors.white.withValues(
+                                alpha: 0.46,
+                              )
+                            : Colors.white.withValues(
+                                alpha: 0.25,
+                              ),
                         fontSize: 12,
                         height: 1.3,
                       ),

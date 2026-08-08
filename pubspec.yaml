@@ -85,10 +85,10 @@ flutter:
 
   assets:
     - assets/logo/
-    - assets/models/
-    - assets/splash/splash_eye.png
-    - assets/splash/neurolens_logo.png
-    - assets/splash/neurolens_ring.png
+    - assets/models/mobile_sam_image_encoder.onnx
+    - assets/models/sam_mask_decoder_single.onnx
+    - assets/models/lama.onnx
+    
 
 
   # To add assets to your application, add an assets section, like this:
