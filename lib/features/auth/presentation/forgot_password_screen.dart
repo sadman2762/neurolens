@@ -11,8 +11,7 @@ class ForgotPasswordScreen extends ConsumerStatefulWidget {
       _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState
-    extends ConsumerState<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   static const Color _backgroundColor = Color(0xFF050816);
   static const Color _surfaceColor = Color(0xFF0D1321);
   static const Color _purple = Color(0xFF8B5CF6);
@@ -41,9 +40,9 @@ class _ForgotPasswordScreenState
     });
 
     try {
-      await ref.read(authServiceProvider).sendPasswordResetEmail(
-            email: _emailController.text,
-          );
+      await ref
+          .read(authServiceProvider)
+          .sendPasswordResetEmail(email: _emailController.text);
 
       if (!mounted) {
         return;
@@ -57,11 +56,9 @@ class _ForgotPasswordScreenState
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(error.message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.message)));
     } finally {
       if (mounted) {
         setState(() {
@@ -101,9 +98,7 @@ class _ForgotPasswordScreenState
                   SizedBox(
                     width: 160,
                     height: 160,
-                    child: Image.asset(
-                      'assets/logo/neurolens_logo.png',
-                    ),
+                    child: Image.asset('assets/logo/neurolens_logo.png'),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -181,12 +176,8 @@ class _ForgotPasswordScreenState
                                 TextFormField(
                                   controller: _emailController,
                                   keyboardType: TextInputType.emailAddress,
-                                  autofillHints: const [
-                                    AutofillHints.email,
-                                  ],
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                  ),
+                                  autofillHints: const [AutofillHints.email],
+                                  style: const TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     labelText: 'Email address',
                                     labelStyle: TextStyle(
@@ -259,14 +250,13 @@ class _ForgotPasswordScreenState
                                     style: FilledButton.styleFrom(
                                       backgroundColor: _purple,
                                       foregroundColor: Colors.white,
-                                      disabledBackgroundColor:
-                                          _purple.withValues(alpha: 0.45),
+                                      disabledBackgroundColor: _purple
+                                          .withValues(alpha: 0.45),
                                       padding: const EdgeInsets.symmetric(
                                         vertical: 16,
                                       ),
                                       shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
                                     child: _isLoading

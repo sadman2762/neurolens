@@ -1,9 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
-  AuthService({
-    FirebaseAuth? firebaseAuth,
-  }) : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
+  AuthService({FirebaseAuth? firebaseAuth})
+    : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
   final FirebaseAuth _firebaseAuth;
 
@@ -19,8 +18,7 @@ class AuthService {
     required String password,
   }) async {
     try {
-      final credential =
-          await _firebaseAuth.createUserWithEmailAndPassword(
+      final credential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email.trim(),
         password: password,
       );
@@ -35,9 +33,7 @@ class AuthService {
 
       return credential;
     } on FirebaseAuthException catch (error) {
-      throw AuthServiceException(
-        _messageForCode(error.code),
-      );
+      throw AuthServiceException(_messageForCode(error.code));
     } catch (_) {
       throw const AuthServiceException(
         'Could not create your account. Please try again.',
@@ -55,13 +51,9 @@ class AuthService {
         password: password,
       );
     } on FirebaseAuthException catch (error) {
-      throw AuthServiceException(
-        _messageForCode(error.code),
-      );
+      throw AuthServiceException(_messageForCode(error.code));
     } catch (_) {
-      throw const AuthServiceException(
-        'Could not sign in. Please try again.',
-      );
+      throw const AuthServiceException('Could not sign in. Please try again.');
     }
   }
 
@@ -81,9 +73,7 @@ class AuthService {
     try {
       await user.sendEmailVerification();
     } on FirebaseAuthException catch (error) {
-      throw AuthServiceException(
-        _messageForCode(error.code),
-      );
+      throw AuthServiceException(_messageForCode(error.code));
     } catch (_) {
       throw const AuthServiceException(
         'Could not send the verification email.',
@@ -103,9 +93,7 @@ class AuthService {
 
       return _firebaseAuth.currentUser?.emailVerified ?? false;
     } on FirebaseAuthException catch (error) {
-      throw AuthServiceException(
-        _messageForCode(error.code),
-      );
+      throw AuthServiceException(_messageForCode(error.code));
     } catch (_) {
       throw const AuthServiceException(
         'Could not refresh your verification status.',
@@ -113,17 +101,11 @@ class AuthService {
     }
   }
 
-  Future<void> sendPasswordResetEmail({
-    required String email,
-  }) async {
+  Future<void> sendPasswordResetEmail({required String email}) async {
     try {
-      await _firebaseAuth.sendPasswordResetEmail(
-        email: email.trim(),
-      );
+      await _firebaseAuth.sendPasswordResetEmail(email: email.trim());
     } on FirebaseAuthException catch (error) {
-      throw AuthServiceException(
-        _messageForCode(error.code),
-      );
+      throw AuthServiceException(_messageForCode(error.code));
     } catch (_) {
       throw const AuthServiceException(
         'Could not send the password reset email.',
@@ -135,9 +117,7 @@ class AuthService {
     try {
       await _firebaseAuth.signOut();
     } catch (_) {
-      throw const AuthServiceException(
-        'Could not sign out. Please try again.',
-      );
+      throw const AuthServiceException('Could not sign out. Please try again.');
     }
   }
 
@@ -150,17 +130,14 @@ class AuthService {
       'invalid-credential' => 'The email or password is incorrect.',
       'email-already-in-use' =>
         'An account already exists with this email address.',
-      'weak-password' =>
-        'Use a stronger password with at least 6 characters.',
+      'weak-password' => 'Use a stronger password with at least 6 characters.',
       'operation-not-allowed' =>
         'Email and password authentication is not enabled.',
-      'too-many-requests' =>
-        'Too many attempts. Please wait and try again.',
+      'too-many-requests' => 'Too many attempts. Please wait and try again.',
       'network-request-failed' =>
         'Check your internet connection and try again.',
       'missing-email' => 'Enter your email address.',
-      'requires-recent-login' =>
-        'Please sign in again before continuing.',
+      'requires-recent-login' => 'Please sign in again before continuing.',
       _ => 'Authentication failed. Please try again.',
     };
   }

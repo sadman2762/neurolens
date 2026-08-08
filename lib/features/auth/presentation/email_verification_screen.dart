@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
 
 class EmailVerificationScreen extends ConsumerStatefulWidget {
-  const EmailVerificationScreen({
-    super.key,
-  });
+  const EmailVerificationScreen({super.key});
 
   @override
   ConsumerState<EmailVerificationScreen> createState() =>
@@ -39,16 +37,12 @@ class _EmailVerificationScreenState
         ref.invalidate(authStateProvider);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Email verified successfully.'),
-          ),
+          const SnackBar(content: Text('Email verified successfully.')),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Your email is not verified yet. Check your inbox.',
-            ),
+            content: Text('Your email is not verified yet. Check your inbox.'),
           ),
         );
       }
@@ -58,9 +52,7 @@ class _EmailVerificationScreenState
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not check verification: $error'),
-        ),
+        SnackBar(content: Text('Could not check verification: $error')),
       );
     } finally {
       if (mounted) {
@@ -83,21 +75,17 @@ class _EmailVerificationScreenState
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification email sent.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Verification email sent.')));
     } catch (error) {
       if (!mounted) {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not resend email: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not resend email: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -115,11 +103,9 @@ class _EmailVerificationScreenState
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not sign out: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not sign out: $error')));
     }
   }
 
@@ -136,9 +122,7 @@ class _EmailVerificationScreenState
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 440,
-              ),
+              constraints: const BoxConstraints(maxWidth: 440),
               child: Container(
                 padding: const EdgeInsets.all(26),
                 decoration: BoxDecoration(
@@ -202,9 +186,7 @@ class _EmailVerificationScreenState
                         style: FilledButton.styleFrom(
                           backgroundColor: _purple,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 16,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(17),
                           ),
@@ -239,9 +221,7 @@ class _EmailVerificationScreenState
                       onPressed: isBusy ? null : _signOut,
                       child: const Text(
                         'Use another account',
-                        style: TextStyle(
-                          color: Color(0xFFFCA5A5),
-                        ),
+                        style: TextStyle(color: Color(0xFFFCA5A5)),
                       ),
                     ),
                   ],

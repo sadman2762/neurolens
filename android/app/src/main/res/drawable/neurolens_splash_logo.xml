@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="174dp"
+    android:height="174dp"
+    android:viewportWidth="174"
+    android:viewportHeight="174">
+
+    <!-- ========================================================= -->
+    <!-- NEUROLENS NATIVE SPLASH                                   -->
+    <!-- Matches Flutter ring as closely as practical              -->
+    <!--                                                          -->
+    <!-- Flutter settings:                                         -->
+    <!-- glow = 8                                                  -->
+    <!-- main = 7.5                                                -->
+    <!-- inner = 4                                                 -->
+    <!-- companion = 2.2                                          -->
+    <!-- rounded ends                                              -->
+    <!-- ========================================================= -->
+
+
+    <!-- ========================================================= -->
+    <!-- MAIN LARGE RING                                           -->
+    <!-- ========================================================= -->
+
+    <!-- Purple base -->
+    <path
+        android:pathData="
+            M 93,27
+            C 60,22 31,47 31,85
+            C 31,120 58,147 91,147"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#9A5CDC" />
+
+
+    <!-- Pink upper-left overlay -->
+    <path
+        android:pathData="
+            M 93,27
+            C 72,23 53,31 41,45"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#D94FEA" />
+
+
+    <!-- Cyan lower-left overlay -->
+    <path
+        android:pathData="
+            M 31,85
+            C 31,119 57,145 91,147"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#29DDE7" />
+
+
+    <!-- Blue transition -->
+    <path
+        android:pathData="
+            M 35,111
+            C 45,134 66,146 91,147"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="7.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#5983DC" />
+
+
+    <!-- ========================================================= -->
+    <!-- RIGHT COMPANION ARCS                                      -->
+    <!-- ========================================================= -->
+
+
+    <!-- Upper-right outer companion -->
+    <path
+        android:pathData="
+            M 98,30
+            C 124,35 142,54 143,80"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeColor="#E848ED" />
+
+
+    <!-- Upper-right inner arc -->
+    <path
+        android:pathData="
+            M 99,37
+            C 120,41 135,58 136,80"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeColor="#B954E6" />
+
+
+    <!-- Lower-right outer companion -->
+    <path
+        android:pathData="
+            M 143,94
+            C 140,119 121,140 97,145"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:strokeColor="#5983DC" />
+
+
+    <!-- Lower-right inner arc -->
+    <path
+        android:pathData="
+            M 136,94
+            C 133,115 118,132 98,137"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeColor="#29DDE7" />
+
+
+    <!-- ========================================================= -->
+    <!-- STATIC BRAIN                                              -->
+    <!-- ========================================================= -->
+
+
+    <!-- Center divider -->
+    <path
+        android:pathData="
+            M 87,54
+            L 87,120"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeColor="#8065E8" />
+
+
+    <!-- ========================================================= -->
+    <!-- LEFT BRAIN OUTLINE                                        -->
+    <!-- ========================================================= -->
+
+    <path
+        android:pathData="
+            M 83,55
+            C 76,47 67,50 67,60
+            C 57,57 53,65 57,72
+            C 49,75 50,84 56,87
+            C 51,94 57,102 65,100
+            C 63,110 73,116 83,108"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeColor="#C653E8" />
+
+
+    <!-- ========================================================= -->
+    <!-- RIGHT BRAIN OUTLINE                                       -->
+    <!-- ========================================================= -->
+
+    <path
+        android:pathData="
+            M 91,55
+            C 98,47 107,50 107,60
+            C 117,57 121,65 117,72
+            C 125,75 124,84 118,87
+            C 123,94 117,102 109,100
+            C 111,110 101,116 91,108"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:strokeColor="#4AA9E3" />
+
+
+    <!-- ========================================================= -->
+    <!-- LEFT NEURAL NETWORK                                       -->
+    <!-- ========================================================= -->
+
+    <path
+        android:pathData="
+            M 68,66
+            L 59,78
+            L 73,80
+            L 65,91
+            L 75,101
+
+            M 68,66
+            L 78,69
+            L 73,80
+            L 79,94
+            L 75,101"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#B954E6" />
+
+
+    <!-- ========================================================= -->
+    <!-- RIGHT NEURAL NETWORK                                      -->
+    <!-- ========================================================= -->
+
+    <path
+        android:pathData="
+            M 106,66
+            L 115,78
+            L 101,80
+            L 109,91
+            L 99,101
+
+            M 106,66
+            L 96,69
+            L 101,80
+            L 95,94
+            L 99,101"
+        android:fillColor="@android:color/transparent"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:strokeColor="#5983DC" />
+
+
+    <!-- ========================================================= -->
+    <!-- LEFT NODES                                                -->
+    <!-- ========================================================= -->
+
+    <path
+        android:pathData="
+            M 68,63
+            A 4,4 0,1 0 68,71
+            A 4,4 0,1 0 68,63"
+        android:fillColor="#D94FEA" />
+
+    <path
+        android:pathData="
+            M 59,74
+            A 4,4 0,1 0 59,82
+            A 4,4 0,1 0 59,74"
+        android:fillColor="#C653E8" />
+
+    <path
+        android:pathData="
+            M 73,76
+            A 4,4 0,1 0 73,84
+            A 4,4 0,1 0 73,76"
+        android:fillColor="#9A5CDC" />
+
+    <path
+        android:pathData="
+            M 65,87
+            A 4,4 0,1 0 65,95
+            A 4,4 0,1 0 65,87"
+        android:fillColor="#8A63F3" />
+
+    <path
+        android:pathData="
+            M 75,97
+            A 4,4 0,1 0 75,105
+            A 4,4 0,1 0 75,97"
+        android:fillColor="#7666EA" />
+
+
+    <!-- ========================================================= -->
+    <!-- RIGHT NODES                                               -->
+    <!-- ========================================================= -->
+
+    <path
+        android:pathData="
+            M 106,63
+            A 4,4 0,1 0 106,71
+            A 4,4 0,1 0 106,63"
+        android:fillColor="#7191F4" />
+
+    <path
+        android:pathData="
+            M 115,74
+            A 4,4 0,1 0 115,82
+            A 4,4 0,1 0 115,74"
+        android:fillColor="#5983DC" />
+
+    <path
+        android:pathData="
+            M 101,76
+            A 4,4 0,1 0 101,84
+            A 4,4 0,1 0 101,76"
+        android:fillColor="#4AA9E3" />
+
+    <path
+        android:pathData="
+            M 109,87
+            A 4,4 0,1 0 109,95
+            A 4,4 0,1 0 109,87"
+        android:fillColor="#36C5E8" />
+
+    <path
+        android:pathData="
+            M 99,97
+            A 4,4 0,1 0 99,105
+            A 4,4 0,1 0 99,97"
+        android:fillColor="#29DDE7" />
+
+</vector>

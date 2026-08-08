@@ -17,12 +17,7 @@ class AiToolsBottomSheet extends StatelessWidget {
     return SafeArea(
       child: Container(
         color: background,
-        padding: const EdgeInsets.fromLTRB(
-          18,
-          6,
-          18,
-          24,
-        ),
+        padding: const EdgeInsets.fromLTRB(18, 6, 18, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,9 +34,7 @@ class AiToolsBottomSheet extends StatelessWidget {
             Text(
               'Powerful AI editing tools.',
               style: TextStyle(
-                color: Colors.white.withValues(
-                  alpha: 0.48,
-                ),
+                color: Colors.white.withValues(alpha: 0.48),
                 fontSize: 13,
               ),
             ),
@@ -50,8 +43,7 @@ class AiToolsBottomSheet extends StatelessWidget {
             _AiToolTile(
               icon: Icons.auto_fix_high_rounded,
               title: 'Object Eraser',
-              subtitle:
-                  'Tap an object and let AI select it automatically',
+              subtitle: 'Tap an object and let AI select it automatically',
               onTap: onObjectEraser,
             ),
 
@@ -60,16 +52,14 @@ class AiToolsBottomSheet extends StatelessWidget {
             _AiToolTile(
               icon: Icons.brush_rounded,
               title: 'Manual Eraser',
-              subtitle:
-                  'Paint over anything you want to remove',
+              subtitle: 'Paint over anything you want to remove',
               onTap: onManualEraser,
             ),
 
             const SizedBox(height: 10),
 
             const _AiToolTile(
-              icon:
-                  Icons.person_remove_alt_1_rounded,
+              icon: Icons.person_remove_alt_1_rounded,
               title: 'Background Remover',
               subtitle: 'Coming soon',
             ),
@@ -121,10 +111,7 @@ class _AiToolTile extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 14,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           child: Row(
             children: [
               Container(
@@ -132,22 +119,13 @@ class _AiToolTile extends StatelessWidget {
                 height: 42,
                 decoration: BoxDecoration(
                   color: enabled
-                      ? const Color(
-                          0xFF8B5CF6,
-                        ).withValues(
-                          alpha: 0.14,
-                        )
-                      : Colors.white.withValues(
-                          alpha: 0.04,
-                        ),
-                  borderRadius:
-                      BorderRadius.circular(13),
+                      ? const Color(0xFF8B5CF6).withValues(alpha: 0.14)
+                      : Colors.white.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(13),
                 ),
                 child: Icon(
                   icon,
-                  color: enabled
-                      ? const Color(0xFFC4B5FD)
-                      : Colors.white24,
+                  color: enabled ? const Color(0xFFC4B5FD) : Colors.white24,
                   size: 22,
                 ),
               ),
@@ -156,15 +134,12 @@ class _AiToolTile extends StatelessWidget {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       style: TextStyle(
-                        color: enabled
-                            ? Colors.white
-                            : Colors.white38,
+                        color: enabled ? Colors.white : Colors.white38,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -173,12 +148,8 @@ class _AiToolTile extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         color: enabled
-                            ? Colors.white.withValues(
-                                alpha: 0.46,
-                              )
-                            : Colors.white.withValues(
-                                alpha: 0.25,
-                              ),
+                            ? Colors.white.withValues(alpha: 0.46)
+                            : Colors.white.withValues(alpha: 0.25),
                         fontSize: 12,
                         height: 1.3,
                       ),

@@ -3,22 +3,18 @@ import 'package:photo_manager/photo_manager.dart';
 
 class LocalImageLabelingService {
   LocalImageLabelingService({
-  this._maximumLabels = 3,
-  double confidenceThreshold = 0.65,
-}) : _confidenceThreshold = confidenceThreshold,
-     _imageLabeler = ImageLabeler(
-       options: ImageLabelerOptions(
-         confidenceThreshold: confidenceThreshold,
-       ),
-     );
+    this._maximumLabels = 3,
+    double confidenceThreshold = 0.65,
+  }) : _confidenceThreshold = confidenceThreshold,
+       _imageLabeler = ImageLabeler(
+         options: ImageLabelerOptions(confidenceThreshold: confidenceThreshold),
+       );
 
   final double _confidenceThreshold;
   final int _maximumLabels;
   final ImageLabeler _imageLabeler;
 
-  Future<List<String>> labelAsset({
-    required AssetEntity asset,
-  }) async {
+  Future<List<String>> labelAsset({required AssetEntity asset}) async {
     final file = await asset.file;
 
     if (file == null) {
@@ -31,17 +27,17 @@ class LocalImageLabelingService {
       final inputImage = InputImage.fromFilePath(file.path);
       final labels = await _imageLabeler.processImage(inputImage);
 
-      final filteredLabels = labels
-          .where(
-            (label) =>
-                label.confidence >= _confidenceThreshold &&
-                label.label.trim().isNotEmpty,
-          )
-          .toList(growable: false)
-        ..sort(
-          (first, second) =>
-              second.confidence.compareTo(first.confidence),
-        );
+      final filteredLabels =
+          labels
+              .where(
+                (label) =>
+                    label.confidence >= _confidenceThreshold &&
+                    label.label.trim().isNotEmpty,
+              )
+              .toList(growable: false)
+            ..sort(
+              (first, second) => second.confidence.compareTo(first.confidence),
+            );
 
       final uniqueLabels = <String>[];
       final normalizedLabels = <String>{};
@@ -61,9 +57,7 @@ class LocalImageLabelingService {
 
       return uniqueLabels;
     } catch (error) {
-      throw LocalImageLabelingException(
-        'Could not label the image: $error',
-      );
+      throw LocalImageLabelingException('Could not label the image: $error');
     }
   }
 

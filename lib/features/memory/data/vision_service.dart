@@ -20,9 +20,7 @@ class VisionService {
   final FirebaseAuth _firebaseAuth;
   final http.Client _client;
 
-  Future<VisionMetadata> analyzeAsset({
-    required AssetEntity asset,
-  }) async {
+  Future<VisionMetadata> analyzeAsset({required AssetEntity asset}) async {
     final user = _firebaseAuth.currentUser;
 
     if (user == null) {
@@ -45,9 +43,7 @@ class VisionService {
     );
 
     if (imageBytes == null || imageBytes.isEmpty) {
-      throw const VisionServiceException(
-        'Could not load the selected image.',
-      );
+      throw const VisionServiceException('Could not load the selected image.');
     }
 
     final request = http.MultipartRequest(
@@ -72,16 +68,11 @@ class VisionService {
           .send(request)
           .timeout(const Duration(seconds: 90));
 
-      final response = await http.Response.fromStream(
-        streamedResponse,
-      );
+      final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw VisionServiceException(
-          _extractErrorMessage(
-            response.body,
-            response.statusCode,
-          ),
+          _extractErrorMessage(response.body, response.statusCode),
         );
       }
 
@@ -101,9 +92,7 @@ class VisionService {
         'The vision backend returned invalid JSON.',
       );
     } on Exception catch (error) {
-      throw VisionServiceException(
-        'Vision analysis failed: $error',
-      );
+      throw VisionServiceException('Vision analysis failed: $error');
     }
   }
 
@@ -118,10 +107,7 @@ class VisionService {
     return '$timestamp-$random';
   }
 
-  static String _extractErrorMessage(
-    String responseBody,
-    int statusCode,
-  ) {
+  static String _extractErrorMessage(String responseBody, int statusCode) {
     try {
       final decodedBody = jsonDecode(responseBody);
 

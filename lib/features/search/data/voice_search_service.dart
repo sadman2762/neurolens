@@ -6,9 +6,7 @@ class VoiceSearchService {
 
   bool get isListening => _speechToText.isListening;
 
-  Future<bool> initialize({
-    void Function(String status)? onStatus,
-  }) {
+  Future<bool> initialize({void Function(String status)? onStatus}) {
     return _speechToText.initialize(
       onStatus: (status) {
         debugPrint('Speech status: $status');
@@ -41,15 +39,13 @@ class VoiceSearchService {
       onResult: (result) {
         final words = result.recognizedWords.trim();
 
-        debugPrint(
-          'Recognized: "$words", final: ${result.finalResult}',
-        );
+        debugPrint('Recognized: "$words", final: ${result.finalResult}');
 
         if (words.isNotEmpty) {
           onWords(words);
         }
       },
-      listenOptions:  SpeechListenOptions(
+      listenOptions: SpeechListenOptions(
         partialResults: true,
         cancelOnError: true,
         listenMode: ListenMode.search,

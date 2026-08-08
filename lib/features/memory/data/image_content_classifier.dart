@@ -1,7 +1,4 @@
-enum ImageContentType {
-  text,
-  photo,
-}
+enum ImageContentType { text, photo }
 
 class ImageContentClassifier {
   const ImageContentClassifier();
@@ -20,17 +17,12 @@ class ImageContentClassifier {
         .toList(growable: false);
 
     final meaningfulCharacterCount = cleanedText
-        .replaceAll(
-          RegExp(r'[^\p{L}\p{N}]', unicode: true),
-          '',
-        )
+        .replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '')
         .length;
 
     final hasStrongOcrResult =
         words.length >= 5 && meaningfulCharacterCount >= 30;
 
-    return hasStrongOcrResult
-        ? ImageContentType.text
-        : ImageContentType.photo;
+    return hasStrongOcrResult ? ImageContentType.text : ImageContentType.photo;
   }
 }

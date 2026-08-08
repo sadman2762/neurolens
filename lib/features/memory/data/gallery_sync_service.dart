@@ -33,9 +33,7 @@ class GallerySyncService {
 
       for (final memory in memories) {
         try {
-          await _ocrProcessingService.processImage(
-            memoryId: memory.id,
-          );
+          await _ocrProcessingService.processImage(memoryId: memory.id);
         } catch (_) {
           // Ignore OCR failures for individual images.
           // The memory is already saved locally.

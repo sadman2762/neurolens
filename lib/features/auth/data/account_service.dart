@@ -46,19 +46,14 @@ class AccountService {
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw AccountServiceException(
-          _extractErrorMessage(
-            response.body,
-            response.statusCode,
-          ),
+          _extractErrorMessage(response.body, response.statusCode),
         );
       }
       await _firebaseAuth.signOut();
     } on AccountServiceException {
       rethrow;
     } on Exception catch (error) {
-      throw AccountServiceException(
-        'Could not delete your account: $error',
-      );
+      throw AccountServiceException('Could not delete your account: $error');
     }
   }
 
@@ -66,10 +61,7 @@ class AccountService {
     _client.close();
   }
 
-  static String _extractErrorMessage(
-    String responseBody,
-    int statusCode,
-  ) {
+  static String _extractErrorMessage(String responseBody, int statusCode) {
     try {
       final decodedBody = jsonDecode(responseBody);
 

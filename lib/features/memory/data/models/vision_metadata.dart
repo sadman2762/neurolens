@@ -34,8 +34,7 @@ class VisionMetadata {
       visibleText: _toStringList(json['visible_text']),
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0,
       model: json['model'] as String? ?? '',
-      processingTimeMs:
-          (json['processing_time_ms'] as num?)?.toInt() ?? 0,
+      processingTimeMs: (json['processing_time_ms'] as num?)?.toInt() ?? 0,
     );
   }
 

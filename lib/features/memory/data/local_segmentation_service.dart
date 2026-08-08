@@ -24,30 +24,20 @@ class LocalSegmentationService {
   _CachedImageEmbedding? _cachedEmbedding;
   SegmentationResult? _lastResult;
 
-  bool get isInitialized =>
-      _encoderSession != null &&
-      _decoderSession != null;
+  bool get isInitialized => _encoderSession != null && _decoderSession != null;
 
-  bool get hasCachedEmbedding =>
-      _cachedEmbedding != null;
+  bool get hasCachedEmbedding => _cachedEmbedding != null;
 
-  SegmentationResult? get lastResult =>
-      _lastResult;
+  SegmentationResult? get lastResult => _lastResult;
 
   Future<void> initialize() async {
     if (isInitialized) {
       return;
     }
 
-    _encoderSession =
-        await _runtime.createSessionFromAsset(
-      _encoderAsset,
-    );
+    _encoderSession = await _runtime.createSessionFromAsset(_encoderAsset);
 
-    _decoderSession =
-        await _runtime.createSessionFromAsset(
-      _decoderAsset,
-    );
+    _decoderSession = await _runtime.createSessionFromAsset(_decoderAsset);
   }
 
   Future<String> debugInitialize() async {
@@ -65,83 +55,50 @@ class LocalSegmentationService {
     final decoder = _decoderSession;
 
     if (encoder == null || decoder == null) {
-      debugPrint(
-        'MobileSAM sessions are not initialized.',
-      );
+      debugPrint('MobileSAM sessions are not initialized.');
       return;
     }
 
     debugPrint('===== MobileSAM Encoder =====');
-    debugPrint(
-      'Encoder inputs: ${encoder.inputNames}',
-    );
-    debugPrint(
-      'Encoder outputs: ${encoder.outputNames}',
-    );
+    debugPrint('Encoder inputs: ${encoder.inputNames}');
+    debugPrint('Encoder outputs: ${encoder.outputNames}');
 
-    final encoderInputInfo =
-        await encoder.getInputInfo();
+    final encoderInputInfo = await encoder.getInputInfo();
 
-    final encoderOutputInfo =
-        await encoder.getOutputInfo();
+    final encoderOutputInfo = await encoder.getOutputInfo();
 
-    debugPrint(
-      'Encoder input info: $encoderInputInfo',
-    );
-    debugPrint(
-      'Encoder output info: $encoderOutputInfo',
-    );
+    debugPrint('Encoder input info: $encoderInputInfo');
+    debugPrint('Encoder output info: $encoderOutputInfo');
 
     debugPrint('===== MobileSAM Decoder =====');
-    debugPrint(
-      'Decoder inputs: ${decoder.inputNames}',
-    );
-    debugPrint(
-      'Decoder outputs: ${decoder.outputNames}',
-    );
+    debugPrint('Decoder inputs: ${decoder.inputNames}');
+    debugPrint('Decoder outputs: ${decoder.outputNames}');
 
-    final decoderInputInfo =
-        await decoder.getInputInfo();
+    final decoderInputInfo = await decoder.getInputInfo();
 
-    final decoderOutputInfo =
-        await decoder.getOutputInfo();
+    final decoderOutputInfo = await decoder.getOutputInfo();
 
-    debugPrint(
-      'Decoder input info: $decoderInputInfo',
-    );
-    debugPrint(
-      'Decoder output info: $decoderOutputInfo',
-    );
+    debugPrint('Decoder input info: $decoderInputInfo');
+    debugPrint('Decoder output info: $decoderOutputInfo');
   }
 
-  Future<void> prepareImage(
-    Uint8List imageBytes,
-  ) async {
+  Future<void> prepareImage(Uint8List imageBytes) async {
     await initialize();
 
     if (_cachedEmbedding != null) {
-      debugPrint(
-        'MobileSAM embedding already cached.',
-      );
+      debugPrint('MobileSAM embedding already cached.');
       return;
     }
 
     final encoder = _encoderSession;
 
     if (encoder == null) {
-      throw StateError(
-        'MobileSAM encoder is not initialized.',
-      );
+      throw StateError('MobileSAM encoder is not initialized.');
     }
 
-    debugPrint(
-      'Preparing MobileSAM encoder input...',
-    );
+    debugPrint('Preparing MobileSAM encoder input...');
 
-    final prepared =
-        await _prepareEncoderInput(
-      imageBytes,
-    );
+    final prepared = await _prepareEncoderInput(imageBytes);
 
     debugPrint(
       'Original image: '
@@ -164,22 +121,15 @@ class LocalSegmentationService {
     Map<String, OrtValue>? outputs;
 
     try {
-      inputTensor =
-          await OrtValue.fromList(
-        prepared.rgb,
-        [
-          prepared.height,
-          prepared.width,
-          3,
-        ],
-      );
+      inputTensor = await OrtValue.fromList(prepared.rgb, [
+        prepared.height,
+        prepared.width,
+        3,
+      ]);
 
-      outputs = await encoder.run({
-        'input_image': inputTensor,
-      });
+      outputs = await encoder.run({'input_image': inputTensor});
 
-      final embeddings =
-          outputs['image_embeddings'];
+      final embeddings = outputs['image_embeddings'];
 
       if (embeddings == null) {
         throw StateError(
@@ -188,52 +138,33 @@ class LocalSegmentationService {
         );
       }
 
-      debugPrint(
-        'MobileSAM encoder inference successful.',
-      );
+      debugPrint('MobileSAM encoder inference successful.');
 
-      debugPrint(
-        'Embedding shape: ${embeddings.shape}',
-      );
+      debugPrint('Embedding shape: ${embeddings.shape}');
 
-      final flattened =
-          await embeddings.asFlattenedList();
+      final flattened = await embeddings.asFlattenedList();
 
-      final embeddingValues =
-          Float32List(flattened.length);
+      final embeddingValues = Float32List(flattened.length);
 
-      for (
-        var index = 0;
-        index < flattened.length;
-        index++
-      ) {
-        embeddingValues[index] =
-            (flattened[index] as num)
-                .toDouble();
+      for (var index = 0; index < flattened.length; index++) {
+        embeddingValues[index] = (flattened[index] as num).toDouble();
       }
 
-      const expectedLength =
-          1 * 256 * 64 * 64;
+      const expectedLength = 1 * 256 * 64 * 64;
 
-      if (embeddingValues.length !=
-          expectedLength) {
+      if (embeddingValues.length != expectedLength) {
         throw StateError(
           'Unexpected MobileSAM embedding size: '
           '${embeddingValues.length}.',
         );
       }
 
-      _cachedEmbedding =
-          _CachedImageEmbedding(
+      _cachedEmbedding = _CachedImageEmbedding(
         values: embeddingValues,
-        originalWidth:
-            prepared.originalWidth,
-        originalHeight:
-            prepared.originalHeight,
-        encoderWidth:
-            prepared.width,
-        encoderHeight:
-            prepared.height,
+        originalWidth: prepared.originalWidth,
+        originalHeight: prepared.originalHeight,
+        encoderWidth: prepared.width,
+        encoderHeight: prepared.height,
       );
 
       debugPrint(
@@ -241,144 +172,95 @@ class LocalSegmentationService {
         '${embeddingValues.length}',
       );
 
-      debugPrint(
-        'MobileSAM embedding cached successfully.',
-      );
+      debugPrint('MobileSAM embedding cached successfully.');
     } finally {
       await inputTensor?.dispose();
 
       if (outputs != null) {
-        for (final output
-            in outputs.values) {
+        for (final output in outputs.values) {
           await output.dispose();
         }
       }
     }
   }
 
-  Future<void> debugRunEncoder(
-    Uint8List imageBytes,
-  ) {
-    return prepareImage(
-      imageBytes,
-    );
+  Future<void> debugRunEncoder(Uint8List imageBytes) {
+    return prepareImage(imageBytes);
   }
 
-  Future<_PreparedEncoderInput>
-      _prepareEncoderInput(
+  Future<_PreparedEncoderInput> _prepareEncoderInput(
     Uint8List imageBytes,
   ) async {
-    final originalCodec =
-        await instantiateImageCodec(
-      imageBytes,
-    );
+    final originalCodec = await instantiateImageCodec(imageBytes);
 
-    final originalFrame =
-        await originalCodec.getNextFrame();
+    final originalFrame = await originalCodec.getNextFrame();
 
-    final originalImage =
-        originalFrame.image;
+    final originalImage = originalFrame.image;
 
-    final originalWidth =
-        originalImage.width;
+    final originalWidth = originalImage.width;
 
-    final originalHeight =
-        originalImage.height;
+    final originalHeight = originalImage.height;
 
-    if (originalWidth <= 0 ||
-        originalHeight <= 0) {
+    if (originalWidth <= 0 || originalHeight <= 0) {
       originalImage.dispose();
       originalCodec.dispose();
 
-      throw StateError(
-        'The source image has invalid dimensions.',
-      );
+      throw StateError('The source image has invalid dimensions.');
     }
 
-    final longestEdge = math.max(
-      originalWidth,
-      originalHeight,
-    );
+    final longestEdge = math.max(originalWidth, originalHeight);
 
-    final scale =
-        _encoderImageSize / longestEdge;
+    final scale = _encoderImageSize / longestEdge;
 
-    final targetWidth = math.max(
-      1,
-      (originalWidth * scale).round(),
-    );
+    final targetWidth = math.max(1, (originalWidth * scale).round());
 
-    final targetHeight = math.max(
-      1,
-      (originalHeight * scale).round(),
-    );
+    final targetHeight = math.max(1, (originalHeight * scale).round());
 
     originalImage.dispose();
     originalCodec.dispose();
 
-    final resizedCodec =
-        await instantiateImageCodec(
+    final resizedCodec = await instantiateImageCodec(
       imageBytes,
       targetWidth: targetWidth,
       targetHeight: targetHeight,
     );
 
-    final resizedFrame =
-        await resizedCodec.getNextFrame();
+    final resizedFrame = await resizedCodec.getNextFrame();
 
-    final resizedImage =
-        resizedFrame.image;
+    final resizedImage = resizedFrame.image;
 
     try {
-      final byteData =
-          await resizedImage.toByteData(
-        format:
-            ImageByteFormat.rawRgba,
+      final byteData = await resizedImage.toByteData(
+        format: ImageByteFormat.rawRgba,
       );
 
       if (byteData == null) {
-        throw StateError(
-          'Could not read image pixel data.',
-        );
+        throw StateError('Could not read image pixel data.');
       }
 
-      final rgba =
-          byteData.buffer.asUint8List(
+      final rgba = byteData.buffer.asUint8List(
         byteData.offsetInBytes,
         byteData.lengthInBytes,
       );
 
-      final rgb = Float32List(
-        targetWidth *
-            targetHeight *
-            3,
-      );
+      final rgb = Float32List(targetWidth * targetHeight * 3);
 
       var rgbIndex = 0;
 
-      for (
-        var rgbaIndex = 0;
-        rgbaIndex < rgba.length;
-        rgbaIndex += 4
-      ) {
-        rgb[rgbIndex++] =
-            rgba[rgbaIndex].toDouble();
+      for (var rgbaIndex = 0; rgbaIndex < rgba.length; rgbaIndex += 4) {
+        rgb[rgbIndex++] = rgba[rgbaIndex].toDouble();
 
-        rgb[rgbIndex++] =
-            rgba[rgbaIndex + 1].toDouble();
+        rgb[rgbIndex++] = rgba[rgbaIndex + 1].toDouble();
 
-        rgb[rgbIndex++] =
-            rgba[rgbaIndex + 2].toDouble();
+        rgb[rgbIndex++] = rgba[rgbaIndex + 2].toDouble();
       }
 
       return _PreparedEncoderInput(
         rgb: rgb,
         width: targetWidth,
         height: targetHeight,
-        originalWidth:
-            originalWidth,
-        originalHeight:
-            originalHeight,
+        originalWidth: originalWidth,
+        originalHeight: originalHeight,
       );
     } finally {
       resizedImage.dispose();
@@ -390,8 +272,7 @@ class LocalSegmentationService {
     required Uint8List imageBytes,
     required Offset imagePoint,
   }) async {
-    final result =
-        await segmentDetailedFromPoint(
+    final result = await segmentDetailedFromPoint(
       imageBytes: imageBytes,
       imagePoint: imagePoint,
     );
@@ -399,46 +280,30 @@ class LocalSegmentationService {
     return result.maskBytes;
   }
 
-  Future<SegmentationResult>
-      segmentDetailedFromPoint({
+  Future<SegmentationResult> segmentDetailedFromPoint({
     required Uint8List imageBytes,
     required Offset imagePoint,
   }) async {
-    await prepareImage(
-      imageBytes,
-    );
+    await prepareImage(imageBytes);
 
-    final cached =
-        _cachedEmbedding;
+    final cached = _cachedEmbedding;
 
-    final decoder =
-        _decoderSession;
+    final decoder = _decoderSession;
 
     if (cached == null) {
-      throw StateError(
-        'MobileSAM image embedding is unavailable.',
-      );
+      throw StateError('MobileSAM image embedding is unavailable.');
     }
 
     if (decoder == null) {
-      throw StateError(
-        'MobileSAM decoder is not initialized.',
-      );
+      throw StateError('MobileSAM decoder is not initialized.');
     }
 
-    final scaledX =
-        imagePoint.dx *
-        cached.encoderWidth /
-        cached.originalWidth;
+    final scaledX = imagePoint.dx * cached.encoderWidth / cached.originalWidth;
 
     final scaledY =
-        imagePoint.dy *
-        cached.encoderHeight /
-        cached.originalHeight;
+        imagePoint.dy * cached.encoderHeight / cached.originalHeight;
 
-    debugPrint(
-      'Running MobileSAM decoder...',
-    );
+    debugPrint('Running MobileSAM decoder...');
 
     debugPrint(
       'Original tap: '
@@ -462,104 +327,55 @@ class LocalSegmentationService {
     Map<String, OrtValue>? outputs;
 
     try {
-      embeddingTensor =
-          await OrtValue.fromList(
-        cached.values,
-        const [
-          1,
-          256,
-          64,
-          64,
-        ],
+      embeddingTensor = await OrtValue.fromList(cached.values, const [
+        1,
+        256,
+        64,
+        64,
+      ]);
+
+      pointCoordsTensor = await OrtValue.fromList(
+        Float32List.fromList([scaledX, scaledY, 0, 0]),
+        const [1, 2, 2],
       );
 
-      pointCoordsTensor =
-          await OrtValue.fromList(
+      pointLabelsTensor = await OrtValue.fromList(
+        Float32List.fromList([1, -1]),
+        const [1, 2],
+      );
+
+      maskInputTensor = await OrtValue.fromList(
+        Float32List(_lowResMaskSize * _lowResMaskSize),
+        const [1, 1, _lowResMaskSize, _lowResMaskSize],
+      );
+
+      hasMaskInputTensor = await OrtValue.fromList(
+        Float32List.fromList([0]),
+        const [1],
+      );
+
+      originalSizeTensor = await OrtValue.fromList(
         Float32List.fromList([
-          scaledX,
-          scaledY,
-          0,
-          0,
+          cached.originalHeight.toDouble(),
+          cached.originalWidth.toDouble(),
         ]),
-        const [
-          1,
-          2,
-          2,
-        ],
-      );
-
-      pointLabelsTensor =
-          await OrtValue.fromList(
-        Float32List.fromList([
-          1,
-          -1,
-        ]),
-        const [
-          1,
-          2,
-        ],
-      );
-
-      maskInputTensor =
-          await OrtValue.fromList(
-        Float32List(
-          _lowResMaskSize *
-              _lowResMaskSize,
-        ),
-        const [
-          1,
-          1,
-          _lowResMaskSize,
-          _lowResMaskSize,
-        ],
-      );
-
-      hasMaskInputTensor =
-          await OrtValue.fromList(
-        Float32List.fromList([
-          0,
-        ]),
-        const [
-          1,
-        ],
-      );
-
-      originalSizeTensor =
-          await OrtValue.fromList(
-        Float32List.fromList([
-          cached.originalHeight
-              .toDouble(),
-          cached.originalWidth
-              .toDouble(),
-        ]),
-        const [
-          2,
-        ],
+        const [2],
       );
 
       outputs = await decoder.run({
-        'image_embeddings':
-            embeddingTensor,
-        'point_coords':
-            pointCoordsTensor,
-        'point_labels':
-            pointLabelsTensor,
-        'mask_input':
-            maskInputTensor,
-        'has_mask_input':
-            hasMaskInputTensor,
-        'orig_im_size':
-            originalSizeTensor,
+        'image_embeddings': embeddingTensor,
+        'point_coords': pointCoordsTensor,
+        'point_labels': pointLabelsTensor,
+        'mask_input': maskInputTensor,
+        'has_mask_input': hasMaskInputTensor,
+        'orig_im_size': originalSizeTensor,
       });
 
-      final fullMask =
-          outputs['masks'];
+      final fullMask = outputs['masks'];
 
-      final lowResMask =
-          outputs['low_res_masks'];
+      final lowResMask = outputs['low_res_masks'];
 
-      final iou =
-          outputs['iou_predictions'];
+      final iou = outputs['iou_predictions'];
 
       if (lowResMask == null) {
         throw StateError(
@@ -568,89 +384,56 @@ class LocalSegmentationService {
         );
       }
 
-      debugPrint(
-        'MobileSAM decoder inference successful.',
-      );
+      debugPrint('MobileSAM decoder inference successful.');
 
-      debugPrint(
-        'Full mask shape: ${fullMask?.shape}',
-      );
+      debugPrint('Full mask shape: ${fullMask?.shape}');
 
-      debugPrint(
-        'Low-res mask shape: ${lowResMask.shape}',
-      );
+      debugPrint('Low-res mask shape: ${lowResMask.shape}');
 
-      final values =
-          await lowResMask
-              .asFlattenedList();
+      final values = await lowResMask.asFlattenedList();
 
-      debugPrint(
-        'Low-res mask values: ${values.length}',
-      );
+      debugPrint('Low-res mask values: ${values.length}');
 
       double? confidence;
 
       if (iou != null) {
-        final iouValues =
-            await iou
-                .asFlattenedList();
+        final iouValues = await iou.asFlattenedList();
 
-        debugPrint(
-          'IoU prediction: $iouValues',
-        );
+        debugPrint('IoU prediction: $iouValues');
 
         if (iouValues.isNotEmpty) {
-          confidence =
-              (iouValues.first as num)
-                  .toDouble();
+          confidence = (iouValues.first as num).toDouble();
         }
       }
 
       final validMaskWidth = math.max(
         1,
-        (cached.encoderWidth /
-                _encoderImageSize *
-                _lowResMaskSize)
-            .round(),
+        (cached.encoderWidth / _encoderImageSize * _lowResMaskSize).round(),
       );
 
       final validMaskHeight = math.max(
         1,
-        (cached.encoderHeight /
-                _encoderImageSize *
-                _lowResMaskSize)
-            .round(),
+        (cached.encoderHeight / _encoderImageSize * _lowResMaskSize).round(),
       );
 
-      final binaryMask =
-          _createBinaryMask(
+      final binaryMask = _createBinaryMask(
         values,
-        sourceWidth:
-            _lowResMaskSize,
-        sourceHeight:
-            _lowResMaskSize,
-        outputWidth:
-            validMaskWidth,
-        outputHeight:
-            validMaskHeight,
+        sourceWidth: _lowResMaskSize,
+        sourceHeight: _lowResMaskSize,
+        outputWidth: validMaskWidth,
+        outputHeight: validMaskHeight,
       );
 
-      final maskBytes =
-          await _encodeBinaryMaskPng(
+      final maskBytes = await _encodeBinaryMaskPng(
         binaryMask,
-        width:
-            validMaskWidth,
-        height:
-            validMaskHeight,
+        width: validMaskWidth,
+        height: validMaskHeight,
       );
 
-      final outlineBytes =
-          await _createOutlinePng(
+      final outlineBytes = await _createOutlinePng(
         binaryMask,
-        width:
-            validMaskWidth,
-        height:
-            validMaskHeight,
+        width: validMaskWidth,
+        height: validMaskHeight,
       );
 
       debugPrint(
@@ -658,17 +441,12 @@ class LocalSegmentationService {
         '${outlineBytes.length} bytes',
       );
 
-      final result =
-          SegmentationResult(
+      final result = SegmentationResult(
         maskBytes: maskBytes,
-        outlineBytes:
-            outlineBytes,
-        maskWidth:
-            validMaskWidth,
-        maskHeight:
-            validMaskHeight,
-        confidence:
-            confidence,
+        outlineBytes: outlineBytes,
+        maskWidth: validMaskWidth,
+        maskHeight: validMaskHeight,
+        confidence: confidence,
       );
 
       _lastResult = result;
@@ -683,8 +461,7 @@ class LocalSegmentationService {
       await originalSizeTensor?.dispose();
 
       if (outputs != null) {
-        for (final output
-            in outputs.values) {
+        for (final output in outputs.values) {
           await output.dispose();
         }
       }
@@ -698,11 +475,9 @@ class LocalSegmentationService {
     required int outputWidth,
     required int outputHeight,
   }) {
-    final expectedLength =
-        sourceWidth * sourceHeight;
+    final expectedLength = sourceWidth * sourceHeight;
 
-    if (values.length !=
-        expectedLength) {
+    if (values.length != expectedLength) {
       throw StateError(
         'Unexpected MobileSAM mask size: '
         '${values.length}. Expected '
@@ -710,40 +485,22 @@ class LocalSegmentationService {
       );
     }
 
-    if (outputWidth > sourceWidth ||
-        outputHeight > sourceHeight) {
-      throw StateError(
-        'Invalid cropped mask dimensions.',
-      );
+    if (outputWidth > sourceWidth || outputHeight > sourceHeight) {
+      throw StateError('Invalid cropped mask dimensions.');
     }
 
-    final binary =
-        Uint8List(
-      outputWidth * outputHeight,
-    );
+    final binary = Uint8List(outputWidth * outputHeight);
 
     var selectedPixels = 0;
 
-    for (
-      var y = 0;
-      y < outputHeight;
-      y++
-    ) {
-      for (
-        var x = 0;
-        x < outputWidth;
-        x++
-      ) {
-        final sourceIndex =
-            y * sourceWidth + x;
+    for (var y = 0; y < outputHeight; y++) {
+      for (var x = 0; x < outputWidth; x++) {
+        final sourceIndex = y * sourceWidth + x;
 
-        final logit =
-            (values[sourceIndex] as num)
-                .toDouble();
+        final logit = (values[sourceIndex] as num).toDouble();
 
         if (logit > 0) {
-          binary[
-              y * outputWidth + x] = 1;
+          binary[y * outputWidth + x] = 1;
 
           selectedPixels++;
         }
@@ -762,36 +519,25 @@ class LocalSegmentationService {
     );
 
     if (selectedPixels == 0) {
-      throw StateError(
-        'MobileSAM returned an empty object mask.',
-      );
+      throw StateError('MobileSAM returned an empty object mask.');
     }
 
     return binary;
   }
 
-  Future<Uint8List>
-      _encodeBinaryMaskPng(
+  Future<Uint8List> _encodeBinaryMaskPng(
     Uint8List binaryMask, {
     required int width,
     required int height,
   }) async {
-    final rgba =
-        Uint8List(
-      width * height * 4,
-    );
+    final rgba = Uint8List(width * height * 4);
 
-    for (
-      var index = 0;
-      index < binaryMask.length;
-      index++
-    ) {
+    for (var index = 0; index < binaryMask.length; index++) {
       if (binaryMask[index] == 0) {
         continue;
       }
 
-      final rgbaIndex =
-          index * 4;
+      final rgbaIndex = index * 4;
 
       rgba[rgbaIndex] = 255;
       rgba[rgbaIndex + 1] = 255;
@@ -799,11 +545,7 @@ class LocalSegmentationService {
       rgba[rgbaIndex + 3] = 255;
     }
 
-    return _encodeRgbaPng(
-      rgba,
-      width: width,
-      height: height,
-    );
+    return _encodeRgbaPng(rgba, width: width, height: height);
   }
 
   Future<Uint8List> _createOutlinePng(
@@ -811,43 +553,21 @@ class LocalSegmentationService {
     required int width,
     required int height,
   }) async {
-    final rgba =
-        Uint8List(
-      width * height * 4,
-    );
+    final rgba = Uint8List(width * height * 4);
 
-    bool selected(
-      int x,
-      int y,
-    ) {
-      if (x < 0 ||
-          y < 0 ||
-          x >= width ||
-          y >= height) {
+    bool selected(int x, int y) {
+      if (x < 0 || y < 0 || x >= width || y >= height) {
         return false;
       }
 
-      return mask[
-              y * width + x] !=
-          0;
+      return mask[y * width + x] != 0;
     }
 
     var boundaryPixels = 0;
 
-    for (
-      var y = 0;
-      y < height;
-      y++
-    ) {
-      for (
-        var x = 0;
-        x < width;
-        x++
-      ) {
-        if (!selected(
-          x,
-          y,
-        )) {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        if (!selected(x, y)) {
           continue;
         }
 
@@ -861,8 +581,7 @@ class LocalSegmentationService {
           continue;
         }
 
-        final rgbaIndex =
-            (y * width + x) * 4;
+        final rgbaIndex = (y * width + x) * 4;
 
         rgba[rgbaIndex] = 255;
         rgba[rgbaIndex + 1] = 255;
@@ -879,16 +598,10 @@ class LocalSegmentationService {
     );
 
     if (boundaryPixels == 0) {
-      throw StateError(
-        'Could not create selection outline.',
-      );
+      throw StateError('Could not create selection outline.');
     }
 
-    return _encodeRgbaPng(
-      rgba,
-      width: width,
-      height: height,
-    );
+    return _encodeRgbaPng(rgba, width: width, height: height);
   }
 
   Future<Uint8List> _encodeRgbaPng(
@@ -896,49 +609,32 @@ class LocalSegmentationService {
     required int width,
     required int height,
   }) async {
-    final buffer =
-        await ImmutableBuffer
-            .fromUint8List(
-      rgba,
-    );
+    final buffer = await ImmutableBuffer.fromUint8List(rgba);
 
-    final descriptor =
-        ImageDescriptor.raw(
+    final descriptor = ImageDescriptor.raw(
       buffer,
       width: width,
       height: height,
-      pixelFormat:
-          PixelFormat.rgba8888,
+      pixelFormat: PixelFormat.rgba8888,
     );
 
     Codec? codec;
     Image? image;
 
     try {
-      codec =
-          await descriptor
-              .instantiateCodec();
+      codec = await descriptor.instantiateCodec();
 
-      final frame =
-          await codec
-              .getNextFrame();
+      final frame = await codec.getNextFrame();
 
       image = frame.image;
 
-      final byteData =
-          await image.toByteData(
-        format:
-            ImageByteFormat.png,
-      );
+      final byteData = await image.toByteData(format: ImageByteFormat.png);
 
       if (byteData == null) {
-        throw StateError(
-          'Could not encode selection image.',
-        );
+        throw StateError('Could not encode selection image.');
       }
 
-      return byteData.buffer
-          .asUint8List(
+      return byteData.buffer.asUint8List(
         byteData.offsetInBytes,
         byteData.lengthInBytes,
       );
@@ -954,9 +650,7 @@ class LocalSegmentationService {
     _cachedEmbedding = null;
     _lastResult = null;
 
-    debugPrint(
-      'MobileSAM image embedding cache cleared.',
-    );
+    debugPrint('MobileSAM image embedding cache cleared.');
   }
 }
 

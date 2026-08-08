@@ -19,15 +19,13 @@ class ManualObjectEraserScreen extends StatefulWidget {
       _ManualObjectEraserScreenState();
 }
 
-class _ManualObjectEraserScreenState
-    extends State<ManualObjectEraserScreen> {
+class _ManualObjectEraserScreenState extends State<ManualObjectEraserScreen> {
   static const Color _background = Color(0xFF050816);
   static const Color _surface = Color(0xFF0D1321);
   static const Color _purple = Color(0xFF8B5CF6);
   static const Color _purpleLight = Color(0xFFC4B5FD);
 
-  final ImageEditApiService _imageEditApiService =
-      ImageEditApiService();
+  final ImageEditApiService _imageEditApiService = ImageEditApiService();
 
   final List<List<Offset>> _strokes = <List<Offset>>[];
 
@@ -54,9 +52,7 @@ class _ManualObjectEraserScreenState
 
   Future<void> _decodeCurrentImage() async {
     try {
-      final codec = await ui.instantiateImageCodec(
-        _currentImageBytes,
-      );
+      final codec = await ui.instantiateImageCodec(_currentImageBytes);
 
       final frame = await codec.getNextFrame();
 
@@ -76,13 +72,9 @@ class _ManualObjectEraserScreenState
       oldImage?.dispose();
       codec.dispose();
     } catch (error, stackTrace) {
-      debugPrint(
-        'Manual eraser image decode failed: $error',
-      );
+      debugPrint('Manual eraser image decode failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
@@ -92,16 +84,11 @@ class _ManualObjectEraserScreenState
         _isLoading = false;
       });
 
-      _showMessage(
-        'Could not open this photo.',
-      );
+      _showMessage('Could not open this photo.');
     }
   }
 
-  void _startStroke({
-    required Offset canvasPoint,
-    required Size canvasSize,
-  }) {
+  void _startStroke({required Offset canvasPoint, required Size canvasSize}) {
     if (_isRemoving || _isLoading) {
       return;
     }
@@ -116,20 +103,13 @@ class _ManualObjectEraserScreenState
     }
 
     setState(() {
-      _activeStroke = <Offset>[
-        imagePoint,
-      ];
+      _activeStroke = <Offset>[imagePoint];
 
-      _strokes.add(
-        _activeStroke!,
-      );
+      _strokes.add(_activeStroke!);
     });
   }
 
-  void _updateStroke({
-    required Offset canvasPoint,
-    required Size canvasSize,
-  }) {
+  void _updateStroke({required Offset canvasPoint, required Size canvasSize}) {
     if (_isRemoving) {
       return;
     }
@@ -150,9 +130,7 @@ class _ManualObjectEraserScreenState
     }
 
     setState(() {
-      stroke.add(
-        imagePoint,
-      );
+      stroke.add(imagePoint);
     });
   }
 
@@ -170,28 +148,20 @@ class _ManualObjectEraserScreenState
       return null;
     }
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRect = _calculateDisplayedImageRect(
       canvasSize: canvasSize,
       imageSize: imageSize,
     );
 
-    if (imageRect == null ||
-        !imageRect.contains(canvasPoint)) {
+    if (imageRect == null || !imageRect.contains(canvasPoint)) {
       return null;
     }
 
-    final normalizedX =
-        (canvasPoint.dx - imageRect.left) /
-            imageRect.width;
+    final normalizedX = (canvasPoint.dx - imageRect.left) / imageRect.width;
 
-    final normalizedY =
-        (canvasPoint.dy - imageRect.top) /
-            imageRect.height;
+    final normalizedY = (canvasPoint.dy - imageRect.top) / imageRect.height;
 
     return Offset(
       normalizedX * imageSize.width,
@@ -205,10 +175,7 @@ class _ManualObjectEraserScreenState
   }) {
     final image = _decodedImage!;
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRect = _calculateDisplayedImageRect(
       canvasSize: canvasSize,
@@ -216,12 +183,8 @@ class _ManualObjectEraserScreenState
     )!;
 
     return Offset(
-      imageRect.left +
-          (imagePoint.dx / imageSize.width) *
-              imageRect.width,
-      imageRect.top +
-          (imagePoint.dy / imageSize.height) *
-              imageRect.height,
+      imageRect.left + (imagePoint.dx / imageSize.width) * imageRect.width,
+      imageRect.top + (imagePoint.dy / imageSize.height) * imageRect.height,
     );
   }
 
@@ -236,11 +199,9 @@ class _ManualObjectEraserScreenState
       return null;
     }
 
-    final canvasAspect =
-        canvasSize.width / canvasSize.height;
+    final canvasAspect = canvasSize.width / canvasSize.height;
 
-    final imageAspect =
-        imageSize.width / imageSize.height;
+    final imageAspect = imageSize.width / imageSize.height;
 
     late final Size displayedSize;
     late final Offset origin;
@@ -249,46 +210,29 @@ class _ManualObjectEraserScreenState
       final width = canvasSize.width;
       final height = width / imageAspect;
 
-      displayedSize = Size(
-        width,
-        height,
-      );
+      displayedSize = Size(width, height);
 
-      origin = Offset(
-        0,
-        (canvasSize.height - height) / 2,
-      );
+      origin = Offset(0, (canvasSize.height - height) / 2);
     } else {
       final height = canvasSize.height;
       final width = height * imageAspect;
 
-      displayedSize = Size(
-        width,
-        height,
-      );
+      displayedSize = Size(width, height);
 
-      origin = Offset(
-        (canvasSize.width - width) / 2,
-        0,
-      );
+      origin = Offset((canvasSize.width - width) / 2, 0);
     }
 
     return origin & displayedSize;
   }
 
-  double _displayBrushSize(
-    Size canvasSize,
-  ) {
+  double _displayBrushSize(Size canvasSize) {
     final image = _decodedImage;
 
     if (image == null) {
       return _brushSize;
     }
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRect = _calculateDisplayedImageRect(
       canvasSize: canvasSize,
@@ -299,14 +243,11 @@ class _ManualObjectEraserScreenState
       return _brushSize;
     }
 
-    return _brushSize *
-        imageRect.width /
-        imageSize.width;
+    return _brushSize * imageRect.width / imageSize.width;
   }
 
   void _undo() {
-    if (_isRemoving ||
-        _strokes.isEmpty) {
+    if (_isRemoving || _strokes.isEmpty) {
       return;
     }
 
@@ -317,8 +258,7 @@ class _ManualObjectEraserScreenState
   }
 
   void _clear() {
-    if (_isRemoving ||
-        _strokes.isEmpty) {
+    if (_isRemoving || _strokes.isEmpty) {
       return;
     }
 
@@ -334,8 +274,7 @@ class _ManualObjectEraserScreenState
     }
 
     setState(() {
-      _currentImageBytes =
-          widget.imageBytes;
+      _currentImageBytes = widget.imageBytes;
 
       _strokes.clear();
       _activeStroke = null;
@@ -354,9 +293,7 @@ class _ManualObjectEraserScreenState
     }
 
     if (_strokes.isEmpty) {
-      _showMessage(
-        'Paint over something you want to remove.',
-      );
+      _showMessage('Paint over something you want to remove.');
 
       return;
     }
@@ -372,8 +309,7 @@ class _ManualObjectEraserScreenState
     });
 
     try {
-      final maskBytes =
-          await _createMask(
+      final maskBytes = await _createMask(
         width: image.width,
         height: image.height,
       );
@@ -382,11 +318,8 @@ class _ManualObjectEraserScreenState
         return;
       }
 
-      final editedBytes =
-          await _imageEditApiService
-              .removeObject(
-        imageBytes:
-            _currentImageBytes,
+      final editedBytes = await _imageEditApiService.removeObject(
+        imageBytes: _currentImageBytes,
         maskBytes: maskBytes,
       );
 
@@ -401,8 +334,7 @@ class _ManualObjectEraserScreenState
       }
 
       setState(() {
-        _currentImageBytes =
-            editedBytes;
+        _currentImageBytes = editedBytes;
 
         _strokes.clear();
         _activeStroke = null;
@@ -418,33 +350,23 @@ class _ManualObjectEraserScreenState
         return;
       }
 
-      _showMessage(
-        'Object removed. You can paint another area or save.',
-      );
+      _showMessage('Object removed. You can paint another area or save.');
     } on ImageEditException catch (error) {
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        error.message,
-      );
+      _showMessage(error.message);
     } catch (error, stackTrace) {
-      debugPrint(
-        'Manual AI removal failed: $error',
-      );
+      debugPrint('Manual AI removal failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'Could not remove the selected area.',
-      );
+      _showMessage('Could not remove the selected area.');
     } finally {
       if (mounted) {
         setState(() {
@@ -460,51 +382,35 @@ class _ManualObjectEraserScreenState
     }
 
     if (!_hasEditedImage) {
-      _showMessage(
-        'Remove something first.',
-      );
+      _showMessage('Remove something first.');
 
       return;
     }
 
-    Navigator.of(context).pop<Uint8List>(
-      _currentImageBytes,
-    );
+    Navigator.of(context).pop<Uint8List>(_currentImageBytes);
   }
 
   Future<Uint8List> _createMask({
     required int width,
     required int height,
   }) async {
-    final recorder =
-        ui.PictureRecorder();
+    final recorder = ui.PictureRecorder();
 
-    final canvas =
-        Canvas(recorder);
+    final canvas = Canvas(recorder);
 
     canvas.drawRect(
-      Rect.fromLTWH(
-        0,
-        0,
-        width.toDouble(),
-        height.toDouble(),
-      ),
+      Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
       Paint()
-        ..color =
-            Colors.transparent
-        ..style =
-            PaintingStyle.fill,
+        ..color = Colors.transparent
+        ..style = PaintingStyle.fill,
     );
 
     final paint = Paint()
       ..color = Colors.white
       ..strokeWidth = _brushSize
-      ..strokeCap =
-          StrokeCap.round
-      ..strokeJoin =
-          StrokeJoin.round
-      ..style =
-          PaintingStyle.stroke;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
 
     for (final stroke in _strokes) {
       if (stroke.isEmpty) {
@@ -516,59 +422,32 @@ class _ManualObjectEraserScreenState
           stroke.first,
           _brushSize / 2,
           Paint()
-            ..color =
-                Colors.white
-            ..style =
-                PaintingStyle.fill,
+            ..color = Colors.white
+            ..style = PaintingStyle.fill,
         );
 
         continue;
       }
 
-      final path = Path()
-        ..moveTo(
-          stroke.first.dx,
-          stroke.first.dy,
-        );
+      final path = Path()..moveTo(stroke.first.dx, stroke.first.dy);
 
-      for (
-        var index = 1;
-        index < stroke.length;
-        index++
-      ) {
-        path.lineTo(
-          stroke[index].dx,
-          stroke[index].dy,
-        );
+      for (var index = 1; index < stroke.length; index++) {
+        path.lineTo(stroke[index].dx, stroke[index].dy);
       }
 
-      canvas.drawPath(
-        path,
-        paint,
-      );
+      canvas.drawPath(path, paint);
     }
 
-    final picture =
-        recorder.endRecording();
+    final picture = recorder.endRecording();
 
-    final maskImage =
-        await picture.toImage(
-      width,
-      height,
-    );
+    final maskImage = await picture.toImage(width, height);
 
-    final byteData =
-        await maskImage.toByteData(
-      format:
-          ui.ImageByteFormat.png,
-    );
+    final byteData = await maskImage.toByteData(format: ui.ImageByteFormat.png);
 
     maskImage.dispose();
 
     if (byteData == null) {
-      throw StateError(
-        'Could not encode manual mask.',
-      );
+      throw StateError('Could not encode manual mask.');
     }
 
     return byteData.buffer.asUint8List(
@@ -577,21 +456,14 @@ class _ManualObjectEraserScreenState
     );
   }
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-        ),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -604,245 +476,141 @@ class _ManualObjectEraserScreenState
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _background,
       appBar: AppBar(
         backgroundColor: _background,
-        foregroundColor:
-            Colors.white,
-        surfaceTintColor:
-            Colors.transparent,
+        foregroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: const Text(
           'Manual Eraser',
-          style: TextStyle(
-            fontWeight:
-                FontWeight.w800,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
           IconButton(
             tooltip: 'Undo stroke',
-            onPressed:
-                _strokes.isEmpty ||
-                        _isRemoving
-                    ? null
-                    : _undo,
-            icon: const Icon(
-              Icons.undo_rounded,
-            ),
+            onPressed: _strokes.isEmpty || _isRemoving ? null : _undo,
+            icon: const Icon(Icons.undo_rounded),
           ),
 
           IconButton(
             tooltip: 'Clear paint',
-            onPressed:
-                _strokes.isEmpty ||
-                        _isRemoving
-                    ? null
-                    : _clear,
-            icon: const Icon(
-              Icons
-                  .delete_sweep_outlined,
-            ),
+            onPressed: _strokes.isEmpty || _isRemoving ? null : _clear,
+            icon: const Icon(Icons.delete_sweep_outlined),
           ),
 
           if (_hasEditedImage)
             IconButton(
-              tooltip:
-                  'Reset to original',
-              onPressed:
-                  _isRemoving
-                      ? null
-                      : _resetToOriginal,
-              icon: const Icon(
-                Icons
-                    .restart_alt_rounded,
-              ),
+              tooltip: 'Reset to original',
+              onPressed: _isRemoving ? null : _resetToOriginal,
+              icon: const Icon(Icons.restart_alt_rounded),
             ),
 
-          const SizedBox(
-            width: 4,
-          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final canvasSize =
-                Size(
+          builder: (context, constraints) {
+            final canvasSize = Size(
               constraints.maxWidth,
-              constraints.maxHeight -
-                  175,
+              constraints.maxHeight - 175,
             );
 
             return Column(
               children: [
                 Expanded(
                   child: Padding(
-                    padding:
-                        const EdgeInsets
-                            .fromLTRB(
-                      12,
-                      8,
-                      12,
-                      12,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                     child: ClipRRect(
-                      borderRadius:
-                          BorderRadius
-                              .circular(
-                        24,
-                      ),
+                      borderRadius: BorderRadius.circular(24),
                       child: Container(
-                        color:
-                            Colors.black,
-                        child:
-                            Stack(
-                          fit:
-                              StackFit.expand,
+                        color: Colors.black,
+                        child: Stack(
+                          fit: StackFit.expand,
                           children: [
                             if (!_isLoading)
                               Image.memory(
                                 _currentImageBytes,
-                                fit:
-                                    BoxFit.contain,
-                                gaplessPlayback:
-                                    true,
+                                fit: BoxFit.contain,
+                                gaplessPlayback: true,
                               ),
 
                             if (!_isLoading)
                               GestureDetector(
-                                behavior:
-                                    HitTestBehavior
-                                        .opaque,
-                                onPanStart:
-                                    (details) {
+                                behavior: HitTestBehavior.opaque,
+                                onPanStart: (details) {
                                   _startStroke(
-                                    canvasPoint:
-                                        details.localPosition,
-                                    canvasSize:
-                                        canvasSize,
+                                    canvasPoint: details.localPosition,
+                                    canvasSize: canvasSize,
                                   );
                                 },
-                                onPanUpdate:
-                                    (details) {
+                                onPanUpdate: (details) {
                                   _updateStroke(
-                                    canvasPoint:
-                                        details.localPosition,
-                                    canvasSize:
-                                        canvasSize,
+                                    canvasPoint: details.localPosition,
+                                    canvasSize: canvasSize,
                                   );
                                 },
-                                onPanEnd:
-                                    (_) {
+                                onPanEnd: (_) {
                                   _endStroke();
                                 },
-                                child:
-                                    CustomPaint(
-                                  painter:
-                                      _ManualMaskPainter(
-                                    strokes:
-                                        _strokes,
-                                    mapPoint:
-                                        (point) {
+                                child: CustomPaint(
+                                  painter: _ManualMaskPainter(
+                                    strokes: _strokes,
+                                    mapPoint: (point) {
                                       return _imagePointToCanvas(
-                                        imagePoint:
-                                            point,
-                                        canvasSize:
-                                            canvasSize,
+                                        imagePoint: point,
+                                        canvasSize: canvasSize,
                                       );
                                     },
-                                    brushSize:
-                                        _displayBrushSize(
-                                      canvasSize,
-                                    ),
+                                    brushSize: _displayBrushSize(canvasSize),
                                   ),
                                 ),
                               ),
 
-                            if (_isLoading)
-                              const _ManualEraserLoadingView(),
+                            if (_isLoading) const _ManualEraserLoadingView(),
 
                             if (_isRemoving)
                               Positioned.fill(
-                                child:
-                                    ColoredBox(
-                                  color:
-                                      Colors.black.withValues(
-                                    alpha:
-                                        0.58,
-                                  ),
-                                  child:
-                                      const Center(
-                                    child:
-                                        _RemovingView(),
-                                  ),
+                                child: ColoredBox(
+                                  color: Colors.black.withValues(alpha: 0.58),
+                                  child: const Center(child: _RemovingView()),
                                 ),
                               ),
 
-                            if (_hasEditedImage &&
-                                !_isRemoving &&
-                                !_isLoading)
+                            if (_hasEditedImage && !_isRemoving && !_isLoading)
                               Positioned(
                                 top: 14,
                                 left: 14,
-                                child:
-                                    Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(
-                                    horizontal:
-                                        11,
-                                    vertical:
-                                        7,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 11,
+                                    vertical: 7,
                                   ),
-                                  decoration:
-                                      BoxDecoration(
-                                    color:
-                                        const Color(
+                                  decoration: BoxDecoration(
+                                    color: const Color(
                                       0xFF16A34A,
-                                    ).withValues(
-                                      alpha:
-                                          0.90,
-                                    ),
-                                    borderRadius:
-                                        BorderRadius.circular(
-                                      999,
-                                    ),
+                                    ).withValues(alpha: 0.90),
+                                    borderRadius: BorderRadius.circular(999),
                                   ),
-                                  child:
-                                      const Row(
-                                    mainAxisSize:
-                                        MainAxisSize.min,
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Icon(
-                                        Icons
-                                            .check_rounded,
-                                        color:
-                                            Colors.white,
-                                        size:
-                                            15,
+                                        Icons.check_rounded,
+                                        color: Colors.white,
+                                        size: 15,
                                       ),
-                                      SizedBox(
-                                        width:
-                                            5,
-                                      ),
+                                      SizedBox(width: 5),
                                       Text(
                                         'Edited',
-                                        style:
-                                            TextStyle(
-                                          color:
-                                              Colors.white,
-                                          fontSize:
-                                              11,
-                                          fontWeight:
-                                              FontWeight.w700,
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
                                         ),
                                       ),
                                     ],
@@ -857,26 +625,12 @@ class _ManualObjectEraserScreenState
                 ),
 
                 Container(
-                  width:
-                      double.infinity,
-                  padding:
-                      const EdgeInsets
-                          .fromLTRB(
-                    18,
-                    14,
-                    18,
-                    18,
-                  ),
-                  decoration:
-                      const BoxDecoration(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                  decoration: const BoxDecoration(
                     color: _surface,
-                    borderRadius:
-                        BorderRadius
-                            .vertical(
-                      top:
-                          Radius.circular(
-                        28,
-                      ),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
                     ),
                   ),
                   child: Column(
@@ -884,226 +638,131 @@ class _ManualObjectEraserScreenState
                       Row(
                         children: [
                           const Icon(
-                            Icons
-                                .brush_rounded,
-                            color:
-                                _purpleLight,
-                            size:
-                                19,
+                            Icons.brush_rounded,
+                            color: _purpleLight,
+                            size: 19,
                           ),
-                          const SizedBox(
-                            width: 10,
-                          ),
+                          const SizedBox(width: 10),
                           const Text(
                             'Brush size',
-                            style:
-                                TextStyle(
-                              color:
-                                  Colors.white70,
-                              fontSize:
-                                  12,
-                              fontWeight:
-                                  FontWeight.w600,
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(
-                            width: 8,
-                          ),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child:
-                                Slider(
-                              value:
-                                  _brushSize,
+                            child: Slider(
+                              value: _brushSize,
                               min: 30,
                               max: 360,
-                              activeColor:
-                                  _purple,
-                              inactiveColor:
-                                  Colors.white12,
-                              onChanged:
-                                  _isRemoving
-                                      ? null
-                                      : (value) {
-                                          setState(
-                                            () {
-                                              _brushSize =
-                                                  value;
-                                            },
-                                          );
-                                        },
+                              activeColor: _purple,
+                              inactiveColor: Colors.white12,
+                              onChanged: _isRemoving
+                                  ? null
+                                  : (value) {
+                                      setState(() {
+                                        _brushSize = value;
+                                      });
+                                    },
                             ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(
-                        height: 8,
-                      ),
+                      const SizedBox(height: 8),
 
                       Row(
                         children: [
                           Expanded(
-                            child:
-                                Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   _hasEditedImage
                                       ? 'Keep editing or save'
                                       : 'Paint over what you want removed',
-                                  style:
-                                      const TextStyle(
-                                    color:
-                                        Colors.white,
-                                    fontSize:
-                                        14,
-                                    fontWeight:
-                                        FontWeight.w700,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                const SizedBox(
-                                  height:
-                                      4,
-                                ),
+                                const SizedBox(height: 4),
                                 Text(
                                   _hasEditedImage
                                       ? 'Paint another area to remove more, or save this result.'
                                       : 'The purple area will be rebuilt by AI.',
-                                  style:
-                                      TextStyle(
-                                    color: Colors.white
-                                        .withValues(
-                                      alpha:
-                                          0.45,
-                                    ),
-                                    fontSize:
-                                        11,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.45),
+                                    fontSize: 11,
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(
-                            width: 12,
-                          ),
+                          const SizedBox(width: 12),
 
                           FilledButton.icon(
                             onPressed:
-                                _strokes.isEmpty ||
-                                        _isRemoving ||
-                                        _isLoading
-                                    ? null
-                                    : _removePaintedArea,
-                            style:
-                                FilledButton.styleFrom(
-                              backgroundColor:
-                                  _purple,
-                              foregroundColor:
-                                  Colors.white,
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                horizontal:
-                                    18,
-                                vertical:
-                                    14,
+                                _strokes.isEmpty || _isRemoving || _isLoading
+                                ? null
+                                : _removePaintedArea,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _purple,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 14,
                               ),
-                              shape:
-                                  RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                  16,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            icon:
-                                _isRemoving
-                                    ? const SizedBox(
-                                        width:
-                                            16,
-                                        height:
-                                            16,
-                                        child:
-                                            CircularProgressIndicator(
-                                          strokeWidth:
-                                              2,
-                                          color:
-                                              Colors.white,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons
-                                            .auto_fix_high_rounded,
-                                        size:
-                                            18,
-                                      ),
-                            label:
-                                const Text(
+                            icon: _isRemoving
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.auto_fix_high_rounded,
+                                    size: 18,
+                                  ),
+                            label: const Text(
                               'Remove',
-                              style:
-                                  TextStyle(
-                                fontWeight:
-                                    FontWeight.w700,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
                       ),
 
                       if (_hasEditedImage) ...[
-                        const SizedBox(
-                          height: 12,
-                        ),
+                        const SizedBox(height: 12),
 
                         SizedBox(
-                          width:
-                              double.infinity,
-                          child:
-                              OutlinedButton.icon(
-                            onPressed:
-                                _isRemoving
-                                    ? null
-                                    : _saveAndFinish,
-                            style:
-                                OutlinedButton.styleFrom(
-                              foregroundColor:
-                                  Colors.white,
-                              side:
-                                  BorderSide(
-                                color:
-                                    _purpleLight.withValues(
-                                  alpha:
-                                      0.55,
-                                ),
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _isRemoving ? null : _saveAndFinish,
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(
+                                color: _purpleLight.withValues(alpha: 0.55),
                               ),
-                              padding:
-                                  const EdgeInsets.symmetric(
-                                vertical:
-                                    14,
-                              ),
-                              shape:
-                                  RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius.circular(
-                                  16,
-                                ),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            icon:
-                                const Icon(
-                              Icons
-                                  .save_alt_rounded,
-                              size: 18,
-                            ),
-                            label:
-                                const Text(
+                            icon: const Icon(Icons.save_alt_rounded, size: 18),
+                            label: const Text(
                               'Save & Finish',
-                              style:
-                                  TextStyle(
-                                fontWeight:
-                                    FontWeight.w700,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ),
@@ -1120,8 +779,7 @@ class _ManualObjectEraserScreenState
   }
 }
 
-class _ManualMaskPainter
-    extends CustomPainter {
+class _ManualMaskPainter extends CustomPainter {
   const _ManualMaskPainter({
     required this.strokes,
     required this.mapPoint,
@@ -1130,157 +788,81 @@ class _ManualMaskPainter
 
   final List<List<Offset>> strokes;
 
-  final Offset Function(
-    Offset imagePoint,
-  ) mapPoint;
+  final Offset Function(Offset imagePoint) mapPoint;
 
   final double brushSize;
 
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
+  void paint(Canvas canvas, Size size) {
     final glowPaint = Paint()
-      ..color =
-          const Color(
-        0xFF8B5CF6,
-      ).withValues(
-        alpha: 0.24,
-      )
-      ..strokeWidth =
-          brushSize + 6
-      ..strokeCap =
-          StrokeCap.round
-      ..strokeJoin =
-          StrokeJoin.round
-      ..style =
-          PaintingStyle.stroke;
+      ..color = const Color(0xFF8B5CF6).withValues(alpha: 0.24)
+      ..strokeWidth = brushSize + 6
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
 
-    final strokePaint =
-        Paint()
-          ..color =
-              const Color(
-            0xFF8B5CF6,
-          ).withValues(
-            alpha: 0.58,
-          )
-          ..strokeWidth =
-              brushSize
-          ..strokeCap =
-              StrokeCap.round
-          ..strokeJoin =
-              StrokeJoin.round
-          ..style =
-              PaintingStyle.stroke;
+    final strokePaint = Paint()
+      ..color = const Color(0xFF8B5CF6).withValues(alpha: 0.58)
+      ..strokeWidth = brushSize
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
 
-    for (final stroke
-        in strokes) {
+    for (final stroke in strokes) {
       if (stroke.isEmpty) {
         continue;
       }
 
       if (stroke.length == 1) {
-        final point =
-            mapPoint(
-          stroke.first,
-        );
+        final point = mapPoint(stroke.first);
 
         canvas.drawCircle(
           point,
           brushSize / 2,
-          Paint()
-            ..color =
-                const Color(
-              0xFF8B5CF6,
-            ).withValues(
-              alpha:
-                  0.58,
-            ),
+          Paint()..color = const Color(0xFF8B5CF6).withValues(alpha: 0.58),
         );
 
         continue;
       }
 
-      final first =
-          mapPoint(
-        stroke.first,
-      );
+      final first = mapPoint(stroke.first);
 
-      final path =
-          Path()
-            ..moveTo(
-              first.dx,
-              first.dy,
-            );
+      final path = Path()..moveTo(first.dx, first.dy);
 
-      for (
-        var index = 1;
-        index < stroke.length;
-        index++
-      ) {
-        final point =
-            mapPoint(
-          stroke[index],
-        );
+      for (var index = 1; index < stroke.length; index++) {
+        final point = mapPoint(stroke[index]);
 
-        path.lineTo(
-          point.dx,
-          point.dy,
-        );
+        path.lineTo(point.dx, point.dy);
       }
 
-      canvas.drawPath(
-        path,
-        glowPaint,
-      );
+      canvas.drawPath(path, glowPaint);
 
-      canvas.drawPath(
-        path,
-        strokePaint,
-      );
+      canvas.drawPath(path, strokePaint);
     }
   }
 
   @override
-  bool shouldRepaint(
-    covariant _ManualMaskPainter
-        oldDelegate,
-  ) {
+  bool shouldRepaint(covariant _ManualMaskPainter oldDelegate) {
     return true;
   }
 }
 
-class _ManualEraserLoadingView
-    extends StatelessWidget {
+class _ManualEraserLoadingView extends StatelessWidget {
   const _ManualEraserLoadingView();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return const Center(
       child: Column(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(
-            color:
-                Color(
-              0xFF8B5CF6,
-            ),
-          ),
-          SizedBox(
-            height: 14,
-          ),
+          CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+          SizedBox(height: 14),
           Text(
             'Opening photo...',
-            style:
-                TextStyle(
-              color:
-                  Colors.white70,
-              fontWeight:
-                  FontWeight.w600,
+            style: TextStyle(
+              color: Colors.white70,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -1293,48 +875,25 @@ class _RemovingView extends StatelessWidget {
   const _RemovingView();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return const Column(
-      mainAxisSize:
-          MainAxisSize.min,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        CircularProgressIndicator(
-          color:
-              Color(
-            0xFFC4B5FD,
-          ),
-        ),
-        SizedBox(
-          height: 18,
-        ),
+        CircularProgressIndicator(color: Color(0xFFC4B5FD)),
+        SizedBox(height: 18),
         Text(
           'Removing object...',
-          style:
-              TextStyle(
-            color:
-                Colors.white,
-            fontSize:
-                17,
-            fontWeight:
-                FontWeight.w700,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
           ),
         ),
-        SizedBox(
-          height: 7,
-        ),
+        SizedBox(height: 7),
         Text(
           'AI is rebuilding the selected area.',
-          textAlign:
-              TextAlign.center,
-          style:
-              TextStyle(
-            color:
-                Colors.white54,
-            fontSize:
-                12,
-          ),
+          textAlign: TextAlign.center,
+          style: TextStyle(color: Colors.white54, fontSize: 12),
         ),
       ],
     );

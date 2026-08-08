@@ -11,8 +11,7 @@ class DeleteAccountScreen extends ConsumerStatefulWidget {
       _DeleteAccountScreenState();
 }
 
-class _DeleteAccountScreenState
-    extends ConsumerState<DeleteAccountScreen> {
+class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   static const Color _background = Color(0xFF050816);
   static const Color _surface = Color(0xFF0D1321);
   static const Color _danger = Color(0xFFEF4444);
@@ -51,10 +50,7 @@ class _DeleteAccountScreenState
           title: const Text(
             'Delete account permanently?',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           content: Text(
             'This will permanently delete your NeuroLens account, '
@@ -122,9 +118,7 @@ class _DeleteAccountScreenState
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your account was deleted successfully.'),
-        ),
+        const SnackBar(content: Text('Your account was deleted successfully.')),
       );
 
       Navigator.of(context).popUntil((route) => route.isFirst);
@@ -150,11 +144,9 @@ class _DeleteAccountScreenState
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   static String _messageForCode(String code) {
@@ -163,8 +155,7 @@ class _DeleteAccountScreenState
       'invalid-credential' => 'Your password is incorrect.',
       'requires-recent-login' =>
         'Please sign out and sign in again before deleting your account.',
-      'too-many-requests' =>
-        'Too many attempts. Please wait and try again.',
+      'too-many-requests' => 'Too many attempts. Please wait and try again.',
       'network-request-failed' =>
         'Check your internet connection and try again.',
       _ => 'Could not verify your password.',
@@ -181,9 +172,7 @@ class _DeleteAccountScreenState
         elevation: 0,
         title: const Text(
           'Delete account',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -191,9 +180,7 @@ class _DeleteAccountScreenState
           padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 460,
-              ),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -258,9 +245,7 @@ class _DeleteAccountScreenState
                             autocorrect: false,
                             keyboardType: TextInputType.visiblePassword,
                             textInputAction: TextInputAction.next,
-                            style: const TextStyle(
-                              color: Colors.white,
-                            ),
+                            style: const TextStyle(color: Colors.white),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return 'Enter your password.';
@@ -315,9 +300,7 @@ class _DeleteAccountScreenState
                           TextFormField(
                             controller: _confirmationController,
                             textInputAction: TextInputAction.done,
-                            style: const TextStyle(
-                              color: Colors.white,
-                            ),
+                            style: const TextStyle(color: Colors.white),
                             validator: (value) {
                               if (value?.trim() != 'DELETE') {
                                 return 'Type DELETE exactly.';
@@ -385,11 +368,10 @@ class _DeleteAccountScreenState
                         style: FilledButton.styleFrom(
                           backgroundColor: _danger,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                              _danger.withValues(alpha: 0.45),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 17,
+                          disabledBackgroundColor: _danger.withValues(
+                            alpha: 0.45,
                           ),
+                          padding: const EdgeInsets.symmetric(vertical: 17),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(17),
                           ),

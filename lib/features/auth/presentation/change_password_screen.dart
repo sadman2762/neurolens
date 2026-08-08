@@ -5,8 +5,7 @@ class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
 
   @override
-  State<ChangePasswordScreen> createState() =>
-      _ChangePasswordScreenState();
+  State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
@@ -62,9 +61,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
       await user.reauthenticateWithCredential(credential);
 
-      await user.updatePassword(
-        _newPasswordController.text,
-      );
+      await user.updatePassword(_newPasswordController.text);
 
       if (!mounted) {
         return;
@@ -103,9 +100,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 onPressed: () {
                   Navigator.of(dialogContext).pop();
                 },
-                style: FilledButton.styleFrom(
-                  backgroundColor: _purple,
-                ),
+                style: FilledButton.styleFrom(backgroundColor: _purple),
                 child: const Text('Done'),
               ),
             ],
@@ -127,9 +122,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         return;
       }
 
-      _showError(
-        'Could not change your password. Please try again.',
-      );
+      _showError('Could not change your password. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -140,25 +133,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   static String _messageForCode(String code) {
     return switch (code) {
-      'wrong-password' =>
-        'Your current password is incorrect.',
-      'invalid-credential' =>
-        'Your current password is incorrect.',
+      'wrong-password' => 'Your current password is incorrect.',
+      'invalid-credential' => 'Your current password is incorrect.',
       'weak-password' =>
         'Choose a stronger password with at least 6 characters.',
       'requires-recent-login' =>
         'Please sign out and sign in again before changing your password.',
-      'too-many-requests' =>
-        'Too many attempts. Please wait and try again.',
+      'too-many-requests' => 'Too many attempts. Please wait and try again.',
       'network-request-failed' =>
         'Check your internet connection and try again.',
       _ => 'Could not change your password. Please try again.',
@@ -175,9 +163,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         elevation: 0,
         title: const Text(
           'Change password',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -185,9 +171,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           padding: const EdgeInsets.fromLTRB(22, 18, 22, 32),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 460,
-              ),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -239,27 +223,22 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         color: _surface,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: Colors.white.withValues(
-                            alpha: 0.07,
-                          ),
+                          color: Colors.white.withValues(alpha: 0.07),
                         ),
                       ),
                       child: Column(
                         children: [
                           _PasswordField(
-                            controller:
-                                _currentPasswordController,
+                            controller: _currentPasswordController,
                             label: 'Current password',
                             obscureText: _hideCurrentPassword,
                             onVisibilityPressed: () {
                               setState(() {
-                                _hideCurrentPassword =
-                                    !_hideCurrentPassword;
+                                _hideCurrentPassword = !_hideCurrentPassword;
                               });
                             },
                             validator: (value) {
-                              if (value == null ||
-                                  value.isEmpty) {
+                              if (value == null || value.isEmpty) {
                                 return 'Enter your current password.';
                               }
 
@@ -273,13 +252,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                             obscureText: _hideNewPassword,
                             onVisibilityPressed: () {
                               setState(() {
-                                _hideNewPassword =
-                                    !_hideNewPassword;
+                                _hideNewPassword = !_hideNewPassword;
                               });
                             },
                             validator: (value) {
-                              if (value == null ||
-                                  value.isEmpty) {
+                              if (value == null || value.isEmpty) {
                                 return 'Enter a new password.';
                               }
 
@@ -287,9 +264,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                                 return 'Use at least 6 characters.';
                               }
 
-                              if (value ==
-                                  _currentPasswordController
-                                      .text) {
+                              if (value == _currentPasswordController.text) {
                                 return 'Choose a different password.';
                               }
 
@@ -298,24 +273,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           ),
                           const SizedBox(height: 16),
                           _PasswordField(
-                            controller:
-                                _confirmPasswordController,
+                            controller: _confirmPasswordController,
                             label: 'Confirm new password',
                             obscureText: _hideConfirmPassword,
                             onVisibilityPressed: () {
                               setState(() {
-                                _hideConfirmPassword =
-                                    !_hideConfirmPassword;
+                                _hideConfirmPassword = !_hideConfirmPassword;
                               });
                             },
                             validator: (value) {
-                              if (value == null ||
-                                  value.isEmpty) {
+                              if (value == null || value.isEmpty) {
                                 return 'Confirm your new password.';
                               }
 
-                              if (value !=
-                                  _newPasswordController.text) {
+                              if (value != _newPasswordController.text) {
                                 return 'The passwords do not match.';
                               }
 
@@ -329,27 +300,23 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed:
-                            _isSaving ? null : _changePassword,
+                        onPressed: _isSaving ? null : _changePassword,
                         style: FilledButton.styleFrom(
                           backgroundColor: _purple,
                           foregroundColor: Colors.white,
-                          disabledBackgroundColor:
-                              _purple.withValues(alpha: 0.45),
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 17,
+                          disabledBackgroundColor: _purple.withValues(
+                            alpha: 0.45,
                           ),
+                          padding: const EdgeInsets.symmetric(vertical: 17),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(17),
+                            borderRadius: BorderRadius.circular(17),
                           ),
                         ),
                         child: _isSaving
                             ? const SizedBox(
                                 width: 22,
                                 height: 22,
-                                child:
-                                    CircularProgressIndicator(
+                                child: CircularProgressIndicator(
                                   strokeWidth: 2.3,
                                   color: Colors.white,
                                 ),
@@ -400,15 +367,11 @@ class _PasswordField extends StatelessWidget {
       textInputAction: label == 'Confirm new password'
           ? TextInputAction.done
           : TextInputAction.next,
-      style: const TextStyle(
-        color: Colors.white,
-      ),
+      style: const TextStyle(color: Colors.white),
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.white.withValues(alpha: 0.55),
-        ),
+        labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
         prefixIcon: Icon(
           Icons.lock_outline_rounded,
           color: Colors.white.withValues(alpha: 0.5),
@@ -430,29 +393,19 @@ class _PasswordField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: Colors.white.withValues(alpha: 0.06),
-          ),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFF8B5CF6),
-            width: 1.4,
-          ),
+          borderSide: const BorderSide(color: Color(0xFF8B5CF6), width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFFF87171),
-          ),
+          borderSide: const BorderSide(color: Color(0xFFF87171)),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(
-            color: Color(0xFFF87171),
-            width: 1.4,
-          ),
+          borderSide: const BorderSide(color: Color(0xFFF87171), width: 1.4),
         ),
       ),
     );

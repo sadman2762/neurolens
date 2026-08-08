@@ -51,8 +51,9 @@ final photoPickerServiceProvider = Provider<PhotoPickerService>((ref) {
   return const PhotoPickerService();
 });
 
-final localImageLabelingServiceProvider =
-    Provider<LocalImageLabelingService>((ref) {
+final localImageLabelingServiceProvider = Provider<LocalImageLabelingService>((
+  ref,
+) {
   final service = LocalImageLabelingService(
     confidenceThreshold: 0.65,
     maximumLabels: 3,
@@ -68,9 +69,7 @@ final photoImportServiceProvider = Provider<PhotoImportService>((ref) {
     memoryRepository: ref.watch(memoryRepositoryProvider),
     ocrProcessingService: ref.watch(ocrProcessingServiceProvider),
     imageContentClassifier: ref.watch(imageContentClassifierProvider),
-    imageLabelingService: ref.watch(
-      localImageLabelingServiceProvider,
-    ),
+    imageLabelingService: ref.watch(localImageLabelingServiceProvider),
   );
 });
 
@@ -94,8 +93,9 @@ final memoryTimelineProvider = StreamProvider<List<Memory>>((ref) {
 
 final memorySearchQueryProvider = StateProvider<String>((ref) => '');
 
-final filteredMemoryTimelineProvider =
-    Provider<AsyncValue<List<Memory>>>((ref) {
+final filteredMemoryTimelineProvider = Provider<AsyncValue<List<Memory>>>((
+  ref,
+) {
   final timeline = ref.watch(memoryTimelineProvider);
   final rawQuery = ref.watch(memorySearchQueryProvider);
   final filter = ref.watch(memoryFilterProvider);
@@ -118,30 +118,29 @@ final filteredMemoryTimelineProvider =
 
     final queryTokens = _tokenizeQuery(normalizedQuery);
 
-    final scoredMemories = filteredByType
-        .map(
-          (memory) => _ScoredMemory(
-            memory: memory,
-            score: _calculateKeywordScore(
-              memory: memory,
-              normalizedQuery: normalizedQuery,
-              queryTokens: queryTokens,
-            ),
-          ),
-        )
-        .where((result) => result.score > 0)
-        .toList()
-      ..sort((first, second) {
-        final scoreComparison = second.score.compareTo(first.score);
+    final scoredMemories =
+        filteredByType
+            .map(
+              (memory) => _ScoredMemory(
+                memory: memory,
+                score: _calculateKeywordScore(
+                  memory: memory,
+                  normalizedQuery: normalizedQuery,
+                  queryTokens: queryTokens,
+                ),
+              ),
+            )
+            .where((result) => result.score > 0)
+            .toList()
+          ..sort((first, second) {
+            final scoreComparison = second.score.compareTo(first.score);
 
-        if (scoreComparison != 0) {
-          return scoreComparison;
-        }
+            if (scoreComparison != 0) {
+              return scoreComparison;
+            }
 
-        return second.memory.createdAt.compareTo(
-          first.memory.createdAt,
-        );
-      });
+            return second.memory.createdAt.compareTo(first.memory.createdAt);
+          });
 
     return scoredMemories
         .map((result) => result.memory)
@@ -165,8 +164,9 @@ final pdfImportServiceProvider = Provider<PdfImportService>((ref) {
   );
 });
 
-final pdfTextExtractorServiceProvider =
-    Provider<PdfTextExtractorService>((ref) {
+final pdfTextExtractorServiceProvider = Provider<PdfTextExtractorService>((
+  ref,
+) {
   return PdfTextExtractorService();
 });
 
@@ -324,10 +324,7 @@ List<String> _tokenizeQuery(String query) {
 }
 
 class _ScoredMemory {
-  const _ScoredMemory({
-    required this.memory,
-    required this.score,
-  });
+  const _ScoredMemory({required this.memory, required this.score});
 
   final Memory memory;
   final double score;

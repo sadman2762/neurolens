@@ -15,8 +15,7 @@ class ObjectSelectionScreen extends StatefulWidget {
   final String title;
 
   @override
-  State<ObjectSelectionScreen> createState() =>
-      _ObjectSelectionScreenState();
+  State<ObjectSelectionScreen> createState() => _ObjectSelectionScreenState();
 }
 
 class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
@@ -51,14 +50,11 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
 
   Future<void> _initializeSegmentation() async {
     try {
-      final message =
-          await _segmentationService.debugInitialize();
+      final message = await _segmentationService.debugInitialize();
 
       debugPrint(message);
 
-      await _segmentationService.debugRunEncoder(
-        widget.imageBytes,
-      );
+      await _segmentationService.debugRunEncoder(widget.imageBytes);
 
       if (!mounted) {
         return;
@@ -68,13 +64,9 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
         _isLoadingModels = false;
       });
     } catch (error, stackTrace) {
-      debugPrint(
-        'MobileSAM initialization failed: $error',
-      );
+      debugPrint('MobileSAM initialization failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
@@ -84,17 +76,13 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
         _isLoadingModels = false;
       });
 
-      _showMessage(
-        'Could not prepare object selection.',
-      );
+      _showMessage('Could not prepare object selection.');
     }
   }
 
   Future<void> _decodeImage() async {
     try {
-      final codec = await ui.instantiateImageCodec(
-        widget.imageBytes,
-      );
+      final codec = await ui.instantiateImageCodec(widget.imageBytes);
 
       final frame = await codec.getNextFrame();
 
@@ -111,13 +99,9 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
 
       codec.dispose();
     } catch (error, stackTrace) {
-      debugPrint(
-        'Could not decode Object Eraser image: $error',
-      );
+      debugPrint('Could not decode Object Eraser image: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
@@ -127,9 +111,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
         _isLoadingImage = false;
       });
 
-      _showMessage(
-        'Could not open this photo.',
-      );
+      _showMessage('Could not open this photo.');
     }
   }
 
@@ -137,9 +119,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     required Offset localPosition,
     required Size canvasSize,
   }) async {
-    if (_isSegmenting ||
-        _isLoadingImage ||
-        _isLoadingModels) {
+    if (_isSegmenting || _isLoadingImage || _isLoadingModels) {
       return;
     }
 
@@ -152,16 +132,11 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     final imagePoint = _mapCanvasPointToImage(
       canvasPoint: localPosition,
       canvasSize: canvasSize,
-      imageSize: Size(
-        image.width.toDouble(),
-        image.height.toDouble(),
-      ),
+      imageSize: Size(image.width.toDouble(), image.height.toDouble()),
     );
 
     if (imagePoint == null) {
-      _showMessage(
-        'Tap directly on the photo.',
-      );
+      _showMessage('Tap directly on the photo.');
       return;
     }
 
@@ -179,8 +154,7 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     );
 
     try {
-      final result =
-          await _segmentationService.segmentDetailedFromPoint(
+      final result = await _segmentationService.segmentDetailedFromPoint(
         imageBytes: widget.imageBytes,
         imagePoint: imagePoint,
       );
@@ -193,21 +167,15 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
         _segmentationResult = result;
       });
     } catch (error, stackTrace) {
-      debugPrint(
-        'MobileSAM decoder failed: $error',
-      );
+      debugPrint('MobileSAM decoder failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'Could not select this object.',
-      );
+      _showMessage('Could not select this object.');
     } finally {
       if (mounted) {
         setState(() {
@@ -227,18 +195,13 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
       imageSize: imageSize,
     );
 
-    if (imageRect == null ||
-        !imageRect.contains(canvasPoint)) {
+    if (imageRect == null || !imageRect.contains(canvasPoint)) {
       return null;
     }
 
-    final normalizedX =
-        (canvasPoint.dx - imageRect.left) /
-            imageRect.width;
+    final normalizedX = (canvasPoint.dx - imageRect.left) / imageRect.width;
 
-    final normalizedY =
-        (canvasPoint.dy - imageRect.top) /
-            imageRect.height;
+    final normalizedY = (canvasPoint.dy - imageRect.top) / imageRect.height;
 
     return Offset(
       normalizedX * imageSize.width,
@@ -257,11 +220,9 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
       return null;
     }
 
-    final canvasAspect =
-        canvasSize.width / canvasSize.height;
+    final canvasAspect = canvasSize.width / canvasSize.height;
 
-    final imageAspect =
-        imageSize.width / imageSize.height;
+    final imageAspect = imageSize.width / imageSize.height;
 
     late final Size displayedSize;
     late final Offset origin;
@@ -270,28 +231,16 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
       final width = canvasSize.width;
       final height = width / imageAspect;
 
-      displayedSize = Size(
-        width,
-        height,
-      );
+      displayedSize = Size(width, height);
 
-      origin = Offset(
-        0,
-        (canvasSize.height - height) / 2,
-      );
+      origin = Offset(0, (canvasSize.height - height) / 2);
     } else {
       final height = canvasSize.height;
       final width = height * imageAspect;
 
-      displayedSize = Size(
-        width,
-        height,
-      );
+      displayedSize = Size(width, height);
 
-      origin = Offset(
-        (canvasSize.width - width) / 2,
-        0,
-      );
+      origin = Offset((canvasSize.width - width) / 2, 0);
     }
 
     return origin & displayedSize;
@@ -329,33 +278,26 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
     final result = _segmentationResult;
 
     if (result == null) {
-      _showMessage(
-        'Tap an object first.',
-      );
+      _showMessage('Tap an object first.');
       return;
     }
 
     Navigator.of(context).pop<ObjectSelectionResult>(
       ObjectSelectionResult(
         maskBytes: result.maskBytes,
-        selectedImagePoint:
-            _selectedImagePoint,
+        selectedImagePoint: _selectedImagePoint,
       ),
     );
   }
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -370,99 +312,62 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
   }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final isPreparing =
-        _isLoadingImage ||
-        _isLoadingModels;
+  Widget build(BuildContext context) {
+    final isPreparing = _isLoadingImage || _isLoadingModels;
 
     return Scaffold(
       backgroundColor: _background,
       appBar: AppBar(
         backgroundColor: _background,
         foregroundColor: Colors.white,
-        surfaceTintColor:
-            Colors.transparent,
+        surfaceTintColor: Colors.transparent,
         elevation: 0,
         title: const Text(
           'Object Eraser',
-          style: TextStyle(
-            fontWeight:
-                FontWeight.w800,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w800),
         ),
         actions: [
           IconButton(
             tooltip: 'Undo selection',
             onPressed:
                 _isSegmenting ||
-                        (_selectedCanvasPoint ==
-                                null &&
-                            _segmentationResult ==
-                                null)
-                    ? null
-                    : _undo,
-            icon: const Icon(
-              Icons.undo_rounded,
-            ),
+                    (_selectedCanvasPoint == null &&
+                        _segmentationResult == null)
+                ? null
+                : _undo,
+            icon: const Icon(Icons.undo_rounded),
           ),
           IconButton(
-            tooltip:
-                'Clear selection',
+            tooltip: 'Clear selection',
             onPressed:
                 _isSegmenting ||
-                        (_selectedCanvasPoint ==
-                                null &&
-                            _segmentationResult ==
-                                null)
-                    ? null
-                    : _clear,
-            icon: const Icon(
-              Icons
-                  .delete_sweep_outlined,
-            ),
+                    (_selectedCanvasPoint == null &&
+                        _segmentationResult == null)
+                ? null
+                : _clear,
+            icon: const Icon(Icons.delete_sweep_outlined),
           ),
-          const SizedBox(
-            width: 4,
-          ),
+          const SizedBox(width: 4),
         ],
       ),
       body: SafeArea(
         top: false,
         child: LayoutBuilder(
-          builder: (
-            context,
-            constraints,
-          ) {
-            final canvasSize =
-                Size(
+          builder: (context, constraints) {
+            final canvasSize = Size(
               constraints.maxWidth,
-              constraints.maxHeight -
-                  130,
+              constraints.maxHeight - 130,
             );
 
             return Column(
               children: [
                 Expanded(
                   child: Padding(
-                    padding:
-                        const EdgeInsets
-                            .fromLTRB(
-                      12,
-                      8,
-                      12,
-                      12,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                     child: ClipRRect(
-                      borderRadius:
-                          BorderRadius
-                              .circular(
-                        24,
-                      ),
+                      borderRadius: BorderRadius.circular(24),
                       child: Container(
-                        color:
-                            Colors.black,
+                        color: Colors.black,
                         child: isPreparing
                             ? const _PreparingView()
                             : InteractiveViewer(
@@ -472,107 +377,68 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                                 maxScale: 8,
                                 panEnabled: true,
                                 scaleEnabled: true,
-                                child:
-                                    SizedBox(
-                                  width:
-                                      canvasSize
-                                          .width,
-                                  height:
-                                      canvasSize
-                                          .height,
-                                  child:
-                                      Stack(
-                                    fit: StackFit
-                                        .expand,
+                                child: SizedBox(
+                                  width: canvasSize.width,
+                                  height: canvasSize.height,
+                                  child: Stack(
+                                    fit: StackFit.expand,
                                     children: [
                                       Image.memory(
-                                        widget
-                                            .imageBytes,
-                                        fit:
-                                            BoxFit
-                                                .contain,
-                                        gaplessPlayback:
-                                            true,
+                                        widget.imageBytes,
+                                        fit: BoxFit.contain,
+                                        gaplessPlayback: true,
                                       ),
 
-                                      if (_segmentationResult !=
-                                          null)
+                                      if (_segmentationResult != null)
                                         Positioned.fill(
-                                          child:
-                                              IgnorePointer(
-                                            child:
-                                                ImageFiltered(
-                                              imageFilter:
-                                                  ui.ImageFilter.blur(
-                                                sigmaX:
-                                                    1.2,
-                                                sigmaY:
-                                                    1.2,
+                                          child: IgnorePointer(
+                                            child: ImageFiltered(
+                                              imageFilter: ui.ImageFilter.blur(
+                                                sigmaX: 1.2,
+                                                sigmaY: 1.2,
                                               ),
-                                              child:
-                                                  Opacity(
-                                                opacity:
-                                                    0.45,
-                                                child:
-                                                    Image.memory(
+                                              child: Opacity(
+                                                opacity: 0.45,
+                                                child: Image.memory(
                                                   _segmentationResult!
                                                       .outlineBytes,
-                                                  fit:
-                                                      BoxFit.contain,
+                                                  fit: BoxFit.contain,
                                                   filterQuality:
                                                       FilterQuality.none,
-                                                  gaplessPlayback:
-                                                      true,
+                                                  gaplessPlayback: true,
                                                 ),
                                               ),
                                             ),
                                           ),
                                         ),
 
-                                      if (_segmentationResult !=
-                                          null)
+                                      if (_segmentationResult != null)
                                         Positioned.fill(
-                                          child:
-                                              IgnorePointer(
-                                            child:
-                                                Image.memory(
-                                              _segmentationResult!
-                                                  .outlineBytes,
-                                              fit:
-                                                  BoxFit.contain,
-                                              filterQuality:
-                                                  FilterQuality.none,
-                                              gaplessPlayback:
-                                                  true,
+                                          child: IgnorePointer(
+                                            child: Image.memory(
+                                              _segmentationResult!.outlineBytes,
+                                              fit: BoxFit.contain,
+                                              filterQuality: FilterQuality.none,
+                                              gaplessPlayback: true,
                                             ),
                                           ),
                                         ),
 
                                       GestureDetector(
-                                        behavior:
-                                            HitTestBehavior
-                                                .opaque,
-                                        onTapUp:
-                                            (details) {
+                                        behavior: HitTestBehavior.opaque,
+                                        onTapUp: (details) {
                                           _handleTap(
                                             localPosition:
-                                                details
-                                                    .localPosition,
-                                            canvasSize:
-                                                canvasSize,
+                                                details.localPosition,
+                                            canvasSize: canvasSize,
                                           );
                                         },
-                                        child:
-                                            CustomPaint(
-                                          painter:
-                                              _SelectionPointPainter(
-                                            selectedPoint:
-                                                _selectedCanvasPoint,
-                                            isSegmenting:
-                                                _isSegmenting,
+                                        child: CustomPaint(
+                                          painter: _SelectionPointPainter(
+                                            selectedPoint: _selectedCanvasPoint,
+                                            isSegmenting: _isSegmenting,
                                             hasAutomaticSelection:
-                                                _segmentationResult !=
-                                                    null,
+                                                _segmentationResult != null,
                                           ),
                                         ),
                                       ),
@@ -585,26 +451,12 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                   ),
                 ),
                 Container(
-                  width:
-                      double.infinity,
-                  padding:
-                      const EdgeInsets
-                          .fromLTRB(
-                    18,
-                    14,
-                    18,
-                    18,
-                  ),
-                  decoration:
-                      const BoxDecoration(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                  decoration: const BoxDecoration(
                     color: _surface,
-                    borderRadius:
-                        BorderRadius
-                            .vertical(
-                      top:
-                          Radius.circular(
-                        28,
-                      ),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
                     ),
                   ),
                   child: Column(
@@ -613,114 +465,71 @@ class _ObjectSelectionScreenState extends State<ObjectSelectionScreen> {
                         children: [
                           Expanded(
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   _isSegmenting
                                       ? 'Detecting object...'
-                                      : _segmentationResult !=
-                                              null
-                                          ? 'Object selected'
-                                          : 'Tap an object',
-                                  style:
-                                      const TextStyle(
-                                    color:
-                                        Colors.white,
-                                    fontSize:
-                                        15,
-                                    fontWeight:
-                                        FontWeight.w700,
+                                      : _segmentationResult != null
+                                      ? 'Object selected'
+                                      : 'Tap an object',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
-                                const SizedBox(
-                                  height: 4,
-                                ),
+                                const SizedBox(height: 4),
                                 Text(
                                   _isSegmenting
                                       ? 'NeuroLens is finding its exact shape.'
-                                      : _segmentationResult !=
-                                              null
-                                          ? 'Tap another object to change the selection.'
-                                          : 'Tap directly on the person or object you want to remove.',
-                                  style:
-                                      TextStyle(
-                                    color: Colors.white
-                                        .withValues(
-                                      alpha: 0.48,
-                                    ),
-                                    fontSize:
-                                        12,
-                                    height:
-                                        1.35,
+                                      : _segmentationResult != null
+                                      ? 'Tap another object to change the selection.'
+                                      : 'Tap directly on the person or object you want to remove.',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.48),
+                                    fontSize: 12,
+                                    height: 1.35,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(
-                            width: 14,
-                          ),
+                          const SizedBox(width: 14),
                           FilledButton.icon(
                             onPressed:
                                 isPreparing ||
-                                        _isSegmenting ||
-                                        _segmentationResult ==
-                                            null
-                                    ? null
-                                    : _done,
-                            style:
-                                FilledButton
-                                    .styleFrom(
-                              backgroundColor:
-                                  _purple,
-                              foregroundColor:
-                                  Colors.white,
-                              padding:
-                                  const EdgeInsets
-                                      .symmetric(
+                                    _isSegmenting ||
+                                    _segmentationResult == null
+                                ? null
+                                : _done,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: _purple,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
                                 horizontal: 18,
                                 vertical: 14,
                               ),
-                              shape:
-                                  RoundedRectangleBorder(
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  16,
-                                ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                            icon:
-                                _isSegmenting
-                                    ? const SizedBox(
-                                        width:
-                                            16,
-                                        height:
-                                            16,
-                                        child:
-                                            CircularProgressIndicator(
-                                          strokeWidth:
-                                              2,
-                                          color:
-                                              Colors.white,
-                                        ),
-                                      )
-                                    : const Icon(
-                                        Icons
-                                            .auto_fix_high_rounded,
-                                        size:
-                                            18,
-                                      ),
-                            label:
-                                const Text(
+                            icon: _isSegmenting
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.auto_fix_high_rounded,
+                                    size: 18,
+                                  ),
+                            label: const Text(
                               'Remove',
-                              style:
-                                  TextStyle(
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
-                              ),
+                              style: TextStyle(fontWeight: FontWeight.w700),
                             ),
                           ),
                         ],
@@ -741,39 +550,25 @@ class _PreparingView extends StatelessWidget {
   const _PreparingView();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return const Center(
       child: Column(
-        mainAxisSize:
-            MainAxisSize.min,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CircularProgressIndicator(
-            color:
-                Color(0xFF8B5CF6),
-          ),
-          SizedBox(
-            height: 14,
-          ),
+          CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+          SizedBox(height: 14),
           Text(
             'Preparing object selection...',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 13,
-              fontWeight:
-                  FontWeight.w600,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          SizedBox(
-            height: 6,
-          ),
+          SizedBox(height: 6),
           Text(
             'AI selection runs on your device.',
-            style: TextStyle(
-              color: Colors.white38,
-              fontSize: 11,
-            ),
+            style: TextStyle(color: Colors.white38, fontSize: 11),
           ),
         ],
       ),
@@ -781,8 +576,7 @@ class _PreparingView extends StatelessWidget {
   }
 }
 
-class _SelectionPointPainter
-    extends CustomPainter {
+class _SelectionPointPainter extends CustomPainter {
   const _SelectionPointPainter({
     required this.selectedPoint,
     required this.isSegmenting,
@@ -794,77 +588,48 @@ class _SelectionPointPainter
   final bool hasAutomaticSelection;
 
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
-    final point =
-        selectedPoint;
+  void paint(Canvas canvas, Size size) {
+    final point = selectedPoint;
 
     if (point == null) {
       return;
     }
 
-    if (hasAutomaticSelection &&
-        !isSegmenting) {
+    if (hasAutomaticSelection && !isSegmenting) {
       return;
     }
 
     canvas.drawCircle(
       point,
-      isSegmenting
-          ? 21
-          : 18,
+      isSegmenting ? 21 : 18,
       Paint()
-        ..color =
-            Colors.black.withValues(
-          alpha: 0.42,
-        )
-        ..style =
-            PaintingStyle.fill,
+        ..color = Colors.black.withValues(alpha: 0.42)
+        ..style = PaintingStyle.fill,
     );
 
     canvas.drawCircle(
       point,
-      isSegmenting
-          ? 15
-          : 13,
+      isSegmenting ? 15 : 13,
       Paint()
-        ..color =
-            isSegmenting
-                ? const Color(
-                    0xFFC4B5FD,
-                  )
-                : Colors.white
+        ..color = isSegmenting ? const Color(0xFFC4B5FD) : Colors.white
         ..strokeWidth = 2
-        ..style =
-            PaintingStyle.stroke,
+        ..style = PaintingStyle.stroke,
     );
 
     canvas.drawCircle(
       point,
       4,
       Paint()
-        ..color =
-            const Color(
-          0xFFC4B5FD,
-        )
-        ..style =
-            PaintingStyle.fill,
+        ..color = const Color(0xFFC4B5FD)
+        ..style = PaintingStyle.fill,
     );
   }
 
   @override
-  bool shouldRepaint(
-    covariant _SelectionPointPainter
-        oldDelegate,
-  ) {
-    return oldDelegate.selectedPoint !=
-            selectedPoint ||
-        oldDelegate.isSegmenting !=
-            isSegmenting ||
-        oldDelegate.hasAutomaticSelection !=
-            hasAutomaticSelection;
+  bool shouldRepaint(covariant _SelectionPointPainter oldDelegate) {
+    return oldDelegate.selectedPoint != selectedPoint ||
+        oldDelegate.isSegmenting != isSegmenting ||
+        oldDelegate.hasAutomaticSelection != hasAutomaticSelection;
   }
 }
 

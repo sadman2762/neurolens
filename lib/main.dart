@@ -9,22 +9,14 @@ import 'package:neurolens/firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  const revenueCatApiKey = String.fromEnvironment(
-    'REVENUECAT_API_KEY',
-  );
+  const revenueCatApiKey = String.fromEnvironment('REVENUECAT_API_KEY');
 
   await RevenueCatService.configure(
     apiKey: revenueCatApiKey,
     userId: FirebaseAuth.instance.currentUser?.uid,
   );
 
-  runApp(
-    const ProviderScope(
-      child: NeuroLensApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: NeuroLensApp()));
 }

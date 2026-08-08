@@ -30,19 +30,13 @@ final userProfileProvider = StreamProvider<UserProfile?>((ref) {
     return const Stream.empty();
   }
 
-  return ref
-      .watch(userProfileServiceProvider)
-      .watchProfile(user.uid);
+  return ref.watch(userProfileServiceProvider).watchProfile(user.uid);
 });
 
 final accountServiceProvider = Provider<AccountService>((ref) {
-  const backendUrl = String.fromEnvironment(
-    'NEUROLENS_BACKEND_URL',
-  );
+  const backendUrl = String.fromEnvironment('NEUROLENS_BACKEND_URL');
 
-  final service = AccountService(
-    baseUrl: backendUrl,
-  );
+  final service = AccountService(baseUrl: backendUrl);
 
   ref.onDispose(service.dispose);
 

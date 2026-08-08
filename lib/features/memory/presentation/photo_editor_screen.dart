@@ -42,16 +42,12 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
     return asset.originBytes;
   }
 
-  Future<void> _handleEditingComplete(
-    Uint8List editedBytes,
-  ) async {
+  Future<void> _handleEditingComplete(Uint8List editedBytes) async {
     if (!mounted) {
       return;
     }
 
-    Navigator.of(context).pop<Uint8List>(
-      editedBytes,
-    );
+    Navigator.of(context).pop<Uint8List>(editedBytes);
   }
 
   ThemeData _editorTheme() {
@@ -78,13 +74,9 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         elevation: 0,
         centerTitle: false,
       ),
-      iconTheme: const IconThemeData(
-        color: Colors.white,
-      ),
+      iconTheme: const IconThemeData(color: Colors.white),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: _purpleLight,
-        ),
+        style: TextButton.styleFrom(foregroundColor: _purpleLight),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
@@ -94,17 +86,11 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       ),
       sliderTheme: SliderThemeData(
         activeTrackColor: _purple,
-        inactiveTrackColor: Colors.white.withValues(
-          alpha: 0.12,
-        ),
+        inactiveTrackColor: Colors.white.withValues(alpha: 0.12),
         thumbColor: _purple,
-        overlayColor: _purple.withValues(
-          alpha: 0.14,
-        ),
+        overlayColor: _purple.withValues(alpha: 0.14),
       ),
-      dividerColor: Colors.white.withValues(
-        alpha: 0.08,
-      ),
+      dividerColor: Colors.white.withValues(alpha: 0.08),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: _surface,
         surfaceTintColor: Colors.transparent,
@@ -139,34 +125,13 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           CropRotateTool.reset,
         ],
         aspectRatios: [
-          AspectRatioItem(
-            text: 'Free',
-            value: -1,
-          ),
-          AspectRatioItem(
-            text: 'Original',
-            value: 0,
-          ),
-          AspectRatioItem(
-            text: '1:1',
-            value: 1,
-          ),
-          AspectRatioItem(
-            text: '4:5',
-            value: 4 / 5,
-          ),
-          AspectRatioItem(
-            text: '5:4',
-            value: 5 / 4,
-          ),
-          AspectRatioItem(
-            text: '16:9',
-            value: 16 / 9,
-          ),
-          AspectRatioItem(
-            text: '9:16',
-            value: 9 / 16,
-          ),
+          AspectRatioItem(text: 'Free', value: -1),
+          AspectRatioItem(text: 'Original', value: 0),
+          AspectRatioItem(text: '1:1', value: 1),
+          AspectRatioItem(text: '4:5', value: 4 / 5),
+          AspectRatioItem(text: '5:4', value: 5 / 4),
+          AspectRatioItem(text: '16:9', value: 16 / 9),
+          AspectRatioItem(text: '9:16', value: 9 / 16),
         ],
       ),
 
@@ -185,9 +150,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         ],
       ),
 
-      stateHistory: StateHistoryConfigs(
-        stateHistoryLimit: 100,
-      ),
+      stateHistory: StateHistoryConfigs(stateHistoryLimit: 100),
 
       imageGeneration: ImageGenerationConfigs(
         outputFormat: OutputFormat.jpg,
@@ -203,13 +166,11 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       body: FutureBuilder<Uint8List?>(
         future: _imageFuture,
         builder: (context, snapshot) {
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const _LoadingView();
           }
 
-          if (snapshot.hasError ||
-              snapshot.data == null) {
+          if (snapshot.hasError || snapshot.data == null) {
             return _EditorErrorView(
               onClose: () {
                 Navigator.of(context).pop();
@@ -224,8 +185,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
               child: ProImageEditor.memory(
                 snapshot.data!,
                 callbacks: ProImageEditorCallbacks(
-                  onImageEditingComplete:
-                      _handleEditingComplete,
+                  onImageEditingComplete: _handleEditingComplete,
                 ),
                 configs: _editorConfigs(),
               ),
@@ -249,9 +209,7 @@ class _LoadingView extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              CircularProgressIndicator(
-                color: Color(0xFF8B5CF6),
-              ),
+              CircularProgressIndicator(color: Color(0xFF8B5CF6)),
               SizedBox(height: 16),
               Text(
                 'Preparing your editor...',
@@ -263,10 +221,7 @@ class _LoadingView extends StatelessWidget {
               SizedBox(height: 6),
               Text(
                 'Everything stays on this device.',
-                style: TextStyle(
-                  color: Colors.white38,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: Colors.white38, fontSize: 12),
               ),
             ],
           ),
@@ -277,9 +232,7 @@ class _LoadingView extends StatelessWidget {
 }
 
 class _EditorErrorView extends StatelessWidget {
-  const _EditorErrorView({
-    required this.onClose,
-  });
+  const _EditorErrorView({required this.onClose});
 
   final VoidCallback onClose;
 
@@ -297,22 +250,15 @@ class _EditorErrorView extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Container(
-            constraints: const BoxConstraints(
-              maxWidth: 420,
-            ),
+            constraints: const BoxConstraints(maxWidth: 420),
             padding: const EdgeInsets.all(26),
             decoration: BoxDecoration(
               color: const Color(0xFF0D1321),
               borderRadius: BorderRadius.circular(26),
-              border: Border.all(
-                color: Colors.white.withValues(
-                  alpha: 0.07,
-                ),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6)
-                      .withValues(alpha: 0.12),
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                   blurRadius: 28,
                   spreadRadius: 1,
                 ),
@@ -326,8 +272,7 @@ class _EditorErrorView extends StatelessWidget {
                   height: 82,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFF8B5CF6)
-                        .withValues(alpha: 0.14),
+                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.14),
                   ),
                   child: const Icon(
                     Icons.broken_image_outlined,
@@ -350,9 +295,7 @@ class _EditorErrorView extends StatelessWidget {
                   'NeuroLens could not access the original photo.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withValues(
-                      alpha: 0.52,
-                    ),
+                    color: Colors.white.withValues(alpha: 0.52),
                     height: 1.45,
                   ),
                 ),
@@ -361,22 +304,14 @@ class _EditorErrorView extends StatelessWidget {
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: onClose,
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                    ),
-                    label: const Text(
-                      'Go back',
-                    ),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                    label: const Text('Go back'),
                     style: FilledButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF8B5CF6),
+                      backgroundColor: const Color(0xFF8B5CF6),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 15,
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),

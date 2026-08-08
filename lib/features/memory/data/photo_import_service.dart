@@ -9,13 +9,12 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 class PhotoImportService {
   PhotoImportService({
-  required this._memoryRepository,
-  required this._ocrProcessingService,
-  required this._imageContentClassifier,
-  required this._imageLabelingService,
-  GalleryAssetMapper? galleryAssetMapper,
-}) : _galleryAssetMapper =
-         galleryAssetMapper ?? GalleryAssetMapper();
+    required this._memoryRepository,
+    required this._ocrProcessingService,
+    required this._imageContentClassifier,
+    required this._imageLabelingService,
+    GalleryAssetMapper? galleryAssetMapper,
+  }) : _galleryAssetMapper = galleryAssetMapper ?? GalleryAssetMapper();
 
   final MemoryRepositoryImpl _memoryRepository;
   final OcrProcessingService _ocrProcessingService;
@@ -23,9 +22,7 @@ class PhotoImportService {
   final LocalImageLabelingService _imageLabelingService;
   final GalleryAssetMapper _galleryAssetMapper;
 
-  Future<int> importPhotos({
-    required List<AssetEntity> selectedAssets,
-  }) async {
+  Future<int> importPhotos({required List<AssetEntity> selectedAssets}) async {
     if (selectedAssets.isEmpty) {
       return 0;
     }
@@ -45,13 +42,9 @@ class PhotoImportService {
           memoryId: memory.id,
         );
 
-        final contentType = _imageContentClassifier.classify(
-          extractedText,
-        );
+        final contentType = _imageContentClassifier.classify(extractedText);
 
-        final labels = await _imageLabelingService.labelAsset(
-          asset: asset,
-        );
+        final labels = await _imageLabelingService.labelAsset(asset: asset);
 
         await _memoryRepository.updateMemoryVisionMetadata(
           id: memory.id,

@@ -5,8 +5,7 @@ final isPremiumProvider = FutureProvider<bool>((ref) async {
   return RevenueCatService.hasPremiumAccess();
 });
 
-final subscriptionProvider =
-    Provider<SubscriptionController>((ref) {
+final subscriptionProvider = Provider<SubscriptionController>((ref) {
   return SubscriptionController(ref);
 });
 

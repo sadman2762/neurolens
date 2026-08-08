@@ -4,10 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:photo_manager/photo_manager.dart';
 
 class MemoryThumbnail extends StatelessWidget {
-  const MemoryThumbnail({
-    required this.assetId,
-    super.key,
-  });
+  const MemoryThumbnail({required this.assetId, super.key});
 
   final String assetId;
 
@@ -30,17 +27,11 @@ class MemoryThumbnail extends StatelessWidget {
         if (bytes == null) {
           return ColoredBox(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(
-              child: Icon(Icons.image_outlined),
-            ),
+            child: const Center(child: Icon(Icons.image_outlined)),
           );
         }
 
-        return Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-          gaplessPlayback: true,
-        );
+        return Image.memory(bytes, fit: BoxFit.cover, gaplessPlayback: true);
       },
     );
   }

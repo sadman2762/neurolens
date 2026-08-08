@@ -7,9 +7,8 @@ class GalleryRepositoryImpl implements GalleryRepository {
   GalleryRepositoryImpl({
     GalleryPermissionService? permissionService,
     GalleryAssetMapper? mapper,
-  })  : _permissionService =
-            permissionService ?? GalleryPermissionService(),
-        _mapper = mapper ?? GalleryAssetMapper();
+  }) : _permissionService = permissionService ?? GalleryPermissionService(),
+       _mapper = mapper ?? GalleryAssetMapper();
 
   final GalleryPermissionService _permissionService;
   final GalleryAssetMapper _mapper;

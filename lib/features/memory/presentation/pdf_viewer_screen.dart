@@ -42,61 +42,57 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
   }
 
   Future<void> _sharePdf() async {
-  if (_isSharing || _isDeleting) return;
+    if (_isSharing || _isDeleting) return;
 
-  final file = File(widget.filePath);
+    final file = File(widget.filePath);
 
-  final exists = await file.exists();
+    final exists = await file.exists();
 
-  if (!mounted) return;
-
-  if (!exists) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('This PDF is no longer available.'),
-      ),
-    );
-    return;
-  }
-
-  setState(() {
-    _isSharing = true;
-  });
-
-  try {
-    final renderBox = context.findRenderObject() as RenderBox?;
-
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [
-          XFile(
-            widget.filePath,
-            mimeType: 'application/pdf',
-            name: widget.title,
-          ),
-        ],
-        subject: widget.title,
-        sharePositionOrigin: renderBox == null
-            ? null
-            : renderBox.localToGlobal(Offset.zero) & renderBox.size,
-      ),
-    );
-  } catch (error) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Could not share this PDF: $error'),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isSharing = false;
-      });
+    if (!exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This PDF is no longer available.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSharing = true;
+    });
+
+    try {
+      final renderBox = context.findRenderObject() as RenderBox?;
+
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile(
+              widget.filePath,
+              mimeType: 'application/pdf',
+              name: widget.title,
+            ),
+          ],
+          subject: widget.title,
+          sharePositionOrigin: renderBox == null
+              ? null
+              : renderBox.localToGlobal(Offset.zero) & renderBox.size,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not share this PDF: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSharing = false;
+        });
+      }
     }
   }
-}
 
   Future<void> _confirmDelete() async {
     if (_isSharing || _isDeleting) return;
@@ -114,10 +110,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
           ),
           title: const Text(
             'Remove this PDF?',
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-            ),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           content: Text(
             'This PDF will be removed from NeuroLens. '
@@ -134,9 +127,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
               },
               child: Text(
                 'Cancel',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.72),
-                ),
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.72)),
               ),
             ),
             FilledButton(
@@ -165,9 +156,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
     });
 
     try {
-      await ref
-          .read(memoryRepositoryProvider)
-          .deleteMemory(widget.memoryId);
+      await ref.read(memoryRepositoryProvider).deleteMemory(widget.memoryId);
 
       if (!mounted) return;
 
@@ -180,9 +169,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not remove this PDF: $error'),
-        ),
+        SnackBar(content: Text('Could not remove this PDF: $error')),
       );
     }
   }
@@ -199,9 +186,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
       decoration: BoxDecoration(
         color: _surfaceColor,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.06),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: IconButton(
         onPressed: onPressed,
@@ -239,16 +224,11 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
           if (_totalPages > 0)
             Container(
               margin: const EdgeInsets.only(left: 8),
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: _surfaceColor,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
-                ),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
               ),
               child: Text(
                 '$_currentPage / $_totalPages',
@@ -271,10 +251,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
                       color: Colors.white,
                     ),
                   )
-                : const Icon(
-                    Icons.share_outlined,
-                    size: 21,
-                  ),
+                : const Icon(Icons.share_outlined, size: 21),
           ),
           _buildActionButton(
             onPressed: _isSharing || _isDeleting ? null : _confirmDelete,
@@ -307,9 +284,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
             decoration: BoxDecoration(
               color: const Color(0xFF111827),
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.06),
-              ),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             clipBehavior: Clip.antiAlias,
             child: Builder(
@@ -367,9 +342,7 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
 }
 
 class _PdfErrorView extends StatelessWidget {
-  const _PdfErrorView({
-    required this.message,
-  });
+  const _PdfErrorView({required this.message});
 
   final String message;
 

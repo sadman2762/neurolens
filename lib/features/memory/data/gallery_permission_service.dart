@@ -30,9 +30,6 @@ class GalleryPermissionService {
 
     if (albums.isEmpty) return [];
 
-    return albums.first.getAssetListPaged(
-      page: page,
-      size: pageSize,
-    );
+    return albums.first.getAssetListPaged(page: page, size: pageSize);
   }
 }

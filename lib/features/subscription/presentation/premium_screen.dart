@@ -32,9 +32,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Welcome to NeuroLens Premium!'),
-        ),
+        const SnackBar(content: Text('Welcome to NeuroLens Premium!')),
       );
 
       Navigator.of(context).pop(true);
@@ -45,11 +43,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Purchase failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Purchase failed: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -95,11 +91,9 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Restore failed: $error'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Restore failed: $error')));
     } finally {
       if (mounted) {
         setState(() {
@@ -122,9 +116,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
         centerTitle: true,
         title: const Text(
           'NeuroLens Premium',
-          style: TextStyle(
-            fontWeight: FontWeight.w700,
-          ),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: SafeArea(
@@ -133,9 +125,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 460,
-              ),
+              constraints: const BoxConstraints(maxWidth: 460),
               child: Column(
                 children: [
                   _PremiumHero(),
@@ -151,11 +141,10 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                       style: FilledButton.styleFrom(
                         backgroundColor: _purple,
                         foregroundColor: Colors.white,
-                        disabledBackgroundColor:
-                            _purple.withValues(alpha: 0.45),
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 17,
+                        disabledBackgroundColor: _purple.withValues(
+                          alpha: 0.45,
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 17),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(18),
                         ),
@@ -199,9 +188,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
                           )
                         : const Text(
                             'Restore purchases',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                   ),
                   const SizedBox(height: 12),
@@ -240,17 +227,11 @@ class _PremiumHero extends StatelessWidget {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFF60A5FA),
-                Color(0xFF8B5CF6),
-                Color(0xFFC084FC),
-              ],
+              colors: [Color(0xFF60A5FA), Color(0xFF8B5CF6), Color(0xFFC084FC)],
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8B5CF6).withValues(
-                  alpha: 0.38,
-                ),
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.38),
                 blurRadius: 34,
                 spreadRadius: 4,
               ),
@@ -298,9 +279,7 @@ class _PlanCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: _PremiumScreenState._surface,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.18),
@@ -347,10 +326,7 @@ class _PriceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        horizontal: 22,
-        vertical: 20,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
       decoration: BoxDecoration(
         color: _PremiumScreenState._surfaceHighlight,
         borderRadius: BorderRadius.circular(22),
@@ -414,9 +390,7 @@ class _PremiumFeature extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        vertical: 13,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -424,16 +398,10 @@ class _PremiumFeature extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF8B5CF6).withValues(
-                alpha: 0.13,
-              ),
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.13),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFFC4B5FD),
-              size: 22,
-            ),
+            child: Icon(icon, color: const Color(0xFFC4B5FD), size: 22),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -477,9 +445,6 @@ class _FeatureDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Divider(
-      height: 1,
-      color: Colors.white.withValues(alpha: 0.06),
-    );
+    return Divider(height: 1, color: Colors.white.withValues(alpha: 0.06));
   }
 }

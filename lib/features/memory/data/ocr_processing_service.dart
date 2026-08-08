@@ -10,9 +10,7 @@ class OcrProcessingService {
   final OcrService _ocrService;
   final MemoryRepositoryImpl _memoryRepository;
 
-  Future<String> processImage({
-    required String memoryId,
-  }) async {
+  Future<String> processImage({required String memoryId}) async {
     final extractedText = await _ocrService.extractTextFromAsset(memoryId);
 
     if (extractedText.isNotEmpty) {
