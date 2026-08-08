@@ -24,6 +24,8 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
   static const double _ringSize = 166;
   static const double _brainSize = 98;
 
+  static const int _rotationDurationMs = 4800;
+
   late final AnimationController _rotationController;
   late final AnimationController _titleController;
   late final AnimationController _glowController;
@@ -38,7 +40,7 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
     _rotationController = AnimationController(
       vsync: this,
       duration: const Duration(
-        milliseconds: 4800,
+        milliseconds: _rotationDurationMs,
       ),
     );
 
@@ -71,6 +73,9 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
           return;
         }
 
+        //
+        // ORIGINAL SLOW ROTATION SPEED.
+        //
         _rotationController.repeat();
       },
     );
@@ -90,12 +95,73 @@ class _PremiumSplashScreenState extends State<PremiumSplashScreen>
       const Duration(
         milliseconds: 3200,
       ),
-      () {
-        if (mounted) {
-          widget.onFinished();
-        }
-      },
+      _finishSplashSmoothly,
     );
+  }
+
+  Future<void> _finishSplashSmoothly() async {
+    if (!mounted) {
+      return;
+    }
+
+    //
+    // Get the exact position of the ring while it
+    // is rotating.
+    //
+    final currentValue = _rotationController.value;
+
+    //
+    // Stop repeat mode without visually changing
+    // the current position.
+    //
+    _rotationController.stop();
+
+    //
+    // Work out exactly how much of the current
+    // rotation is left.
+    //
+    final remainingFraction = 1.0 - currentValue;
+
+    final remainingDuration = Duration(
+      milliseconds: math.max(
+        1,
+        (_rotationDurationMs * remainingFraction).round(),
+      ),
+    );
+
+    //
+    // Finish the current rotation using LINEAR motion.
+    //
+    // Because the repeat animation is also linear by
+    // default, there is no speed jump here.
+    //
+    await _rotationController.animateTo(
+      1.0,
+      duration: remainingDuration,
+      curve: Curves.linear,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    //
+    // Ring is now perfectly stopped at the end of
+    // a complete rotation.
+    //
+    // Hold the finished logo for a short moment.
+    //
+    await Future<void>.delayed(
+      const Duration(
+        milliseconds: 650,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    widget.onFinished();
   }
 
   @override
@@ -799,3 +865,4 @@ class _Background extends StatelessWidget {
     );
   }
 }
+
