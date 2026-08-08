@@ -62,6 +62,7 @@ class OpenAIImageEditService:
                     "as possible. Match the scene's lighting, texture, "
                     "perspective, shadows, colors, and depth of field. "
                     "Do not introduce a replacement object."
+                    "Do NOT invent or add any new people, animals, vehicles, furniture, text, buildings, objects, or decorations."
                 ),
                 output_format="png",
                 quality="medium",

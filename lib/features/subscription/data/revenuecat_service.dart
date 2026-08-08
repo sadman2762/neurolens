@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter/services.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatService {
   RevenueCatService._();
@@ -21,38 +21,87 @@ class RevenueCatService {
 
     final cleanApiKey = apiKey.trim();
 
-    if (cleanApiKey.isEmpty) {
-      throw const RevenueCatException('RevenueCat API key is missing.');
+    // Skip RevenueCat completely when no real key is supplied.
+    if (cleanApiKey.isEmpty ||
+        cleanApiKey.startsWith('test_')) {
+      debugPrint(
+        'RevenueCat disabled. No valid API key provided.',
+      );
+
+      return;
     }
 
-    if (kDebugMode) {
-      await Purchases.setLogLevel(LogLevel.debug);
+    try {
+      if (kDebugMode) {
+        await Purchases.setLogLevel(
+          LogLevel.debug,
+        );
+      }
+
+      final configuration =
+          PurchasesConfiguration(
+        cleanApiKey,
+      );
+
+      final cleanUserId =
+          userId?.trim();
+
+      if (cleanUserId != null &&
+          cleanUserId.isNotEmpty) {
+        configuration.appUserID =
+            cleanUserId;
+      }
+
+      await Purchases.configure(
+        configuration,
+      );
+
+      _isConfigured = true;
+
+      debugPrint(
+        'RevenueCat configured successfully.',
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        'RevenueCat initialization failed.',
+      );
+
+      debugPrint(
+        error.toString(),
+      );
+
+      debugPrint(
+        stackTrace.toString(),
+      );
+
+      // Don't crash the app.
+      _isConfigured = false;
     }
-
-    final configuration = PurchasesConfiguration(cleanApiKey);
-
-    final cleanUserId = userId?.trim();
-
-    if (cleanUserId != null && cleanUserId.isNotEmpty) {
-      configuration.appUserID = cleanUserId;
-    }
-
-    await Purchases.configure(configuration);
-    _isConfigured = true;
   }
 
-  static Future<CustomerInfo> identifyUser(String userId) async {
+  static Future<CustomerInfo> identifyUser(
+    String userId,
+  ) async {
     if (!_isConfigured) {
-      throw const RevenueCatException('RevenueCat has not been configured.');
+      throw const RevenueCatException(
+        'RevenueCat has not been configured.',
+      );
     }
 
-    final cleanUserId = userId.trim();
+    final cleanUserId =
+        userId.trim();
 
     if (cleanUserId.isEmpty) {
-      throw const RevenueCatException('RevenueCat user ID is missing.');
+      throw const RevenueCatException(
+        'RevenueCat user ID is missing.',
+      );
     }
 
-    final result = await Purchases.logIn(cleanUserId);
+    final result =
+        await Purchases.logIn(
+      cleanUserId,
+    );
+
     return result.customerInfo;
   }
 
@@ -61,14 +110,21 @@ class RevenueCatService {
       return false;
     }
 
-    final customerInfo = await Purchases.getCustomerInfo();
+    final customerInfo =
+        await Purchases.getCustomerInfo();
 
-    return customerInfo.entitlements.active[premiumEntitlementId] != null;
+    return customerInfo
+            .entitlements
+            .active[premiumEntitlementId] !=
+        null;
   }
 
-  static Future<CustomerInfo> restorePurchases() async {
+  static Future<CustomerInfo>
+      restorePurchases() async {
     if (!_isConfigured) {
-      throw const RevenueCatException('RevenueCat has not been configured.');
+      throw const RevenueCatException(
+        'RevenueCat has not been configured.',
+      );
     }
 
     return Purchases.restorePurchases();
@@ -82,19 +138,28 @@ class RevenueCatService {
     await Purchases.logOut();
   }
 
-  static Future<Package> getMonthlyPackage() async {
+  static Future<Package>
+      getMonthlyPackage() async {
     if (!_isConfigured) {
-      throw const RevenueCatException('RevenueCat has not been configured.');
+      throw const RevenueCatException(
+        'RevenueCat has not been configured.',
+      );
     }
 
-    final offerings = await Purchases.getOfferings();
-    final currentOffering = offerings.current;
+    final offerings =
+        await Purchases.getOfferings();
+
+    final currentOffering =
+        offerings.current;
 
     if (currentOffering == null) {
-      throw const RevenueCatException('No RevenueCat offering is available.');
+      throw const RevenueCatException(
+        'No RevenueCat offering is available.',
+      );
     }
 
-    final monthlyPackage = currentOffering.monthly;
+    final monthlyPackage =
+        currentOffering.monthly;
 
     if (monthlyPackage == null) {
       throw const RevenueCatException(
@@ -105,29 +170,44 @@ class RevenueCatService {
     return monthlyPackage;
   }
 
-  static Future<CustomerInfo> purchaseMonthlyPackage() async {
-    final monthlyPackage = await getMonthlyPackage();
+  static Future<CustomerInfo>
+      purchaseMonthlyPackage() async {
+    final monthlyPackage =
+        await getMonthlyPackage();
 
     try {
-      final purchaseResult = await Purchases.purchase(
-        PurchaseParams.package(monthlyPackage),
+      final purchaseResult =
+          await Purchases.purchase(
+        PurchaseParams.package(
+          monthlyPackage,
+        ),
       );
 
       return purchaseResult.customerInfo;
     } on PlatformException catch (error) {
-      final errorCode = PurchasesErrorHelper.getErrorCode(error);
+      final errorCode =
+          PurchasesErrorHelper
+              .getErrorCode(error);
 
-      if (errorCode == PurchasesErrorCode.purchaseCancelledError) {
+      if (errorCode ==
+          PurchasesErrorCode
+              .purchaseCancelledError) {
         throw const RevenueCatPurchaseCancelledException();
       }
 
-      throw RevenueCatException(error.message ?? 'Premium purchase failed.');
+      throw RevenueCatException(
+        error.message ??
+            'Premium purchase failed.',
+      );
     }
   }
 }
 
-class RevenueCatException implements Exception {
-  const RevenueCatException(this.message);
+class RevenueCatException
+    implements Exception {
+  const RevenueCatException(
+    this.message,
+  );
 
   final String message;
 
@@ -135,9 +215,11 @@ class RevenueCatException implements Exception {
   String toString() => message;
 }
 
-class RevenueCatPurchaseCancelledException implements Exception {
+class RevenueCatPurchaseCancelledException
+    implements Exception {
   const RevenueCatPurchaseCancelledException();
 
   @override
-  String toString() => 'Purchase cancelled.';
+  String toString() =>
+      'Purchase cancelled.';
 }
