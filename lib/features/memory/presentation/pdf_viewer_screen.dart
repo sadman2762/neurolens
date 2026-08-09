@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
+import 'package:syncfusion_flutter_core/theme.dart';
 
 class PdfViewerScreen extends ConsumerStatefulWidget {
   const PdfViewerScreen({
@@ -282,8 +283,8 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
             width: double.infinity,
             height: double.infinity,
             decoration: BoxDecoration(
-              color: const Color(0xFF111827),
-              borderRadius: BorderRadius.circular(22),
+              color: _backgroundColor,
+              borderRadius: BorderRadius.zero,
               border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
             ),
             clipBehavior: Clip.antiAlias,
@@ -301,36 +302,41 @@ class _PdfViewerScreenState extends ConsumerState<PdfViewerScreen> {
                   );
                 }
 
-                return SfPdfViewer.file(
-                  file,
-                  controller: _pdfViewerController,
-                  enableDoubleTapZooming: true,
-                  enableTextSelection: true,
-                  canShowScrollHead: true,
-                  canShowScrollStatus: true,
-                  pageLayoutMode: PdfPageLayoutMode.continuous,
-                  onDocumentLoaded: (details) {
-                    if (!mounted) return;
+                return SfPdfViewerTheme(
+                  data: const SfPdfViewerThemeData(
+                    backgroundColor: Color(0xFF050816),
+                  ),
+                  child: SfPdfViewer.file(
+                    file,
+                    controller: _pdfViewerController,
+                    enableDoubleTapZooming: true,
+                    enableTextSelection: true,
+                    canShowScrollHead: true,
+                    canShowScrollStatus: true,
+                    pageLayoutMode: PdfPageLayoutMode.continuous,
+                    onDocumentLoaded: (details) {
+                      if (!mounted) return;
 
-                    setState(() {
-                      _totalPages = details.document.pages.count;
-                      _currentPage = 1;
-                    });
-                  },
-                  onPageChanged: (details) {
-                    if (!mounted) return;
+                      setState(() {
+                        _totalPages = details.document.pages.count;
+                        _currentPage = 1;
+                      });
+                    },
+                    onPageChanged: (details) {
+                      if (!mounted) return;
 
-                    setState(() {
-                      _currentPage = details.newPageNumber;
-                    });
-                  },
-                  onDocumentLoadFailed: (details) {
-                    if (!mounted) return;
+                      setState(() {
+                        _currentPage = details.newPageNumber;
+                      });
+                    },
+                    onDocumentLoadFailed: (details) {
+                      if (!mounted) return;
 
-                    setState(() {
-                      _hasLoadError = true;
-                    });
-                  },
+                      setState(() {
+                        _hasLoadError = true;
+                      });
+                    },
+                  ),
                 );
               },
             ),

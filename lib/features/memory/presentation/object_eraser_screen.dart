@@ -1909,18 +1909,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                 alpha: 0.10,
               ),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: 0.36,
-                ),
-                blurRadius: 34,
-                offset: const Offset(
-                  0,
-                  12,
-                ),
-              ),
-            ],
+            
           ),
           child: SafeArea(
             top: false,

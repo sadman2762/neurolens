@@ -21,12 +21,10 @@ class MemoryDetailScreen extends ConsumerStatefulWidget {
   final String title;
 
   @override
-  ConsumerState<MemoryDetailScreen> createState() =>
-      _MemoryDetailScreenState();
+  ConsumerState<MemoryDetailScreen> createState() => _MemoryDetailScreenState();
 }
 
-class _MemoryDetailScreenState
-    extends ConsumerState<MemoryDetailScreen> {
+class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   static const Color _backgroundColor = Color(0xFF050816);
   static const Color _surfaceColor = Color(0xE60D1321);
   static const Color _danger = Color(0xFFEF4444);
@@ -47,9 +45,7 @@ class _MemoryDetailScreenState
   }
 
   Future<Uint8List?> _loadImage() async {
-    final asset = await AssetEntity.fromId(
-      widget.assetId,
-    );
+    final asset = await AssetEntity.fromId(widget.assetId);
 
     return asset?.originBytes;
   }
@@ -59,10 +55,7 @@ class _MemoryDetailScreenState
   // ---------------------------------------------------------------------------
 
   Future<void> _openAiTools() async {
-    if (_isAiEditing ||
-        _isSharing ||
-        _isDeleting ||
-        _isSavingEdit) {
+    if (_isAiEditing || _isSharing || _isDeleting || _isSavingEdit) {
       return;
     }
 
@@ -72,11 +65,8 @@ class _MemoryDetailScreenState
       return;
     }
 
-    if (imageBytes == null ||
-        imageBytes.isEmpty) {
-      _showMessage(
-        'Could not load this photo for editing.',
-      );
+    if (imageBytes == null || imageBytes.isEmpty) {
+      _showMessage('Could not load this photo for editing.');
 
       return;
     }
@@ -85,28 +75,18 @@ class _MemoryDetailScreenState
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: const Color(
-        0xFF0D1321,
-      ),
+      backgroundColor: const Color(0xFF0D1321),
       builder: (bottomSheetContext) {
         return AiToolsBottomSheet(
           onObjectEraser: () {
-            Navigator.of(
-              bottomSheetContext,
-            ).pop();
+            Navigator.of(bottomSheetContext).pop();
 
-            _openObjectEraser(
-              imageBytes,
-            );
+            _openObjectEraser(imageBytes);
           },
           onDoodles: () {
-            Navigator.of(
-              bottomSheetContext,
-            ).pop();
+            Navigator.of(bottomSheetContext).pop();
 
-            _openDoodles(
-              imageBytes,
-            );
+            _openDoodles(imageBytes);
           },
         );
       },
@@ -117,11 +97,8 @@ class _MemoryDetailScreenState
   // UNIFIED OBJECT ERASER
   // ---------------------------------------------------------------------------
 
-  Future<void> _openObjectEraser(
-    Uint8List imageBytes,
-  ) async {
-    if (_isAiEditing ||
-        _isSavingEdit) {
+  Future<void> _openObjectEraser(Uint8List imageBytes) async {
+    if (_isAiEditing || _isSavingEdit) {
       return;
     }
 
@@ -130,9 +107,7 @@ class _MemoryDetailScreenState
     });
 
     try {
-      final editedBytes =
-          await Navigator.of(context)
-              .push<Uint8List>(
+      final editedBytes = await Navigator.of(context).push<Uint8List>(
         MaterialPageRoute<Uint8List>(
           builder: (_) {
             return ObjectEraserScreen(
@@ -147,30 +122,21 @@ class _MemoryDetailScreenState
         return;
       }
 
-      if (editedBytes == null ||
-          editedBytes.isEmpty) {
+      if (editedBytes == null || editedBytes.isEmpty) {
         return;
       }
 
-      await _replaceWithAiEditedImage(
-        editedBytes,
-      );
+      await _replaceWithAiEditedImage(editedBytes);
     } catch (error, stackTrace) {
-      debugPrint(
-        'Unified Object Eraser error: $error',
-      );
+      debugPrint('Unified Object Eraser error: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'Could not finish the Object Eraser edit.',
-      );
+      _showMessage('Could not finish the Object Eraser edit.');
     } finally {
       if (mounted) {
         setState(() {
@@ -184,11 +150,8 @@ class _MemoryDetailScreenState
   // DOODLES
   // ---------------------------------------------------------------------------
 
-  Future<void> _openDoodles(
-    Uint8List imageBytes,
-  ) async {
-    if (_isAiEditing ||
-        _isSavingEdit) {
+  Future<void> _openDoodles(Uint8List imageBytes) async {
+    if (_isAiEditing || _isSavingEdit) {
       return;
     }
 
@@ -197,9 +160,7 @@ class _MemoryDetailScreenState
     });
 
     try {
-      final editedBytes =
-          await Navigator.of(context)
-              .push<Uint8List>(
+      final editedBytes = await Navigator.of(context).push<Uint8List>(
         MaterialPageRoute<Uint8List>(
           builder: (_) {
             return DoodleEditorScreen(
@@ -214,30 +175,21 @@ class _MemoryDetailScreenState
         return;
       }
 
-      if (editedBytes == null ||
-          editedBytes.isEmpty) {
+      if (editedBytes == null || editedBytes.isEmpty) {
         return;
       }
 
-      await _replaceWithAiEditedImage(
-        editedBytes,
-      );
+      await _replaceWithAiEditedImage(editedBytes);
     } catch (error, stackTrace) {
-      debugPrint(
-        'Doodle editor error: $error',
-      );
+      debugPrint('Doodle editor error: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'Could not finish the Doodles edit.',
-      );
+      _showMessage('Could not finish the Doodles edit.');
     } finally {
       if (mounted) {
         setState(() {
@@ -251,9 +203,7 @@ class _MemoryDetailScreenState
   // REPLACE CURRENT NEUROLENS IMAGE WITH ADVANCED EDIT
   // ---------------------------------------------------------------------------
 
-  Future<void> _replaceWithAiEditedImage(
-    Uint8List editedBytes,
-  ) async {
+  Future<void> _replaceWithAiEditedImage(Uint8List editedBytes) async {
     if (_isSavingEdit) {
       return;
     }
@@ -263,9 +213,7 @@ class _MemoryDetailScreenState
     });
 
     try {
-      final permission =
-          await PhotoManager
-              .requestPermissionExtend();
+      final permission = await PhotoManager.requestPermissionExtend();
 
       if (!permission.hasAccess) {
         _showMessage(
@@ -275,65 +223,37 @@ class _MemoryDetailScreenState
         return;
       }
 
-      final repository =
-          ref.read(
-        memoryRepositoryProvider,
-      );
+      final repository = ref.read(memoryRepositoryProvider);
 
-      final oldMemory =
-          await repository.getMemoryById(
-        widget.assetId,
-      );
+      final oldMemory = await repository.getMemoryById(widget.assetId);
 
       if (oldMemory == null) {
-        _showMessage(
-          'Could not find the current NeuroLens memory.',
-        );
+        _showMessage('Could not find the current NeuroLens memory.');
 
         return;
       }
 
-      final timestamp =
-          DateTime.now()
-              .millisecondsSinceEpoch;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      final cleanTitle =
-          oldMemory.title
-              .replaceAll(
-                RegExp(
-                  r'[^\w\s-]',
-                ),
-                '',
-              )
-              .trim()
-              .replaceAll(
-                RegExp(
-                  r'\s+',
-                ),
-                '_',
-              );
+      final cleanTitle = oldMemory.title
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '_');
 
-      final fileName =
-          cleanTitle.isEmpty
-              ? 'neurolens_ai_$timestamp.png'
-              : '${cleanTitle}_ai_$timestamp.png';
+      final fileName = cleanTitle.isEmpty
+          ? 'neurolens_ai_$timestamp.png'
+          : '${cleanTitle}_ai_$timestamp.png';
 
-      final savedAsset =
-          await PhotoManager
-              .editor
-              .saveImage(
+      final savedAsset = await PhotoManager.editor.saveImage(
         editedBytes,
         title: fileName,
         filename: fileName,
       );
 
-      final newAssetId =
-          savedAsset.id;
+      final newAssetId = savedAsset.id;
 
       if (newAssetId.isEmpty) {
-        throw StateError(
-          'The edited gallery image has no asset ID.',
-        );
+        throw StateError('The edited gallery image has no asset ID.');
       }
 
       await repository.replaceImageMemory(
@@ -348,8 +268,7 @@ class _MemoryDetailScreenState
         return;
       }
 
-      Navigator.of(context)
-          .pushReplacement(
+      Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
           builder: (_) {
             return MemoryDetailScreen(
@@ -360,18 +279,12 @@ class _MemoryDetailScreenState
         ),
       );
     } catch (error, stackTrace) {
-      debugPrint(
-        'Advanced image replacement error: $error',
-      );
+      debugPrint('Advanced image replacement error: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (mounted) {
-        _showMessage(
-          'Could not replace the image: $error',
-        );
+        _showMessage('Could not replace the image: $error');
       }
     } finally {
       if (mounted) {
@@ -387,16 +300,11 @@ class _MemoryDetailScreenState
   // ---------------------------------------------------------------------------
 
   Future<void> _openEditor() async {
-    if (_isSharing ||
-        _isDeleting ||
-        _isSavingEdit ||
-        _isAiEditing) {
+    if (_isSharing || _isDeleting || _isSavingEdit || _isAiEditing) {
       return;
     }
 
-    final editedBytes =
-        await Navigator.of(context)
-            .push<Uint8List>(
+    final editedBytes = await Navigator.of(context).push<Uint8List>(
       MaterialPageRoute<Uint8List>(
         builder: (_) {
           return PhotoEditorScreen(
@@ -407,20 +315,14 @@ class _MemoryDetailScreenState
       ),
     );
 
-    if (!mounted ||
-        editedBytes == null ||
-        editedBytes.isEmpty) {
+    if (!mounted || editedBytes == null || editedBytes.isEmpty) {
       return;
     }
 
-    await _saveEditedCopy(
-      editedBytes,
-    );
+    await _saveEditedCopy(editedBytes);
   }
 
-  Future<void> _saveEditedCopy(
-    Uint8List editedBytes,
-  ) async {
+  Future<void> _saveEditedCopy(Uint8List editedBytes) async {
     if (_isSavingEdit) {
       return;
     }
@@ -430,9 +332,7 @@ class _MemoryDetailScreenState
     });
 
     try {
-      final permission =
-          await PhotoManager
-              .requestPermissionExtend();
+      final permission = await PhotoManager.requestPermissionExtend();
 
       if (!permission.hasAccess) {
         _showMessage(
@@ -442,76 +342,42 @@ class _MemoryDetailScreenState
         return;
       }
 
-      final timestamp =
-          DateTime.now()
-              .millisecondsSinceEpoch;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      final cleanTitle =
-          widget.title
-              .replaceAll(
-                RegExp(
-                  r'[^\w\s-]',
-                ),
-                '',
-              )
-              .trim()
-              .replaceAll(
-                RegExp(
-                  r'\s+',
-                ),
-                '_',
-              );
+      final cleanTitle = widget.title
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .trim()
+          .replaceAll(RegExp(r'\s+'), '_');
 
-      final fileName =
-          cleanTitle.isEmpty
-              ? 'neurolens_edit_$timestamp.png'
-              : '${cleanTitle}_edited_$timestamp.png';
+      final fileName = cleanTitle.isEmpty
+          ? 'neurolens_edit_$timestamp.png'
+          : '${cleanTitle}_edited_$timestamp.png';
 
-      final savedAsset =
-          await PhotoManager
-              .editor
-              .saveImage(
+      final savedAsset = await PhotoManager.editor.saveImage(
         editedBytes,
         title: fileName,
         filename: fileName,
       );
 
-      final importedCount =
-          await ref
-              .read(
-                photoImportServiceProvider,
-              )
-              .importPhotos(
-        selectedAssets: [
-          savedAsset,
-        ],
-      );
+      final importedCount = await ref
+          .read(photoImportServiceProvider)
+          .importPhotos(selectedAssets: [savedAsset]);
 
       if (!mounted) {
         return;
       }
 
       if (importedCount == 1) {
-        _showMessage(
-          'Edited copy saved, indexed and added to NeuroLens.',
-        );
+        _showMessage('Edited copy saved, indexed and added to NeuroLens.');
       } else {
-        _showMessage(
-          'Edited copy was saved to your gallery.',
-        );
+        _showMessage('Edited copy was saved to your gallery.');
       }
     } catch (error, stackTrace) {
-      debugPrint(
-        'Edited photo save error: $error',
-      );
+      debugPrint('Edited photo save error: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
-      _showMessage(
-        'Could not save the edited photo: $error',
-      );
+      _showMessage('Could not save the edited photo: $error');
     } finally {
       if (mounted) {
         setState(() {
@@ -525,9 +391,7 @@ class _MemoryDetailScreenState
   // FAVORITE
   // ---------------------------------------------------------------------------
 
-  Future<void> _toggleFavorite(
-    Memory memory,
-  ) async {
+  Future<void> _toggleFavorite(Memory memory) async {
     if (_isUpdatingFavorite) {
       return;
     }
@@ -537,17 +401,9 @@ class _MemoryDetailScreenState
     });
 
     try {
-      await ref
-          .read(
-            memoryRepositoryProvider,
-          )
-          .toggleMemoryFavorite(
-        memory,
-      );
+      await ref.read(memoryRepositoryProvider).toggleMemoryFavorite(memory);
     } catch (error) {
-      _showMessage(
-        'Could not update favorite: $error',
-      );
+      _showMessage('Could not update favorite: $error');
     } finally {
       if (mounted) {
         setState(() {
@@ -562,9 +418,7 @@ class _MemoryDetailScreenState
   // ---------------------------------------------------------------------------
 
   Future<void> _shareImage() async {
-    if (_isSharing ||
-        _isDeleting ||
-        _isAiEditing) {
+    if (_isSharing || _isDeleting || _isAiEditing) {
       return;
     }
 
@@ -573,28 +427,18 @@ class _MemoryDetailScreenState
     });
 
     try {
-      final asset =
-          await AssetEntity.fromId(
-        widget.assetId,
-      );
+      final asset = await AssetEntity.fromId(widget.assetId);
 
       if (asset == null) {
-        _showMessage(
-          'This image is no longer available.',
-        );
+        _showMessage('This image is no longer available.');
 
         return;
       }
 
-      final imageFile =
-          await asset.originFile ??
-          await asset.file;
+      final imageFile = await asset.originFile ?? await asset.file;
 
-      if (imageFile == null ||
-          !await imageFile.exists()) {
-        _showMessage(
-          'Could not access this image.',
-        );
+      if (imageFile == null || !await imageFile.exists()) {
+        _showMessage('Could not access this image.');
 
         return;
       }
@@ -603,33 +447,19 @@ class _MemoryDetailScreenState
         return;
       }
 
-      final renderBox =
-          context.findRenderObject()
-              as RenderBox?;
+      final renderBox = context.findRenderObject() as RenderBox?;
 
       await SharePlus.instance.share(
         ShareParams(
-          files: [
-            XFile(
-              imageFile.path,
-              name: widget.title,
-            ),
-          ],
+          files: [XFile(imageFile.path, name: widget.title)],
           subject: widget.title,
-          sharePositionOrigin:
-              renderBox == null
-                  ? null
-                  : renderBox
-                            .localToGlobal(
-                              Offset.zero,
-                            ) &
-                        renderBox.size,
+          sharePositionOrigin: renderBox == null
+              ? null
+              : renderBox.localToGlobal(Offset.zero) & renderBox.size,
         ),
       );
     } catch (error) {
-      _showMessage(
-        'Could not share this image: $error',
-      );
+      _showMessage('Could not share this image: $error');
     } finally {
       if (mounted) {
         setState(() {
@@ -643,29 +473,18 @@ class _MemoryDetailScreenState
   // OCR COPY
   // ---------------------------------------------------------------------------
 
-  Future<void> _copyExtractedText(
-    String text,
-  ) async {
-    final cleanText =
-        text.trim();
+  Future<void> _copyExtractedText(String text) async {
+    final cleanText = text.trim();
 
     if (cleanText.isEmpty) {
-      _showMessage(
-        'No extracted text is available.',
-      );
+      _showMessage('No extracted text is available.');
 
       return;
     }
 
-    await Clipboard.setData(
-      ClipboardData(
-        text: cleanText,
-      ),
-    );
+    await Clipboard.setData(ClipboardData(text: cleanText));
 
-    _showMessage(
-      'Extracted text copied.',
-    );
+    _showMessage('Extracted text copied.');
   }
 
   // ---------------------------------------------------------------------------
@@ -673,102 +492,59 @@ class _MemoryDetailScreenState
   // ---------------------------------------------------------------------------
 
   Future<void> _confirmDelete() async {
-    if (_isSharing ||
-        _isDeleting ||
-        _isAiEditing) {
+    if (_isSharing || _isDeleting || _isAiEditing) {
       return;
     }
 
-    final shouldDelete =
-        await showDialog<bool>(
+    final shouldDelete = await showDialog<bool>(
       context: context,
-      builder: (
-        dialogContext,
-      ) {
+      builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor:
-              const Color(
-            0xFF0D1321,
-          ),
-          surfaceTintColor:
-              Colors.transparent,
+          backgroundColor: const Color(0xFF0D1321),
+          surfaceTintColor: Colors.transparent,
           icon: const Icon(
             Icons.delete_outline_rounded,
-            color:
-                Color(
-              0xFFF87171,
-            ),
+            color: Color(0xFFF87171),
             size: 34,
           ),
           title: const Text(
             'Remove this photo?',
-            textAlign:
-                TextAlign.center,
-            style: TextStyle(
-              color:
-                  Colors.white,
-              fontWeight:
-                  FontWeight.w700,
-            ),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
           ),
           content: Text(
             'The photo will be removed from NeuroLens. '
             'The original image will remain in your phone gallery.',
-            textAlign:
-                TextAlign.center,
+            textAlign: TextAlign.center,
             style: TextStyle(
-              color:
-                  Colors.white
-                      .withValues(
-                alpha: 0.62,
-              ),
+              color: Colors.white.withValues(alpha: 0.62),
               height: 1.5,
             ),
           ),
-          actionsAlignment:
-              MainAxisAlignment.center,
+          actionsAlignment: MainAxisAlignment.center,
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(
-                  false,
-                );
+                Navigator.of(dialogContext).pop(false);
               },
-              child:
-                  const Text(
-                'Cancel',
-              ),
+              child: const Text('Cancel'),
             ),
             FilledButton(
               onPressed: () {
-                Navigator.of(
-                  dialogContext,
-                ).pop(
-                  true,
-                );
+                Navigator.of(dialogContext).pop(true);
               },
-              style:
-                  FilledButton
-                      .styleFrom(
-                backgroundColor:
-                    _danger,
-                foregroundColor:
-                    Colors.white,
+              style: FilledButton.styleFrom(
+                backgroundColor: _danger,
+                foregroundColor: Colors.white,
               ),
-              child:
-                  const Text(
-                'Remove',
-              ),
+              child: const Text('Remove'),
             ),
           ],
         );
       },
     );
 
-    if (shouldDelete != true ||
-        !mounted) {
+    if (shouldDelete != true || !mounted) {
       return;
     }
 
@@ -781,13 +557,7 @@ class _MemoryDetailScreenState
     });
 
     try {
-      await ref
-          .read(
-            memoryRepositoryProvider,
-          )
-          .deleteMemory(
-        widget.assetId,
-      );
+      await ref.read(memoryRepositoryProvider).deleteMemory(widget.assetId);
 
       if (!mounted) {
         return;
@@ -801,9 +571,7 @@ class _MemoryDetailScreenState
         });
       }
 
-      _showMessage(
-        'Could not remove this photo: $error',
-      );
+      _showMessage('Could not remove this photo: $error');
     }
   }
 
@@ -811,31 +579,19 @@ class _MemoryDetailScreenState
   // HELPERS
   // ---------------------------------------------------------------------------
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-        ),
-      ),
-    );
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Memory? _findMemory(
-    List<Memory> memories,
-  ) {
-    for (final memory
-        in memories) {
-      if (memory.id ==
-          widget.assetId) {
+  Memory? _findMemory(List<Memory> memories) {
+    for (final memory in memories) {
+      if (memory.id == widget.assetId) {
         return memory;
       }
     }
@@ -848,33 +604,17 @@ class _MemoryDetailScreenState
   // ---------------------------------------------------------------------------
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final timeline =
-        ref.watch(
-      memoryTimelineProvider,
-    );
+  Widget build(BuildContext context) {
+    final timeline = ref.watch(memoryTimelineProvider);
 
-    final memory =
-        timeline.maybeWhen(
-      data: _findMemory,
-      orElse: () => null,
-    );
+    final memory = timeline.maybeWhen(data: _findMemory, orElse: () => null);
 
-    final extractedText =
-        memory?.content?.trim() ??
-        '';
+    final extractedText = memory?.content?.trim() ?? '';
 
-    final isBusy =
-        _isSharing ||
-        _isDeleting ||
-        _isSavingEdit ||
-        _isAiEditing;
+    final isBusy = _isSharing || _isDeleting || _isSavingEdit || _isAiEditing;
 
     return Scaffold(
-      backgroundColor:
-          _backgroundColor,
+      backgroundColor: _backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -885,137 +625,68 @@ class _MemoryDetailScreenState
             // Edit and Share are intentionally only available from the 3-dot
             // menu.
             // ===============================================================
-
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
-                14,
-                8,
-                14,
-                10,
-              ),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
               child: Row(
                 children: [
                   _CircleActionButton(
-                    tooltip:
-                        'Back',
-                    icon:
-                        Icons.arrow_back_rounded,
-                    onPressed:
-                        isBusy
-                            ? null
-                            : () {
-                                Navigator.of(
-                                  context,
-                                ).pop();
-                              },
+                    tooltip: 'Back',
+                    icon: Icons.arrow_back_rounded,
+                    onPressed: isBusy
+                        ? null
+                        : () {
+                            Navigator.of(context).pop();
+                          },
                   ),
 
                   const Spacer(),
 
                   _CircleActionButton(
-                    tooltip:
-                        memory?.isFavorite ==
-                                true
-                            ? 'Remove from favorites'
-                            : 'Add to favorites',
-                    onPressed:
-                        memory ==
-                                    null ||
-                                _isUpdatingFavorite ||
-                                isBusy
-                            ? null
-                            : () {
-                                _toggleFavorite(
-                                  memory,
-                                );
-                              },
-                    child:
-                        _isUpdatingFavorite
-                            ? const SizedBox(
-                                width:
-                                    17,
-                                height:
-                                    17,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
-                                  color:
-                                      Colors.white,
-                                ),
-                              )
-                            : Icon(
-                                memory?.isFavorite ==
-                                        true
-                                    ? Icons.star_rounded
-                                    : Icons.star_border_rounded,
-                                color:
-                                    Colors.white,
-                                size:
-                                    25,
-                              ),
+                    tooltip: memory?.isFavorite == true
+                        ? 'Remove from favorites'
+                        : 'Add to favorites',
+                    onPressed: memory == null || _isUpdatingFavorite || isBusy
+                        ? null
+                        : () {
+                            _toggleFavorite(memory);
+                          },
+                    child: _isUpdatingFavorite
+                        ? const SizedBox(
+                            width: 17,
+                            height: 17,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Icon(
+                            memory?.isFavorite == true
+                                ? Icons.star_rounded
+                                : Icons.star_border_rounded,
+                            color: Colors.white,
+                            size: 25,
+                          ),
                   ),
 
-                  const SizedBox(
-                    width:
-                        9,
-                  ),
+                  const SizedBox(width: 9),
 
                   _CircleActionButton(
-                    tooltip:
-                        'Advanced tools',
-                    onPressed:
-                        isBusy
-                            ? null
-                            : _openAiTools,
-                    child:
-                        _isAiEditing
-                            ? const SizedBox(
-                                width:
-                                    18,
-                                height:
-                                    18,
-                                child:
-                                    CircularProgressIndicator(
-                                  strokeWidth:
-                                      2,
-                                  color:
-                                      Color(
-                                    0xFFC4B5FD,
-                                  ),
-                                ),
-                              )
-                            : const Icon(
-                                Icons.auto_awesome_rounded,
-                                color:
-                                    Color(
-                                  0xFFC4B5FD,
-                                ),
-                                size:
-                                    25,
-                              ),
-                  ),
-
-                  const SizedBox(
-                    width:
-                        9,
-                  ),
-
-                  _CircleActionButton(
-                    tooltip:
-                        'More',
-                    icon:
-                        Icons.more_horiz_rounded,
-                    onPressed:
-                        isBusy
-                            ? null
-                            : () {
-                                _showPhotoOptions(
-                                  extractedText:
-                                      extractedText,
-                                );
-                              },
+                    tooltip: 'Advanced tools',
+                    onPressed: isBusy ? null : _openAiTools,
+                    child: _isAiEditing
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFFC4B5FD),
+                            ),
+                          )
+                        : const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: Color(0xFFC4B5FD),
+                            size: 25,
+                          ),
                   ),
                 ],
               ),
@@ -1027,30 +698,17 @@ class _MemoryDetailScreenState
             // The whole image is visible. BoxFit.contain preserves landscape
             // and portrait photos without cropping.
             // ===============================================================
-
             Expanded(
               child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal:
-                      14,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(
-                    22,
-                  ),
+                  borderRadius: BorderRadius.circular(22),
                   child: Container(
-                    width:
-                        double.infinity,
-                    color:
-                        _backgroundColor,
-                    child:
-                        _PhotoBackground(
-                      imageFuture:
-                          _imageFuture,
-                      assetId:
-                          widget.assetId,
+                    width: double.infinity,
+                    color: _backgroundColor,
+                    child: _PhotoBackground(
+                      imageFuture: _imageFuture,
+                      assetId: widget.assetId,
                     ),
                   ),
                 ),
@@ -1064,203 +722,24 @@ class _MemoryDetailScreenState
             // No date.
             // No extracted text box.
             // ===============================================================
-
             Padding(
-              padding:
-                  const EdgeInsets.fromLTRB(
-                14,
-                12,
-                14,
-                14,
-              ),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: _DetailsPanel(
-                extractedText:
-                    extractedText,
-                isSharing:
-                    _isSharing,
-                isDeleting:
-                    _isDeleting,
-                isSavingEdit:
-                    _isSavingEdit ||
-                    _isAiEditing,
-                onEditPressed:
-                    _openEditor,
-                onOcrPressed:
-                    () {
-                  _copyExtractedText(
-                    extractedText,
-                  );
+                extractedText: extractedText,
+                isSharing: _isSharing,
+                isDeleting: _isDeleting,
+                isSavingEdit: _isSavingEdit || _isAiEditing,
+                onEditPressed: _openEditor,
+                onOcrPressed: () {
+                  _copyExtractedText(extractedText);
                 },
-                onSharePressed:
-                    _shareImage,
-                onDeletePressed:
-                    _confirmDelete,
+                onSharePressed: _shareImage,
+                onDeletePressed: _confirmDelete,
               ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  void _showPhotoOptions({
-    required String extractedText,
-  }) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      backgroundColor:
-          const Color(
-        0xFF0D1321,
-      ),
-      builder: (
-        bottomSheetContext,
-      ) {
-        return SafeArea(
-          child: Padding(
-            padding:
-                const EdgeInsets
-                    .fromLTRB(
-              18,
-              4,
-              18,
-              22,
-            ),
-            child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
-              children: [
-                ListTile(
-                  leading:
-                      const Icon(
-                    Icons.tune_rounded,
-                    color:
-                        Color(
-                      0xFFC4B5FD,
-                    ),
-                  ),
-                  title:
-                      const Text(
-                    'Edit photo',
-                    style:
-                        TextStyle(
-                      color:
-                          Colors.white,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(
-                      bottomSheetContext,
-                    ).pop();
-
-                    _openEditor();
-                  },
-                ),
-
-                ListTile(
-                  leading:
-                      const Icon(
-                    Icons
-                        .text_snippet_outlined,
-                    color:
-                        Color(
-                      0xFFC4B5FD,
-                    ),
-                  ),
-                  title:
-                      const Text(
-                    'Copy extracted text',
-                    style:
-                        TextStyle(
-                      color:
-                          Colors.white,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                  enabled:
-                      extractedText
-                          .trim()
-                          .isNotEmpty,
-                  onTap: () {
-                    Navigator.of(
-                      bottomSheetContext,
-                    ).pop();
-
-                    _copyExtractedText(
-                      extractedText,
-                    );
-                  },
-                ),
-
-                ListTile(
-                  leading:
-                      const Icon(
-                    Icons
-                        .ios_share_rounded,
-                    color:
-                        Color(
-                      0xFF93C5FD,
-                    ),
-                  ),
-                  title:
-                      const Text(
-                    'Share photo',
-                    style:
-                        TextStyle(
-                      color:
-                          Colors.white,
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(
-                      bottomSheetContext,
-                    ).pop();
-
-                    _shareImage();
-                  },
-                ),
-
-                ListTile(
-                  leading:
-                      const Icon(
-                    Icons
-                        .delete_outline_rounded,
-                    color:
-                        Color(
-                      0xFFF87171,
-                    ),
-                  ),
-                  title:
-                      const Text(
-                    'Remove from NeuroLens',
-                    style:
-                        TextStyle(
-                      color:
-                          Color(
-                        0xFFFCA5A5,
-                      ),
-                      fontWeight:
-                          FontWeight.w600,
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.of(
-                      bottomSheetContext,
-                    ).pop();
-
-                    _confirmDelete();
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -1270,71 +749,44 @@ class _MemoryDetailScreenState
 // =============================================================================
 
 class _PhotoBackground extends StatelessWidget {
-  const _PhotoBackground({
-    required this.imageFuture,
-    required this.assetId,
-  });
+  const _PhotoBackground({required this.imageFuture, required this.assetId});
 
   final Future<Uint8List?> imageFuture;
   final String assetId;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return FutureBuilder<Uint8List?>(
       future: imageFuture,
-      builder: (
-        context,
-        snapshot,
-      ) {
-        if (snapshot.connectionState ==
-            ConnectionState.waiting) {
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const ColoredBox(
-            color:
-                Color(0xFF050816),
+            color: Color(0xFF050816),
             child: Center(
-              child:
-                  CircularProgressIndicator(
-                color:
-                    Color(
-                  0xFF8B5CF6,
-                ),
-              ),
+              child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
             ),
           );
         }
 
-        if (snapshot.hasError ||
-            snapshot.data ==
-                null) {
+        if (snapshot.hasError || snapshot.data == null) {
           return const _ImageErrorView(
-            message:
-                'This photo is no longer available.',
+            message: 'This photo is no longer available.',
           );
         }
 
         return Hero(
-          tag:
-              'memory-image-$assetId',
+          tag: 'memory-image-$assetId',
           child: Material(
-            color:
-                Colors.transparent,
-            child:
-                InteractiveViewer(
+            color: Colors.transparent,
+            child: InteractiveViewer(
               minScale: 1,
               maxScale: 5,
-              child:
-                  SizedBox.expand(
-                child:
-                    Image.memory(
+              child: SizedBox.expand(
+                child: Image.memory(
                   snapshot.data!,
-                  fit:
-                      BoxFit.contain,
-                  gaplessPlayback:
-                      true,
-                  filterQuality:
-                      FilterQuality.high,
+                  fit: BoxFit.contain,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.high,
                 ),
               ),
             ),
@@ -1348,7 +800,6 @@ class _PhotoBackground extends StatelessWidget {
 // =============================================================================
 // BOTTOM GRADIENT
 // =============================================================================
-
 
 // =============================================================================
 // DETAILS PANEL
@@ -1378,132 +829,58 @@ class _DetailsPanel extends StatelessWidget {
   final VoidCallback onDeletePressed;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final isBusy =
-        isSharing ||
-        isDeleting ||
-        isSavingEdit;
+  Widget build(BuildContext context) {
+    final isBusy = isSharing || isDeleting || isSavingEdit;
 
     return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.all(
-        7,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            _MemoryDetailScreenState
-                ._surfaceColor,
-        borderRadius:
-            BorderRadius.circular(
-          22,
-        ),
-        border:
-            Border.all(
-          color:
-              Colors.white.withValues(
-            alpha:
-                0.07,
-          ),
-        ),
+      width: double.infinity,
+      padding: const EdgeInsets.all(7),
+      decoration: BoxDecoration(
+        color: _MemoryDetailScreenState._surfaceColor,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
       ),
       child: Row(
         children: [
           Expanded(
-            child:
-                _PillActionButton(
-              icon:
-                  Icons.tune_rounded,
-              label:
-                  'Edit',
-              foregroundColor:
-                  const Color(
-                0xFFC4B5FD,
-              ),
-              backgroundColor:
-                  const Color(
-                0xFF36235E,
-              ).withValues(
-                alpha:
-                    0.72,
-              ),
-              onPressed:
-                  isBusy
-                      ? null
-                      : onEditPressed,
+            child: _PillActionButton(
+              icon: Icons.tune_rounded,
+              label: 'Edit',
+              foregroundColor: const Color(0xFFC4B5FD),
+              backgroundColor: const Color(0xFF36235E).withValues(alpha: 0.72),
+              onPressed: isBusy ? null : onEditPressed,
             ),
           ),
 
-          const SizedBox(
-            width:
-                7,
-          ),
+          const SizedBox(width: 7),
 
           Expanded(
-            child:
-                _PillActionButton(
-              icon:
-                  Icons.document_scanner_outlined,
-              label:
-                  'OCR',
-              onPressed:
-                  extractedText.isEmpty ||
-                          isBusy
-                      ? null
-                      : onOcrPressed,
+            child: _PillActionButton(
+              icon: Icons.document_scanner_outlined,
+              label: 'OCR',
+              onPressed: extractedText.isEmpty || isBusy ? null : onOcrPressed,
             ),
           ),
 
-          const SizedBox(
-            width:
-                7,
-          ),
+          const SizedBox(width: 7),
 
           Expanded(
-            child:
-                _PillActionButton(
-              icon:
-                  Icons.ios_share_rounded,
-              label:
-                  'Share',
-              onPressed:
-                  isBusy
-                      ? null
-                      : onSharePressed,
+            child: _PillActionButton(
+              icon: Icons.ios_share_rounded,
+              label: 'Share',
+              onPressed: isBusy ? null : onSharePressed,
             ),
           ),
 
-          const SizedBox(
-            width:
-                7,
-          ),
+          const SizedBox(width: 7),
 
           Expanded(
-            child:
-                _PillActionButton(
-              icon:
-                  Icons.delete_outline_rounded,
-              label:
-                  'Delete',
-              foregroundColor:
-                  const Color(
-                0xFFFF667B,
-              ),
-              backgroundColor:
-                  const Color(
-                0xFF581A29,
-              ).withValues(
-                alpha:
-                    0.48,
-              ),
-              onPressed:
-                  isBusy
-                      ? null
-                      : onDeletePressed,
+            child: _PillActionButton(
+              icon: Icons.delete_outline_rounded,
+              label: 'Delete',
+              foregroundColor: const Color(0xFFFF667B),
+              backgroundColor: const Color(0xFF581A29).withValues(alpha: 0.48),
+              onPressed: isBusy ? null : onDeletePressed,
             ),
           ),
         ],
@@ -1530,41 +907,21 @@ class _CircleActionButton extends StatelessWidget {
   final Widget? child;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Material(
-      color:
-          Colors.black
-              .withValues(
-        alpha:
-            0.28,
-      ),
-      shape:
-          const CircleBorder(),
-      clipBehavior:
-          Clip.antiAlias,
+      color: Colors.black.withValues(alpha: 0.28),
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap:
-            onPressed,
-        customBorder:
-            const CircleBorder(),
+        onTap: onPressed,
+        customBorder: const CircleBorder(),
         child: SizedBox(
           width: 50,
           height: 50,
           child: Center(
             child: Tooltip(
-              message:
-                  tooltip,
-              child:
-                  child ??
-                  Icon(
-                    icon,
-                    color:
-                        Colors.white,
-                    size:
-                        25,
-                  ),
+              message: tooltip,
+              child: child ?? Icon(icon, color: Colors.white, size: 25),
             ),
           ),
         ),
@@ -1582,12 +939,8 @@ class _PillActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onPressed,
-    this.foregroundColor =
-        Colors.white,
-    this.backgroundColor =
-        const Color(
-      0xFF171E2C,
-    ),
+    this.foregroundColor = Colors.white,
+    this.backgroundColor = const Color(0xFF171E2C),
   });
 
   final IconData icon;
@@ -1598,82 +951,41 @@ class _PillActionButton extends StatelessWidget {
   final Color backgroundColor;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final enabled =
-        onPressed != null;
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
 
     return Material(
-      color:
-          backgroundColor,
-      borderRadius:
-          BorderRadius
-              .circular(
-        28,
-      ),
-      clipBehavior:
-          Clip.antiAlias,
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(28),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap:
-            onPressed,
-        borderRadius:
-            BorderRadius
-                .circular(
-          28,
-        ),
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(28),
         child: Padding(
-          padding:
-              const EdgeInsets
-                  .symmetric(
-            horizontal:
-                8,
-            vertical:
-                15,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 15),
           child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment
-                    .center,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                color:
-                    enabled
-                        ? foregroundColor
-                        : foregroundColor
-                            .withValues(
-                            alpha:
-                                0.35,
-                          ),
-                size:
-                    19,
+                color: enabled
+                    ? foregroundColor
+                    : foregroundColor.withValues(alpha: 0.35),
+                size: 19,
               ),
 
-              const SizedBox(
-                width: 5,
-              ),
+              const SizedBox(width: 5),
 
               Flexible(
                 child: Text(
                   label,
-                  overflow:
-                      TextOverflow
-                          .ellipsis,
-                  style:
-                      TextStyle(
-                    color:
-                        enabled
-                            ? foregroundColor
-                            : foregroundColor
-                                .withValues(
-                                alpha:
-                                    0.35,
-                              ),
-                    fontSize:
-                        13,
-                    fontWeight:
-                        FontWeight.w700,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: enabled
+                        ? foregroundColor
+                        : foregroundColor.withValues(alpha: 0.35),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -1690,75 +1002,43 @@ class _PillActionButton extends StatelessWidget {
 // =============================================================================
 
 class _ImageErrorView extends StatelessWidget {
-  const _ImageErrorView({
-    required this.message,
-  });
+  const _ImageErrorView({required this.message});
 
   final String message;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return ColoredBox(
-      color:
-          const Color(0xFF050816),
+      color: const Color(0xFF050816),
       child: Center(
         child: Padding(
-          padding:
-              const EdgeInsets
-                  .all(
-            24,
-          ),
+          padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisSize:
-                MainAxisSize
-                    .min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 72,
                 height: 72,
-                decoration:
-                    BoxDecoration(
-                  shape:
-                      BoxShape.circle,
-                  color:
-                      const Color(
-                    0xFF8B5CF6,
-                  ).withValues(
-                    alpha:
-                        0.12,
-                  ),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
                 ),
-                child:
-                    const Icon(
-                  Icons
-                      .broken_image_outlined,
-                  size:
-                      34,
-                  color:
-                      Color(
-                    0xFFC084FC,
-                  ),
+                child: const Icon(
+                  Icons.broken_image_outlined,
+                  size: 34,
+                  color: Color(0xFFC084FC),
                 ),
               ),
 
-              const SizedBox(
-                height: 18,
-              ),
+              const SizedBox(height: 18),
 
               Text(
                 message,
-                textAlign:
-                    TextAlign.center,
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white,
-                  fontSize:
-                      16,
-                  fontWeight:
-                      FontWeight.w600,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
