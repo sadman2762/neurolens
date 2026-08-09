@@ -3,7 +3,11 @@ import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/widgets/memory_thumbnail.dart';
 
 class MemoryGridItem extends StatefulWidget {
-  const MemoryGridItem({required this.memory, required this.onTap, super.key});
+  const MemoryGridItem({
+    required this.memory,
+    required this.onTap,
+    super.key,
+  });
 
   final Memory memory;
   final VoidCallback onTap;
@@ -25,9 +29,13 @@ class _MemoryGridItemState extends State<MemoryGridItem> {
       _isPressed = true;
     });
 
-    await Future<void>.delayed(const Duration(milliseconds: 90));
+    await Future<void>.delayed(
+      const Duration(milliseconds: 90),
+    );
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
 
     setState(() {
       _isPressed = false;
@@ -92,12 +100,14 @@ class _MemoryGridItemState extends State<MemoryGridItem> {
         onTapDown: _handleTapDown,
         onTapCancel: _handleTapCancel,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.zero,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: _surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+              borderRadius: BorderRadius.zero,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.06),
+              ),
             ),
             child: memory.type == 'image'
                 ? _ImageMemoryCard(memory: memory)
@@ -115,7 +125,9 @@ class _MemoryGridItemState extends State<MemoryGridItem> {
 }
 
 class _ImageMemoryCard extends StatelessWidget {
-  const _ImageMemoryCard({required this.memory});
+  const _ImageMemoryCard({
+    required this.memory,
+  });
 
   final Memory memory;
 
@@ -128,7 +140,9 @@ class _ImageMemoryCard extends StatelessWidget {
           tag: 'memory-image-${memory.id}',
           child: Material(
             color: Colors.transparent,
-            child: MemoryThumbnail(assetId: memory.id),
+            child: MemoryThumbnail(
+              assetId: memory.id,
+            ),
           ),
         ),
         const DecoratedBox(
@@ -141,23 +155,11 @@ class _ImageMemoryCard extends StatelessWidget {
                 Colors.transparent,
                 Color(0xB3000000),
               ],
-              stops: [0, 0.58, 1],
-            ),
-          ),
-        ),
-        Positioned(
-          left: 10,
-          right: 10,
-          bottom: 9,
-          child: Text(
-            memory.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              height: 1.25,
+              stops: [
+                0,
+                0.58,
+                1,
+              ],
             ),
           ),
         ),
@@ -193,7 +195,11 @@ class _DocumentMemoryCard extends StatelessWidget {
               color: typeColor.withValues(alpha: 0.13),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: typeColor, size: 21),
+            child: Icon(
+              icon,
+              color: typeColor,
+              size: 21,
+            ),
           ),
           const SizedBox(height: 12),
           Expanded(

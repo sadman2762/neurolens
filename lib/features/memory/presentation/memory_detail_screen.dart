@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/ai_tools_bottom_sheet.dart';
+import 'package:neurolens/features/memory/presentation/screens/doodle_editor_screen.dart';
 import 'package:neurolens/features/memory/presentation/object_eraser_screen.dart';
 import 'package:neurolens/features/memory/presentation/photo_editor_screen.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
@@ -28,7 +29,6 @@ class _MemoryDetailScreenState
     extends ConsumerState<MemoryDetailScreen> {
   static const Color _backgroundColor = Color(0xFF050816);
   static const Color _surfaceColor = Color(0xE60D1321);
-  static const Color _cardColor = Color(0xD9141B2D);
   static const Color _danger = Color(0xFFEF4444);
 
   late final Future<Uint8List?> _imageFuture;
@@ -55,7 +55,7 @@ class _MemoryDetailScreenState
   }
 
   // ---------------------------------------------------------------------------
-  // AI TOOLS
+  // ADVANCED TOOLS
   // ---------------------------------------------------------------------------
 
   Future<void> _openAiTools() async {
@@ -75,7 +75,7 @@ class _MemoryDetailScreenState
     if (imageBytes == null ||
         imageBytes.isEmpty) {
       _showMessage(
-        'Could not load this photo for AI editing.',
+        'Could not load this photo for editing.',
       );
 
       return;
@@ -96,6 +96,15 @@ class _MemoryDetailScreenState
             ).pop();
 
             _openObjectEraser(
+              imageBytes,
+            );
+          },
+          onDoodles: () {
+            Navigator.of(
+              bottomSheetContext,
+            ).pop();
+
+            _openDoodles(
               imageBytes,
             );
           },
@@ -172,7 +181,74 @@ class _MemoryDetailScreenState
   }
 
   // ---------------------------------------------------------------------------
-  // REPLACE CURRENT NEUROLENS IMAGE WITH AI IMAGE
+  // DOODLES
+  // ---------------------------------------------------------------------------
+
+  Future<void> _openDoodles(
+    Uint8List imageBytes,
+  ) async {
+    if (_isAiEditing ||
+        _isSavingEdit) {
+      return;
+    }
+
+    setState(() {
+      _isAiEditing = true;
+    });
+
+    try {
+      final editedBytes =
+          await Navigator.of(context)
+              .push<Uint8List>(
+        MaterialPageRoute<Uint8List>(
+          builder: (_) {
+            return DoodleEditorScreen(
+              imageBytes: imageBytes,
+              title: widget.title,
+            );
+          },
+        ),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (editedBytes == null ||
+          editedBytes.isEmpty) {
+        return;
+      }
+
+      await _replaceWithAiEditedImage(
+        editedBytes,
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Doodle editor error: $error',
+      );
+
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(
+        'Could not finish the Doodles edit.',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAiEditing = false;
+        });
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // REPLACE CURRENT NEUROLENS IMAGE WITH ADVANCED EDIT
   // ---------------------------------------------------------------------------
 
   Future<void> _replaceWithAiEditedImage(
@@ -242,12 +318,6 @@ class _MemoryDetailScreenState
               ? 'neurolens_ai_$timestamp.png'
               : '${cleanTitle}_ai_$timestamp.png';
 
-      //
-      // Save the final result as a new physical
-      // image in the phone gallery.
-      //
-      // The user's original gallery image remains untouched.
-      //
       final savedAsset =
           await PhotoManager
               .editor
@@ -266,16 +336,6 @@ class _MemoryDetailScreenState
         );
       }
 
-      //
-      // Replace the memory inside NeuroLens.
-      //
-      // Existing:
-      // title
-      // favorite
-      // createdAt
-      //
-      // are preserved.
-      //
       await repository.replaceImageMemory(
         oldId: oldMemory.id,
         newId: newAssetId,
@@ -288,10 +348,6 @@ class _MemoryDetailScreenState
         return;
       }
 
-      //
-      // Replace this route because widget.assetId
-      // still references the previous gallery asset.
-      //
       Navigator.of(context)
           .pushReplacement(
         MaterialPageRoute<void>(
@@ -305,7 +361,7 @@ class _MemoryDetailScreenState
       );
     } catch (error, stackTrace) {
       debugPrint(
-        'AI image replacement error: $error',
+        'Advanced image replacement error: $error',
       );
 
       debugPrintStack(
@@ -810,9 +866,6 @@ class _MemoryDetailScreenState
         memory?.content?.trim() ??
         '';
 
-    final createdAt =
-        memory?.createdAt;
-
     final isBusy =
         _isSharing ||
         _isDeleting ||
@@ -823,78 +876,31 @@ class _MemoryDetailScreenState
       backgroundColor:
           _backgroundColor,
       body: SafeArea(
-        child: Padding(
-          padding:
-              const EdgeInsets
-                  .fromLTRB(
-            18,
-            14,
-            18,
-            18,
-          ),
-          child: Container(
-            decoration:
-                BoxDecoration(
-              color:
-                  Colors.black,
-              borderRadius:
-                  BorderRadius
-                      .circular(
-                28,
-              ),
-              border:
-                  Border.all(
-                color:
-                    Colors.white
-                        .withValues(
-                  alpha:
-                      0.05,
-                ),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color:
-                      Colors.black
-                          .withValues(
-                    alpha:
-                        0.45,
-                  ),
-                  blurRadius:
-                      32,
-                  offset:
-                      const Offset(
-                    0,
-                    14,
-                  ),
-                ),
-              ],
-            ),
-            clipBehavior:
-                Clip.antiAlias,
-            child: Stack(
-              fit:
-                  StackFit.expand,
-              children: [
-                _PhotoBackground(
-                  imageFuture:
-                      _imageFuture,
-                  assetId:
-                      widget.assetId,
-                ),
+        child: Column(
+          children: [
+            // ===============================================================
+            // TOP NAV
+            //
+            // The photo starts BELOW this row. Nothing here overlays the photo.
+            // Edit and Share are intentionally only available from the 3-dot
+            // menu.
+            // ===============================================================
 
-                const _BottomGradient(),
-
-                Positioned(
-                  top: 16,
-                  left: 14,
-                  child:
-                      _CircleActionButton(
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(
+                14,
+                8,
+                14,
+                10,
+              ),
+              child: Row(
+                children: [
+                  _CircleActionButton(
                     tooltip:
                         'Back',
                     icon:
-                        Icons
-                            .arrow_back_rounded,
+                        Icons.arrow_back_rounded,
                     onPressed:
                         isBusy
                             ? null
@@ -904,232 +910,194 @@ class _MemoryDetailScreenState
                                 ).pop();
                               },
                   ),
-                ),
 
-                Positioned(
-                  top: 16,
-                  right: 14,
-                  child: Row(
-                    children: [
-                      _CircleActionButton(
-                        tooltip:
-                            memory?.isFavorite ==
-                                    true
-                                ? 'Remove from favorites'
-                                : 'Add to favorites',
-                        onPressed:
-                            memory ==
-                                        null ||
-                                    _isUpdatingFavorite ||
-                                    isBusy
-                                ? null
-                                : () {
-                                    _toggleFavorite(
-                                      memory,
-                                    );
-                                  },
-                        child:
-                            _isUpdatingFavorite
-                                ? const SizedBox(
-                                    width:
-                                        17,
-                                    height:
-                                        17,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          2,
-                                      color:
-                                          Colors.white,
-                                    ),
-                                  )
-                                : Icon(
-                                    memory?.isFavorite ==
-                                            true
-                                        ? Icons.star_rounded
-                                        : Icons.star_border_rounded,
-                                    color:
-                                        Colors.white,
-                                    size:
-                                        21,
-                                  ),
-                      ),
+                  const Spacer(),
 
-                      const SizedBox(
-                        width: 9,
-                      ),
-
-                      _CircleActionButton(
-                        tooltip:
-                            'Edit photo',
-                        onPressed:
-                            isBusy
-                                ? null
-                                : _openEditor,
-                        child:
-                            _isSavingEdit
-                                ? const SizedBox(
-                                    width:
-                                        18,
-                                    height:
-                                        18,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          2,
-                                      color:
-                                          Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.tune_rounded,
-                                    color:
-                                        Colors.white,
-                                    size:
-                                        22,
-                                  ),
-                      ),
-
-                      const SizedBox(
-                        width: 9,
-                      ),
-
-                      _CircleActionButton(
-                        tooltip:
-                            'AI tools',
-                        onPressed:
-                            isBusy
-                                ? null
-                                : _openAiTools,
-                        child:
-                            _isAiEditing
-                                ? const SizedBox(
-                                    width:
-                                        18,
-                                    height:
-                                        18,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          2,
-                                      color:
-                                          Color(
-                                        0xFFC4B5FD,
-                                      ),
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.auto_awesome_rounded,
-                                    color:
-                                        Color(
-                                      0xFFC4B5FD,
-                                    ),
-                                    size:
-                                        21,
-                                  ),
-                      ),
-
-                      const SizedBox(
-                        width: 9,
-                      ),
-
-                      _CircleActionButton(
-                        tooltip:
-                            'Share',
-                        onPressed:
-                            isBusy
-                                ? null
-                                : _shareImage,
-                        child:
-                            _isSharing
-                                ? const SizedBox(
-                                    width:
-                                        18,
-                                    height:
-                                        18,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          2,
-                                      color:
-                                          Colors.white,
-                                    ),
-                                  )
-                                : const Icon(
-                                    Icons.ios_share_rounded,
-                                    color:
-                                        Colors.white,
-                                    size:
-                                        21,
-                                  ),
-                      ),
-
-                      const SizedBox(
-                        width: 9,
-                      ),
-
-                      _CircleActionButton(
-                        tooltip:
-                            'More',
-                        icon:
-                            Icons
-                                .more_horiz_rounded,
-                        onPressed:
-                            isBusy
-                                ? null
-                                : () {
-                                    _showPhotoOptions(
-                                      extractedText:
-                                          extractedText,
-                                    );
-                                  },
-                      ),
-                    ],
+                  _CircleActionButton(
+                    tooltip:
+                        memory?.isFavorite ==
+                                true
+                            ? 'Remove from favorites'
+                            : 'Add to favorites',
+                    onPressed:
+                        memory ==
+                                    null ||
+                                _isUpdatingFavorite ||
+                                isBusy
+                            ? null
+                            : () {
+                                _toggleFavorite(
+                                  memory,
+                                );
+                              },
+                    child:
+                        _isUpdatingFavorite
+                            ? const SizedBox(
+                                width:
+                                    17,
+                                height:
+                                    17,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth:
+                                      2,
+                                  color:
+                                      Colors.white,
+                                ),
+                              )
+                            : Icon(
+                                memory?.isFavorite ==
+                                        true
+                                    ? Icons.star_rounded
+                                    : Icons.star_border_rounded,
+                                color:
+                                    Colors.white,
+                                size:
+                                    25,
+                              ),
                   ),
-                ),
 
-                Positioned(
-                  left: 14,
-                  right: 14,
-                  bottom: 14,
-                  child:
-                      _DetailsPanel(
-                    title:
-                        widget.title,
-                    createdAt:
-                        createdAt,
-                    extractedText:
-                        extractedText,
-                    isSharing:
-                        _isSharing,
-                    isDeleting:
-                        _isDeleting,
-                    isSavingEdit:
-                        _isSavingEdit ||
-                        _isAiEditing,
-                    onEditPressed:
-                        _openEditor,
-                    onOcrPressed:
-                        () {
-                      _copyExtractedText(
-                        extractedText,
-                      );
-                    },
-                    onSharePressed:
-                        _shareImage,
-                    onDeletePressed:
-                        _confirmDelete,
-                    onCopyPressed:
-                        () {
-                      _copyExtractedText(
-                        extractedText,
-                      );
-                    },
+                  const SizedBox(
+                    width:
+                        9,
                   ),
-                ),
-              ],
+
+                  _CircleActionButton(
+                    tooltip:
+                        'Advanced tools',
+                    onPressed:
+                        isBusy
+                            ? null
+                            : _openAiTools,
+                    child:
+                        _isAiEditing
+                            ? const SizedBox(
+                                width:
+                                    18,
+                                height:
+                                    18,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth:
+                                      2,
+                                  color:
+                                      Color(
+                                    0xFFC4B5FD,
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.auto_awesome_rounded,
+                                color:
+                                    Color(
+                                  0xFFC4B5FD,
+                                ),
+                                size:
+                                    25,
+                              ),
+                  ),
+
+                  const SizedBox(
+                    width:
+                        9,
+                  ),
+
+                  _CircleActionButton(
+                    tooltip:
+                        'More',
+                    icon:
+                        Icons.more_horiz_rounded,
+                    onPressed:
+                        isBusy
+                            ? null
+                            : () {
+                                _showPhotoOptions(
+                                  extractedText:
+                                      extractedText,
+                                );
+                              },
+                  ),
+                ],
+              ),
             ),
-          ),
+
+            // ===============================================================
+            // PHOTO
+            //
+            // The whole image is visible. BoxFit.contain preserves landscape
+            // and portrait photos without cropping.
+            // ===============================================================
+
+            Expanded(
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(
+                  horizontal:
+                      14,
+                ),
+                child: ClipRRect(
+                  borderRadius:
+                      BorderRadius.circular(
+                    22,
+                  ),
+                  child: Container(
+                    width:
+                        double.infinity,
+                    color:
+                        _backgroundColor,
+                    child:
+                        _PhotoBackground(
+                      imageFuture:
+                          _imageFuture,
+                      assetId:
+                          widget.assetId,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ===============================================================
+            // ACTIONS ONLY
+            //
+            // No file name.
+            // No date.
+            // No extracted text box.
+            // ===============================================================
+
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(
+                14,
+                12,
+                14,
+                14,
+              ),
+              child: _DetailsPanel(
+                extractedText:
+                    extractedText,
+                isSharing:
+                    _isSharing,
+                isDeleting:
+                    _isDeleting,
+                isSavingEdit:
+                    _isSavingEdit ||
+                    _isAiEditing,
+                onEditPressed:
+                    _openEditor,
+                onOcrPressed:
+                    () {
+                  _copyExtractedText(
+                    extractedText,
+                  );
+                },
+                onSharePressed:
+                    _shareImage,
+                onDeletePressed:
+                    _confirmDelete,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1324,7 +1292,7 @@ class _PhotoBackground extends StatelessWidget {
             ConnectionState.waiting) {
           return const ColoredBox(
             color:
-                Colors.black,
+                Color(0xFF050816),
             child: Center(
               child:
                   CircularProgressIndicator(
@@ -1362,9 +1330,11 @@ class _PhotoBackground extends StatelessWidget {
                     Image.memory(
                   snapshot.data!,
                   fit:
-                      BoxFit.cover,
+                      BoxFit.contain,
                   gaplessPlayback:
                       true,
+                  filterQuality:
+                      FilterQuality.high,
                 ),
               ),
             ),
@@ -1379,55 +1349,6 @@ class _PhotoBackground extends StatelessWidget {
 // BOTTOM GRADIENT
 // =============================================================================
 
-class _BottomGradient extends StatelessWidget {
-  const _BottomGradient();
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return IgnorePointer(
-      child:
-          DecoratedBox(
-        decoration:
-            BoxDecoration(
-          gradient:
-              LinearGradient(
-            begin:
-                Alignment.topCenter,
-            end:
-                Alignment.bottomCenter,
-            stops:
-                const [
-              0,
-              0.48,
-              0.73,
-              1,
-            ],
-            colors: [
-              Colors.black.withValues(
-                alpha:
-                    0.05,
-              ),
-              Colors.black.withValues(
-                alpha:
-                    0.02,
-              ),
-              Colors.black.withValues(
-                alpha:
-                    0.34,
-              ),
-              Colors.black.withValues(
-                alpha:
-                    0.88,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // DETAILS PANEL
@@ -1435,8 +1356,6 @@ class _BottomGradient extends StatelessWidget {
 
 class _DetailsPanel extends StatelessWidget {
   const _DetailsPanel({
-    required this.title,
-    required this.createdAt,
     required this.extractedText,
     required this.isSharing,
     required this.isDeleting,
@@ -1444,12 +1363,9 @@ class _DetailsPanel extends StatelessWidget {
     required this.onOcrPressed,
     required this.onSharePressed,
     required this.onDeletePressed,
-    required this.onCopyPressed,
     required this.isSavingEdit,
   });
 
-  final String title;
-  final DateTime? createdAt;
   final String extractedText;
 
   final bool isSharing;
@@ -1460,7 +1376,6 @@ class _DetailsPanel extends StatelessWidget {
   final VoidCallback onOcrPressed;
   final VoidCallback onSharePressed;
   final VoidCallback onDeletePressed;
-  final VoidCallback onCopyPressed;
 
   @override
   Widget build(
@@ -1471,380 +1386,129 @@ class _DetailsPanel extends StatelessWidget {
         isDeleting ||
         isSavingEdit;
 
-    return Column(
-      mainAxisSize:
-          MainAxisSize.min,
-      children: [
-        Container(
-          width:
-              double.infinity,
-          padding:
-              const EdgeInsets
-                  .fromLTRB(
-            15,
-            15,
-            15,
-            13,
+    return Container(
+      width:
+          double.infinity,
+      padding:
+          const EdgeInsets.all(
+        7,
+      ),
+      decoration:
+          BoxDecoration(
+        color:
+            _MemoryDetailScreenState
+                ._surfaceColor,
+        borderRadius:
+            BorderRadius.circular(
+          22,
+        ),
+        border:
+            Border.all(
+          color:
+              Colors.white.withValues(
+            alpha:
+                0.07,
           ),
-          decoration:
-              BoxDecoration(
-            color:
-                _MemoryDetailScreenState
-                    ._surfaceColor,
-            borderRadius:
-                BorderRadius
-                    .circular(
-              20,
-            ),
-            border:
-                Border.all(
-              color:
-                  Colors.white
-                      .withValues(
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child:
+                _PillActionButton(
+              icon:
+                  Icons.tune_rounded,
+              label:
+                  'Edit',
+              foregroundColor:
+                  const Color(
+                0xFFC4B5FD,
+              ),
+              backgroundColor:
+                  const Color(
+                0xFF36235E,
+              ).withValues(
                 alpha:
-                    0.08,
+                    0.72,
               ),
+              onPressed:
+                  isBusy
+                      ? null
+                      : onEditPressed,
             ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    Colors.black
-                        .withValues(
-                  alpha:
-                      0.32,
-                ),
-                blurRadius:
-                    22,
-                offset:
-                    const Offset(
-                  0,
-                  9,
-                ),
-              ),
-            ],
           ),
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
-            children: [
-              Text(
-                title,
-                maxLines: 1,
-                overflow:
-                    TextOverflow
-                        .ellipsis,
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white,
-                  fontSize:
-                      18,
-                  fontWeight:
-                      FontWeight.w800,
-                ),
-              ),
 
-              const SizedBox(
-                height: 5,
-              ),
-
-              Text(
-                _metadataText(
-                  createdAt,
-                ),
-                style:
-                    TextStyle(
-                  color:
-                      Colors.white
-                          .withValues(
-                    alpha:
-                        0.5,
-                  ),
-                  fontSize:
-                      12,
-                ),
-              ),
-
-              const SizedBox(
-                height: 14,
-              ),
-
-              Row(
-                children: [
-                  Expanded(
-                    child:
-                        _PillActionButton(
-                      icon:
-                          Icons
-                              .tune_rounded,
-                      label:
-                          'Edit',
-                      foregroundColor:
-                          const Color(
-                        0xFFC4B5FD,
-                      ),
-                      backgroundColor:
-                          const Color(
-                        0xFF36235E,
-                      ).withValues(
-                        alpha:
-                            0.8,
-                      ),
-                      onPressed:
-                          isBusy
-                              ? null
-                              : onEditPressed,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    width: 8,
-                  ),
-
-                  Expanded(
-                    child:
-                        _PillActionButton(
-                      icon:
-                          Icons
-                              .document_scanner_outlined,
-                      label:
-                          'OCR',
-                      onPressed:
-                          extractedText
-                                  .isEmpty
-                              ? null
-                              : onOcrPressed,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    width: 8,
-                  ),
-
-                  Expanded(
-                    child:
-                        _PillActionButton(
-                      icon:
-                          Icons
-                              .ios_share_rounded,
-                      label:
-                          'Share',
-                      onPressed:
-                          isBusy
-                              ? null
-                              : onSharePressed,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    width: 8,
-                  ),
-
-                  Expanded(
-                    child:
-                        _PillActionButton(
-                      icon:
-                          Icons
-                              .delete_outline_rounded,
-                      label:
-                          'Delete',
-                      foregroundColor:
-                          const Color(
-                        0xFFFF4D67,
-                      ),
-                      backgroundColor:
-                          const Color(
-                        0xFF581A29,
-                      ).withValues(
-                        alpha:
-                            0.56,
-                      ),
-                      onPressed:
-                          isBusy
-                              ? null
-                              : onDeletePressed,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+          const SizedBox(
+            width:
+                7,
           ),
-        ),
 
-        const SizedBox(
-          height: 11,
-        ),
-
-        Container(
-          width:
-              double.infinity,
-          padding:
-              const EdgeInsets
-                  .fromLTRB(
-            15,
-            14,
-            13,
-            15,
-          ),
-          decoration:
-              BoxDecoration(
-            color:
-                _MemoryDetailScreenState
-                    ._cardColor,
-            borderRadius:
-                BorderRadius
-                    .circular(
-              18,
+          Expanded(
+            child:
+                _PillActionButton(
+              icon:
+                  Icons.document_scanner_outlined,
+              label:
+                  'OCR',
+              onPressed:
+                  extractedText.isEmpty ||
+                          isBusy
+                      ? null
+                      : onOcrPressed,
             ),
-            border:
-                Border.all(
-              color:
-                  Colors.white
-                      .withValues(
+          ),
+
+          const SizedBox(
+            width:
+                7,
+          ),
+
+          Expanded(
+            child:
+                _PillActionButton(
+              icon:
+                  Icons.ios_share_rounded,
+              label:
+                  'Share',
+              onPressed:
+                  isBusy
+                      ? null
+                      : onSharePressed,
+            ),
+          ),
+
+          const SizedBox(
+            width:
+                7,
+          ),
+
+          Expanded(
+            child:
+                _PillActionButton(
+              icon:
+                  Icons.delete_outline_rounded,
+              label:
+                  'Delete',
+              foregroundColor:
+                  const Color(
+                0xFFFF667B,
+              ),
+              backgroundColor:
+                  const Color(
+                0xFF581A29,
+              ).withValues(
                 alpha:
-                    0.08,
+                    0.48,
               ),
+              onPressed:
+                  isBusy
+                      ? null
+                      : onDeletePressed,
             ),
           ),
-          child: Row(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
-            children: [
-              Expanded(
-                child:
-                    Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                  children: [
-                    const Text(
-                      'Extracted text',
-                      style:
-                          TextStyle(
-                        color:
-                            Colors.white,
-                        fontSize:
-                            13,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: 8,
-                    ),
-
-                    Text(
-                      extractedText
-                              .isEmpty
-                          ? 'No readable text was detected in this photo.'
-                          : extractedText,
-                      maxLines: 3,
-                      overflow:
-                          TextOverflow
-                              .ellipsis,
-                      style:
-                          TextStyle(
-                        color:
-                            Colors.white
-                                .withValues(
-                          alpha:
-                              0.58,
-                        ),
-                        fontSize:
-                            13,
-                        height:
-                            1.45,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(
-                width: 10,
-              ),
-
-              IconButton(
-                tooltip:
-                    'Copy text',
-                onPressed:
-                    extractedText
-                            .isEmpty
-                        ? null
-                        : onCopyPressed,
-                icon:
-                    Icon(
-                  Icons
-                      .content_copy_rounded,
-                  size: 18,
-                  color:
-                      extractedText
-                              .isEmpty
-                          ? Colors
-                              .white24
-                          : Colors
-                              .white70,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
-  }
-
-  static String _metadataText(
-    DateTime? createdAt,
-  ) {
-    if (createdAt == null) {
-      return 'Image';
-    }
-
-    final date =
-        createdAt.toLocal();
-
-    final now =
-        DateTime.now();
-
-    final isToday =
-        now.year ==
-            date.year &&
-        now.month ==
-            date.month &&
-        now.day ==
-            date.day;
-
-    final hour =
-        date.hour == 0
-            ? 12
-            : date.hour >
-                    12
-                ? date.hour -
-                    12
-                : date.hour;
-
-    final minute =
-        date.minute
-            .toString()
-            .padLeft(
-              2,
-              '0',
-            );
-
-    final period =
-        date.hour >= 12
-            ? 'PM'
-            : 'AM';
-
-    final dateLabel =
-        isToday
-            ? 'Today'
-            : '${date.day}/${date.month}/${date.year}';
-
-    return 'Image  •  $dateLabel, $hour:$minute $period';
   }
 }
 
@@ -1886,8 +1550,8 @@ class _CircleActionButton extends StatelessWidget {
         customBorder:
             const CircleBorder(),
         child: SizedBox(
-          width: 42,
-          height: 42,
+          width: 50,
+          height: 50,
           child: Center(
             child: Tooltip(
               message:
@@ -1899,7 +1563,7 @@ class _CircleActionButton extends StatelessWidget {
                     color:
                         Colors.white,
                     size:
-                        22,
+                        25,
                   ),
             ),
           ),
@@ -1965,7 +1629,7 @@ class _PillActionButton extends StatelessWidget {
             horizontal:
                 8,
             vertical:
-                10,
+                15,
           ),
           child: Row(
             mainAxisAlignment:
@@ -1983,7 +1647,7 @@ class _PillActionButton extends StatelessWidget {
                                 0.35,
                           ),
                 size:
-                    16,
+                    19,
               ),
 
               const SizedBox(
@@ -2007,7 +1671,7 @@ class _PillActionButton extends StatelessWidget {
                                     0.35,
                               ),
                     fontSize:
-                        11,
+                        13,
                     fontWeight:
                         FontWeight.w700,
                   ),
@@ -2038,7 +1702,7 @@ class _ImageErrorView extends StatelessWidget {
   ) {
     return ColoredBox(
       color:
-          Colors.black,
+          const Color(0xFF050816),
       child: Center(
         child: Padding(
           padding:

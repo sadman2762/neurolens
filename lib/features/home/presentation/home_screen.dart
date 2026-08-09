@@ -450,7 +450,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         SliverToBoxAdapter(
                           child: SizedBox(
-                            height: 206,
+                            height: 173,
                             child: ListView.separated(
                               padding: const EdgeInsets.fromLTRB(
                                 18,
@@ -462,7 +462,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               physics: const BouncingScrollPhysics(),
                               itemCount: favorites.length,
                               separatorBuilder: (_, _) {
-                                return const SizedBox(width: 12);
+                                return const SizedBox(width: 3);
                               },
                               itemBuilder: (context, index) {
                                 final memory = favorites[index];
@@ -503,9 +503,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 3,
-                                crossAxisSpacing: 9,
-                                mainAxisSpacing: 9,
-                                childAspectRatio: 0.78,
+                                crossAxisSpacing: 3,
+                                mainAxisSpacing: 3,
+                                childAspectRatio: 1.0,
                               ),
                         ),
                       ),
@@ -730,9 +730,10 @@ class _FavoriteMemoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 145,
+      height: 145,
       decoration: BoxDecoration(
         color: const Color(0xFF101729),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.zero,
         border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         boxShadow: [
           BoxShadow(
@@ -750,23 +751,10 @@ class _FavoriteMemoryCard extends StatelessWidget {
           ),
 
           // Small favorite indicator only.
-          Positioned(
-            top: 9,
-            right: 9,
-            child: Container(
-              width: 27,
-              height: 27,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.32),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
-              ),
-              child: const Icon(
-                Icons.star_rounded,
-                color: Colors.white,
-                size: 16,
-              ),
-            ),
+          const Positioned(
+            top: 7,
+            right: 7,
+            child: Icon(Icons.star, color: Colors.white, size: 18),
           ),
         ],
       ),

@@ -35,14 +35,12 @@ class ObjectEraserScreen extends StatefulWidget {
 
 class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     with TickerProviderStateMixin {
-  static const Color _background = Color(0xFF050816);
-  static const Color _surface = Color(0xFF0D1321);
+  
   static const Color _surfaceHighlight = Color(0xFF141B2D);
 
   static const Color _purple = Color(0xFF8B5CF6);
   static const Color _purpleLight = Color(0xFFC4B5FD);
 
-  static const Color _green = Color(0xFF22C55E);
   static const Color _protectGreen = Color(0xFF22C55E);
   static const Color _protectGreenLight = Color(0xFF86EFAC);
 
@@ -97,6 +95,9 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   bool _isSegmenting = false;
   bool _isRemoving = false;
   bool _hasEditedImage = false;
+
+  // Floating editor panel.
+  bool _showTools = false;
 
   @override
   void initState() {
@@ -1346,1077 +1347,1091 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     BuildContext context,
   ) {
     return Scaffold(
-      backgroundColor:
-          _background,
-      appBar: AppBar(
-        backgroundColor:
-            _background,
-        foregroundColor:
-            Colors.white,
-        surfaceTintColor:
-            Colors.transparent,
-        elevation: 0,
-        titleSpacing: 2,
-        title: const Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Object Eraser',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight:
-                    FontWeight.w800,
-                letterSpacing:
-                    -0.25,
-              ),
-            ),
-            SizedBox(
-              height: 2,
-            ),
-            Text(
-              'On-device AI',
-              style: TextStyle(
-                color:
-                    Colors.white38,
-                fontSize: 10,
-                fontWeight:
-                    FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          _AppBarAction(
-            tooltip:
-                'Undo',
-            icon:
-                Icons.undo_rounded,
-            onPressed:
-                _history.isEmpty ||
-                        _isRemoving ||
-                        _isSegmenting
-                    ? null
-                    : _undo,
-          ),
-          const SizedBox(
-            width: 4,
-          ),
-          _AppBarAction(
-            tooltip:
-                'Clear masks',
-            icon:
-                Icons.delete_sweep_outlined,
-            onPressed:
-                !_hasAnyOverlay ||
-                        _isRemoving ||
-                        _isSegmenting
-                    ? null
-                    : _clearSelection,
-          ),
-          if (_hasEditedImage) ...[
-            const SizedBox(
-              width: 4,
-            ),
-            _AppBarAction(
-              tooltip:
-                  'Reset original',
-              icon:
-                  Icons.restart_alt_rounded,
-              onPressed:
-                  _isRemoving ||
-                          _isSegmenting
-                      ? null
-                      : _resetToOriginal,
-            ),
-          ],
-          const SizedBox(
-            width: 8,
-          ),
-        ],
-      ),
-      body: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.fromLTRB(
-                  12,
-                  8,
-                  12,
-                  12,
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // ===================================================================
+          // FULL-SCREEN PHOTO WORKSPACE
+          // ===================================================================
+
+          LayoutBuilder(
+            builder: (
+              context,
+              constraints,
+            ) {
+              final viewportSize = Size(
+                constraints.maxWidth,
+                constraints.maxHeight,
+              );
+
+              return InteractiveViewer(
+                transformationController:
+                    _transformationController,
+                minScale: _minZoom,
+                maxScale: _maxZoom,
+                scaleEnabled: !_isRemoving,
+                panEnabled:
+                    _mode == _EraserMode.select,
+                boundaryMargin: const EdgeInsets.all(
+                  120,
                 ),
-                child: ClipRRect(
-                  borderRadius:
-                      BorderRadius.circular(
-                    24,
-                  ),
-                  child: DecoratedBox(
-                    decoration:
-                        BoxDecoration(
-                      color:
-                          Colors.black,
-                      border:
-                          Border.all(
-                        color:
-                            Colors.white.withValues(
-                          alpha:
-                              0.055,
-                        ),
+                clipBehavior: Clip.hardEdge,
+                interactionEndFrictionCoefficient:
+                    0.0000135,
+                child: SizedBox(
+                  width: viewportSize.width,
+                  height: viewportSize.height,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Black letterbox space is intentional.
+                      // The photo always uses BoxFit.contain, so no part of it
+                      // is cropped simply to fill the device screen.
+                      const ColoredBox(
+                        color: Colors.black,
                       ),
-                    ),
-                    child:
-                        LayoutBuilder(
-                      builder: (
-                        context,
-                        constraints,
-                      ) {
-                        final canvasSize =
-                            Size(
-                          constraints.maxWidth,
-                          constraints.maxHeight,
-                        );
 
-                        // =====================================================
-                        // OUTER STACK
-                        //
-                        // InteractiveViewer is only responsible for:
-                        //
-                        // image
-                        // masks
-                        // brush
-                        // selection interaction
-                        //
-                        // Processing UI is outside InteractiveViewer.
-                        // Therefore it NEVER gets zoomed or stretched.
-                        // =====================================================
+                      if (!_isLoadingImage)
+                        Image.memory(
+                          _currentImageBytes,
+                          fit: BoxFit.contain,
+                          gaplessPlayback: true,
+                          filterQuality:
+                              FilterQuality.high,
+                        ),
 
-                        return Stack(
-                          fit:
-                              StackFit.expand,
-                          children: [
-                            InteractiveViewer(
-                              transformationController:
-                                  _transformationController,
+                      // =====================================================
+                      // REMOVE MASKS
+                      // =====================================================
 
-                              minScale:
-                                  _minZoom,
-                              maxScale:
-                                  _maxZoom,
-
-                              scaleEnabled:
-                                  !_isRemoving,
-
-                              panEnabled:
-                                  _mode ==
-                                      _EraserMode.select,
-
-                              boundaryMargin:
-                                  const EdgeInsets.all(
-                                80,
-                              ),
-
-                              clipBehavior:
-                                  Clip.none,
-
-                              interactionEndFrictionCoefficient:
-                                  0.0000135,
-
-                              child:
-                                  SizedBox(
-                                width:
-                                    canvasSize.width,
-                                height:
-                                    canvasSize.height,
-                                child:
-                                    Stack(
-                                  fit:
-                                      StackFit.expand,
-                                  children: [
-                                    if (!_isLoadingImage)
-                                      Image.memory(
-                                        _currentImageBytes,
-                                        fit:
-                                            BoxFit.contain,
-                                        gaplessPlayback:
-                                            true,
-                                        filterQuality:
-                                            FilterQuality.high,
-                                      ),
-
-                                    // =========================================
-                                    // REMOVE MASKS
-                                    // =========================================
-
-                                    if (!_isLoadingImage)
-                                      ..._selectedMasks.map(
-                                        (
-                                          result,
-                                        ) {
-                                          return Positioned.fill(
-                                            child:
-                                                IgnorePointer(
-                                              child:
-                                                  Opacity(
-                                                opacity:
-                                                    0.48,
-                                                child:
-                                                    Image.memory(
-                                                  result.maskBytes,
-                                                  fit:
-                                                      BoxFit.contain,
-                                                  gaplessPlayback:
-                                                      true,
-                                                  filterQuality:
-                                                      FilterQuality.none,
-                                                  color:
-                                                      _purple,
-                                                  colorBlendMode:
-                                                      BlendMode.srcIn,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-
-                                    // =========================================
-                                    // PROTECTED MASKS
-                                    // =========================================
-
-                                    if (!_isLoadingImage)
-                                      ..._protectedMasks.map(
-                                        (
-                                          result,
-                                        ) {
-                                          return Positioned.fill(
-                                            child:
-                                                IgnorePointer(
-                                              child:
-                                                  Opacity(
-                                                opacity:
-                                                    0.46,
-                                                child:
-                                                    Image.memory(
-                                                  result.maskBytes,
-                                                  fit:
-                                                      BoxFit.contain,
-                                                  gaplessPlayback:
-                                                      true,
-                                                  filterQuality:
-                                                      FilterQuality.none,
-                                                  color:
-                                                      _protectGreen,
-                                                  colorBlendMode:
-                                                      BlendMode.srcIn,
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
-
-                                    // =========================================
-                                    // REMOVE BRUSH
-                                    // =========================================
-
-                                    if (!_isLoadingImage)
-                                      Positioned.fill(
-                                        child:
-                                            IgnorePointer(
-                                          child:
-                                              CustomPaint(
-                                            painter:
-                                                _BrushOverlayPainter(
-                                              strokes:
-                                                  _strokes,
-                                              mapPoint:
-                                                  (
-                                                point,
-                                              ) {
-                                                return _imagePointToCanvas(
-                                                  imagePoint:
-                                                      point,
-                                                  canvasSize:
-                                                      canvasSize,
-                                                );
-                                              },
-                                              brushSize:
-                                                  _displayBrushSize(
-                                                canvasSize,
-                                              ),
-                                              color:
-                                                  _purple,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                    // =========================================
-                                    // PROTECT BRUSH
-                                    // =========================================
-
-                                    if (!_isLoadingImage)
-                                      Positioned.fill(
-                                        child:
-                                            IgnorePointer(
-                                          child:
-                                              CustomPaint(
-                                            painter:
-                                                _BrushOverlayPainter(
-                                              strokes:
-                                                  _protectedStrokes,
-                                              mapPoint:
-                                                  (
-                                                point,
-                                              ) {
-                                                return _imagePointToCanvas(
-                                                  imagePoint:
-                                                      point,
-                                                  canvasSize:
-                                                      canvasSize,
-                                                );
-                                              },
-                                              brushSize:
-                                                  _displayBrushSize(
-                                                canvasSize,
-                                              ),
-                                              color:
-                                                  _protectGreen,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-
-                                    // =========================================
-                                    // INTERACTION
-                                    // =========================================
-
-                                    if (!_isLoadingImage)
-                                      Positioned.fill(
-                                        child:
-                                            GestureDetector(
-                                          behavior:
-                                              HitTestBehavior.opaque,
-
-                                          onTapUp:
-                                              _mode ==
-                                                          _EraserMode.select ||
-                                                      _mode ==
-                                                          _EraserMode.protect
-                                                  ? (
-                                                      details,
-                                                    ) {
-                                                      _handleTap(
-                                                        canvasPoint:
-                                                            details.localPosition,
-                                                        canvasSize:
-                                                            canvasSize,
-                                                      );
-                                                    }
-                                                  : null,
-
-                                          onPanStart:
-                                              _mode ==
-                                                          _EraserMode.brush ||
-                                                      _mode ==
-                                                          _EraserMode.protect
-                                                  ? (
-                                                      details,
-                                                    ) {
-                                                      _startStroke(
-                                                        canvasPoint:
-                                                            details.localPosition,
-                                                        canvasSize:
-                                                            canvasSize,
-                                                      );
-                                                    }
-                                                  : null,
-
-                                          onPanUpdate:
-                                              _mode ==
-                                                          _EraserMode.brush ||
-                                                      _mode ==
-                                                          _EraserMode.protect
-                                                  ? (
-                                                      details,
-                                                    ) {
-                                                      _updateStroke(
-                                                        canvasPoint:
-                                                            details.localPosition,
-                                                        canvasSize:
-                                                            canvasSize,
-                                                      );
-                                                    }
-                                                  : null,
-
-                                          onPanEnd:
-                                              _mode ==
-                                                          _EraserMode.brush ||
-                                                      _mode ==
-                                                          _EraserMode.protect
-                                                  ? (_) {
-                                                      _endStroke();
-                                                    }
-                                                  : null,
-
-                                          onPanCancel:
-                                              _mode ==
-                                                          _EraserMode.brush ||
-                                                      _mode ==
-                                                          _EraserMode.protect
-                                                  ? _endStroke
-                                                  : null,
-                                        ),
-                                      ),
-                                  ],
+                      if (!_isLoadingImage)
+                        ..._selectedMasks.map(
+                          (
+                            result,
+                          ) {
+                            return Positioned.fill(
+                              child: IgnorePointer(
+                                child: Opacity(
+                                  opacity: 0.48,
+                                  child: Image.memory(
+                                    result.maskBytes,
+                                    fit: BoxFit.contain,
+                                    gaplessPlayback: true,
+                                    filterQuality:
+                                        FilterQuality.none,
+                                    color: _purple,
+                                    colorBlendMode:
+                                        BlendMode.srcIn,
+                                  ),
                                 ),
+                              ),
+                            );
+                          },
+                        ),
+
+                      // =====================================================
+                      // PROTECTED MASKS
+                      // =====================================================
+
+                      if (!_isLoadingImage)
+                        ..._protectedMasks.map(
+                          (
+                            result,
+                          ) {
+                            return Positioned.fill(
+                              child: IgnorePointer(
+                                child: Opacity(
+                                  opacity: 0.46,
+                                  child: Image.memory(
+                                    result.maskBytes,
+                                    fit: BoxFit.contain,
+                                    gaplessPlayback: true,
+                                    filterQuality:
+                                        FilterQuality.none,
+                                    color: _protectGreen,
+                                    colorBlendMode:
+                                        BlendMode.srcIn,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+
+                      // =====================================================
+                      // REMOVE BRUSH
+                      // =====================================================
+
+                      if (!_isLoadingImage)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter:
+                                  _BrushOverlayPainter(
+                                strokes: _strokes,
+                                mapPoint: (
+                                  point,
+                                ) {
+                                  return _imagePointToCanvas(
+                                    imagePoint: point,
+                                    canvasSize:
+                                        viewportSize,
+                                  );
+                                },
+                                brushSize:
+                                    _displayBrushSize(
+                                  viewportSize,
+                                ),
+                                color: _purple,
                               ),
                             ),
+                          ),
+                        ),
 
-                            // =================================================
-                            // FIXED UI
-                            //
-                            // Everything below stays at normal screen scale.
-                            // It is deliberately OUTSIDE InteractiveViewer.
-                            // =================================================
+                      // =====================================================
+                      // PROTECT BRUSH
+                      // =====================================================
 
-                            if (_isLoadingImage)
-                              const _LoadingView(
-                                title:
-                                    'Opening photo...',
-                              ),
-
-                            if (_isSegmenting)
-                              Positioned(
-                                top: 16,
-                                left: 0,
-                                right: 0,
-                                child:
-                                    _StatusPill(
-                                  icon:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? Icons.shield_outlined
-                                          : Icons.auto_awesome_rounded,
-                                  text:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? 'Protecting subject'
-                                          : 'Selecting object',
-                                  color:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? _protectGreenLight
-                                          : _purpleLight,
+                      if (!_isLoadingImage)
+                        Positioned.fill(
+                          child: IgnorePointer(
+                            child: CustomPaint(
+                              painter:
+                                  _BrushOverlayPainter(
+                                strokes:
+                                    _protectedStrokes,
+                                mapPoint: (
+                                  point,
+                                ) {
+                                  return _imagePointToCanvas(
+                                    imagePoint: point,
+                                    canvasSize:
+                                        viewportSize,
+                                  );
+                                },
+                                brushSize:
+                                    _displayBrushSize(
+                                  viewportSize,
                                 ),
+                                color:
+                                    _protectGreen,
                               ),
+                            ),
+                          ),
+                        ),
 
-                            if (_isPreparingSegmentation &&
-                                !_isLoadingImage &&
-                                !_isSegmenting &&
-                                !_isRemoving)
-                              const Positioned(
-                                top: 16,
-                                left: 0,
-                                right: 0,
-                                child:
-                                    _StatusPill(
-                                  icon:
-                                      Icons.memory_rounded,
-                                  text:
-                                      'Preparing Smart Select',
-                                  color:
-                                      _purpleLight,
-                                ),
-                              ),
+                      // =====================================================
+                      // EDIT INTERACTION
+                      //
+                      // Coordinate conversion already rejects touches in the
+                      // black letterbox region, so users cannot edit outside
+                      // the actual photo.
+                      // =====================================================
 
-                            if (_hasEditedImage &&
-                                !_isRemoving &&
-                                !_isLoadingImage)
-                              const Positioned(
-                                top: 16,
-                                left: 16,
-                                child:
-                                    _EditedBadge(),
-                              ),
+                      if (!_isLoadingImage)
+                        Positioned.fill(
+                          child: GestureDetector(
+                            behavior:
+                                HitTestBehavior.opaque,
+                            onTapUp:
+                                _mode ==
+                                            _EraserMode
+                                                .select ||
+                                        _mode ==
+                                            _EraserMode
+                                                .protect
+                                    ? (
+                                        details,
+                                      ) {
+                                        _handleTap(
+                                          canvasPoint:
+                                              details
+                                                  .localPosition,
+                                          canvasSize:
+                                              viewportSize,
+                                        );
+                                      }
+                                    : null,
+                            onPanStart:
+                                _mode ==
+                                            _EraserMode
+                                                .brush ||
+                                        _mode ==
+                                            _EraserMode
+                                                .protect
+                                    ? (
+                                        details,
+                                      ) {
+                                        _startStroke(
+                                          canvasPoint:
+                                              details
+                                                  .localPosition,
+                                          canvasSize:
+                                              viewportSize,
+                                        );
+                                      }
+                                    : null,
+                            onPanUpdate:
+                                _mode ==
+                                            _EraserMode
+                                                .brush ||
+                                        _mode ==
+                                            _EraserMode
+                                                .protect
+                                    ? (
+                                        details,
+                                      ) {
+                                        _updateStroke(
+                                          canvasPoint:
+                                              details
+                                                  .localPosition,
+                                          canvasSize:
+                                              viewportSize,
+                                        );
+                                      }
+                                    : null,
+                            onPanEnd:
+                                _mode ==
+                                            _EraserMode
+                                                .brush ||
+                                        _mode ==
+                                            _EraserMode
+                                                .protect
+                                    ? (_) {
+                                        _endStroke();
+                                      }
+                                    : null,
+                            onPanCancel:
+                                _mode ==
+                                            _EraserMode
+                                                .brush ||
+                                        _mode ==
+                                            _EraserMode
+                                                .protect
+                                    ? _endStroke
+                                    : null,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
 
-                            // =================================================
-                            // REBUILDING OVERLAY
-                            //
-                            // This is OUTSIDE InteractiveViewer.
-                            // It can never inherit image zoom.
-                            // =================================================
+          // ===================================================================
+          // TOP FLOATING BAR
+          // ===================================================================
 
-                            if (_isRemoving)
-                              Positioned.fill(
-                                child:
-                                    ColoredBox(
-                                  color:
-                                      Colors.black.withValues(
-                                    alpha:
-                                        0.72,
-                                  ),
-                                  child:
-                                      const _RemovingView(),
-                                ),
-                              ),
-                          ],
-                        );
-                      },
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                12,
+                8,
+                12,
+                0,
+              ),
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Row(
+                  children: [
+                    _GlassIconButton(
+                      tooltip: 'Back',
+                      icon:
+                          Icons.arrow_back_ios_new_rounded,
+                      onTap:
+                          _isRemoving || _isSegmenting
+                              ? null
+                              : () {
+                                  Navigator.of(context)
+                                      .maybePop();
+                                },
                     ),
+
+                    const SizedBox(
+                      width: 10,
+                    ),
+
+                    Expanded(
+                      child: Column(
+                        mainAxisSize:
+                            MainAxisSize.min,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Object Eraser',
+                            maxLines: 1,
+                            overflow:
+                                TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight:
+                                  FontWeight.w700,
+                              letterSpacing: -0.2,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 1,
+                          ),
+                          Text(
+                            switch (_mode) {
+                              _EraserMode.select =>
+                                'Smart select',
+                              _EraserMode.brush =>
+                                'Remove brush',
+                              _EraserMode.protect =>
+                                'Protect',
+                            },
+                            style: TextStyle(
+                              color: Colors.white
+                                  .withValues(
+                                alpha: 0.56,
+                              ),
+                              fontSize: 10,
+                              fontWeight:
+                                  FontWeight.w500,
+                              shadows: const [
+                                Shadow(
+                                  color: Colors.black54,
+                                  blurRadius: 6,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    _GlassIconButton(
+                      tooltip: 'Undo',
+                      icon: Icons.undo_rounded,
+                      onTap: _history.isEmpty ||
+                              _isRemoving ||
+                              _isSegmenting
+                          ? null
+                          : _undo,
+                    ),
+
+                    const SizedBox(
+                      width: 7,
+                    ),
+
+                    _GlassIconButton(
+                      tooltip: 'Editing tools',
+                      icon:
+                          Icons.more_vert_rounded,
+                      active: _showTools,
+                      onTap:
+                          _isRemoving || _isSegmenting
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _showTools =
+                                        !_showTools;
+                                  });
+                                },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ===================================================================
+          // STATUS
+          // ===================================================================
+
+          if (_isLoadingImage)
+            const _LoadingView(
+              title: 'Opening photo...',
+            ),
+
+          if (_isSegmenting)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: 66,
+                ),
+                child: Align(
+                  alignment:
+                      Alignment.topCenter,
+                  child: _StatusPill(
+                    icon: _mode ==
+                            _EraserMode.protect
+                        ? Icons.shield_outlined
+                        : Icons
+                            .auto_awesome_rounded,
+                    text: _mode ==
+                            _EraserMode.protect
+                        ? 'Protecting subject'
+                        : 'Selecting object',
+                    color: _mode ==
+                            _EraserMode.protect
+                        ? _protectGreenLight
+                        : _purpleLight,
                   ),
                 ),
               ),
             ),
 
-            _buildControls(),
-          ],
-        ),
+          if (_isPreparingSegmentation &&
+              !_isLoadingImage &&
+              !_isSegmenting &&
+              !_isRemoving)
+            const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: 66,
+                ),
+                child: Align(
+                  alignment:
+                      Alignment.topCenter,
+                  child: _StatusPill(
+                    icon: Icons.memory_rounded,
+                    text:
+                        'Preparing Smart Select',
+                    color: _purpleLight,
+                  ),
+                ),
+              ),
+            ),
+
+          if (_hasEditedImage &&
+              !_isRemoving &&
+              !_isLoadingImage)
+            const SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: 68,
+                  left: 14,
+                ),
+                child: Align(
+                  alignment:
+                      Alignment.topLeft,
+                  child: _EditedBadge(),
+                ),
+              ),
+            ),
+
+          // ===================================================================
+          // FLOATING EDITOR PANEL
+          // ===================================================================
+
+          Positioned(
+            left: 10,
+            right: 10,
+            bottom: 10,
+            child: IgnorePointer(
+              ignoring: !_showTools,
+              child: AnimatedSlide(
+                duration: const Duration(
+                  milliseconds: 260,
+                ),
+                curve: Curves.easeOutCubic,
+                offset: _showTools
+                    ? Offset.zero
+                    : const Offset(
+                        0,
+                        1.08,
+                      ),
+                child: AnimatedOpacity(
+                  duration: const Duration(
+                    milliseconds: 180,
+                  ),
+                  opacity:
+                      _showTools ? 1 : 0,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight:
+                          MediaQuery.sizeOf(context)
+                                  .height *
+                              0.70,
+                    ),
+                    child: _buildControls(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // ===================================================================
+          // REBUILDING OVERLAY
+          // ===================================================================
+
+          if (_isRemoving)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Colors.black.withValues(
+                  alpha: 0.64,
+                ),
+                child: const _RemovingView(),
+              ),
+            ),
+        ],
       ),
     );
   }
 
   // ===========================================================================
-  // CONTROLS
+  // FLOATING CONTROLS
   // ===========================================================================
 
   Widget _buildControls() {
-    return Container(
-      width:
-          double.infinity,
-      padding:
-          const EdgeInsets.fromLTRB(
-        16,
-        14,
-        16,
-        18,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(
+        28,
       ),
-      decoration:
-          BoxDecoration(
-        color:
-            _surface,
-        borderRadius:
-            const BorderRadius.vertical(
-          top:
-              Radius.circular(
-            28,
-          ),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(
+          sigmaX: 24,
+          sigmaY: 24,
         ),
-        border:
-            Border(
-          top:
-              BorderSide(
-            color:
-                Colors.white.withValues(
-              alpha:
-                  0.05,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(
+              0xE61A1B1F,
             ),
-          ),
-        ),
-      ),
-      child:
-          Column(
-        mainAxisSize:
-            MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal:
-                      9,
-                  vertical:
-                      5,
-                ),
-                decoration:
-                    BoxDecoration(
-                  color:
-                      _green.withValues(
-                    alpha:
-                        0.10,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    999,
-                  ),
-                  border:
-                      Border.all(
-                    color:
-                        _green.withValues(
-                      alpha:
-                          0.17,
-                    ),
-                  ),
-                ),
-                child:
-                    const Row(
-                  mainAxisSize:
-                      MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.offline_bolt_rounded,
-                      color:
-                          Color(
-                        0xFF86EFAC,
-                      ),
-                      size:
-                          13,
-                    ),
-                    SizedBox(
-                      width:
-                          5,
-                    ),
-                    Text(
-                      'Offline AI',
-                      style:
-                          TextStyle(
-                        color:
-                            Color(
-                          0xFF86EFAC,
-                        ),
-                        fontSize:
-                            10,
-                        fontWeight:
-                            FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
+            borderRadius: BorderRadius.circular(
+              28,
+            ),
+            border: Border.all(
+              color: Colors.white.withValues(
+                alpha: 0.10,
               ),
-
-              const Spacer(),
-
-              if (_hasAnyOverlay)
-                Text(
-                  '${_selectedMasks.length + _strokes.length} remove'
-                  '${_hasProtection ? ' • ${_protectedMasks.length + _protectedStrokes.length} protected' : ''}',
-                  style:
-                      TextStyle(
-                    color:
-                        Colors.white.withValues(
-                      alpha:
-                          0.38,
-                    ),
-                    fontSize:
-                        10,
-                    fontWeight:
-                        FontWeight.w500,
-                  ),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(
+                  alpha: 0.36,
                 ),
-            ],
-          ),
-
-          const SizedBox(
-            height:
-                12,
-          ),
-
-          Row(
-            children: [
-              Expanded(
-                child:
-                    _ModeButton(
-                  icon:
-                      Icons.touch_app_rounded,
-                  title:
-                      'Smart Select',
-                  subtitle:
-                      _isPreparingSegmentation
-                          ? 'Preparing...'
-                          : 'Tap objects',
-                  selected:
-                      _mode ==
-                      _EraserMode.select,
-                  enabled:
-                      !_isPreparingSegmentation,
-                  accentColor:
-                      _purple,
-                  accentLight:
-                      _purpleLight,
-                  onTap:
-                      () {
-                    _setMode(
-                      _EraserMode.select,
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(
-                width:
-                    10,
-              ),
-
-              Expanded(
-                child:
-                    _ModeButton(
-                  icon:
-                      Icons.brush_rounded,
-                  title:
-                      'Brush',
-                  subtitle:
-                      'Add remove mask',
-                  selected:
-                      _mode ==
-                      _EraserMode.brush,
-                  enabled:
-                      true,
-                  accentColor:
-                      _purple,
-                  accentLight:
-                      _purpleLight,
-                  onTap:
-                      () {
-                    _setMode(
-                      _EraserMode.brush,
-                    );
-                  },
+                blurRadius: 34,
+                offset: const Offset(
+                  0,
+                  12,
                 ),
               ),
             ],
           ),
-
-          const SizedBox(
-            height:
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              physics:
+                  const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(
+                16,
                 10,
-          ),
+                16,
+                16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 34,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(
+                        alpha: 0.22,
+                      ),
+                      borderRadius:
+                          BorderRadius.circular(
+                        999,
+                      ),
+                    ),
+                  ),
 
-          SizedBox(
-            width:
-                double.infinity,
-            child:
-                _ModeButton(
-              icon:
-                  Icons.shield_outlined,
-              title:
-                  'Protect',
-              subtitle:
-                  'Tap or paint anything that must remain untouched',
-              selected:
-                  _mode ==
-                  _EraserMode.protect,
-              enabled:
-                  !_isPreparingSegmentation,
-              accentColor:
-                  _protectGreen,
-              accentLight:
-                  _protectGreenLight,
-              onTap:
-                  () {
-                _setMode(
-                  _EraserMode.protect,
-                );
-              },
-            ),
-          ),
+                  const SizedBox(
+                    height: 13,
+                  ),
 
-          AnimatedSwitcher(
-            duration:
-                const Duration(
-              milliseconds:
-                  180,
-            ),
-            child:
-                (_mode ==
-                            _EraserMode.brush ||
-                        _mode ==
-                            _EraserMode.protect)
-                    ? Padding(
-                        key:
-                            ValueKey(
-                          'brush-${_mode.name}',
-                        ),
-                        padding:
-                            const EdgeInsets.only(
-                          top:
-                              12,
-                        ),
-                        child:
-                            Container(
-                          decoration:
-                              BoxDecoration(
-                            color:
-                                _surfaceHighlight,
-                            borderRadius:
-                                BorderRadius.circular(
-                              16,
-                            ),
-                            border:
-                                Border.all(
-                              color:
-                                  Colors.white.withValues(
-                                alpha:
-                                    0.045,
-                              ),
-                            ),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text(
+                          'Object Eraser',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight:
+                                FontWeight.w700,
+                            letterSpacing: -0.3,
                           ),
-                          padding:
-                              const EdgeInsets.symmetric(
-                            horizontal:
+                        ),
+                      ),
+
+                      if (_hasAnyOverlay)
+                        _PanelIconButton(
+                          tooltip: 'Clear selection',
+                          icon: Icons
+                              .delete_sweep_outlined,
+                          onTap:
+                              _clearSelection,
+                        ),
+
+                      if (_hasEditedImage) ...[
+                        const SizedBox(
+                          width: 6,
+                        ),
+                        _PanelIconButton(
+                          tooltip:
+                              'Restore original',
+                          icon: Icons
+                              .restart_alt_rounded,
+                          onTap:
+                              _resetToOriginal,
+                        ),
+                      ],
+
+                      const SizedBox(
+                        width: 6,
+                      ),
+
+                      _PanelIconButton(
+                        tooltip: 'Close',
+                        icon: Icons.close_rounded,
+                        onTap: () {
+                          setState(() {
+                            _showTools = false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(
+                    height: 5,
+                  ),
+
+                  Align(
+                    alignment:
+                        Alignment.centerLeft,
+                    child: Text(
+                      _statusSubtitle,
+                      maxLines: 2,
+                      overflow:
+                          TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white
+                            .withValues(
+                          alpha: 0.45,
+                        ),
+                        fontSize: 10.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(
+                    height: 15,
+                  ),
+
+                  // =========================================================
+                  // MODE SELECTOR
+                  // =========================================================
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _CompactModeButton(
+                          icon: Icons
+                              .touch_app_rounded,
+                          label: 'Select',
+                          selected: _mode ==
+                              _EraserMode.select,
+                          enabled:
+                              !_isPreparingSegmentation,
+                          color: _purpleLight,
+                          onTap: () {
+                            _setMode(
+                              _EraserMode.select,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      Expanded(
+                        child: _CompactModeButton(
+                          icon:
+                              Icons.brush_rounded,
+                          label: 'Brush',
+                          selected: _mode ==
+                              _EraserMode.brush,
+                          enabled: true,
+                          color: _purpleLight,
+                          onTap: () {
+                            _setMode(
+                              _EraserMode.brush,
+                            );
+                          },
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      Expanded(
+                        child: _CompactModeButton(
+                          icon:
+                              Icons.shield_outlined,
+                          label: 'Protect',
+                          selected: _mode ==
+                              _EraserMode.protect,
+                          enabled:
+                              !_isPreparingSegmentation,
+                          color:
+                              _protectGreenLight,
+                          onTap: () {
+                            _setMode(
+                              _EraserMode.protect,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // =========================================================
+                  // BRUSH SIZE
+                  // =========================================================
+
+                  AnimatedSwitcher(
+                    duration: const Duration(
+                      milliseconds: 170,
+                    ),
+                    child: (_mode ==
+                                _EraserMode.brush ||
+                            _mode ==
+                                _EraserMode.protect)
+                        ? Padding(
+                            key: ValueKey(
+                              'brush-${_mode.name}',
+                            ),
+                            padding:
+                                const EdgeInsets.only(
+                              top: 14,
+                            ),
+                            child: Container(
+                              padding:
+                                  const EdgeInsets
+                                      .fromLTRB(
                                 12,
-                          ),
-                          child:
-                              Row(
-                            children: [
-                              Container(
-                                width:
-                                    30,
-                                height:
-                                    30,
-                                decoration:
-                                    BoxDecoration(
-                                  shape:
-                                      BoxShape.circle,
-                                  border:
-                                      Border.all(
-                                    color:
-                                        (_mode ==
-                                                    _EraserMode.protect
-                                                ? _protectGreenLight
-                                                : _purpleLight)
-                                            .withValues(
-                                      alpha:
-                                          0.7,
-                                    ),
+                                7,
+                                8,
+                                7,
+                              ),
+                              decoration:
+                                  BoxDecoration(
+                                color: Colors.white
+                                    .withValues(
+                                  alpha: 0.055,
+                                ),
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(
+                                  16,
+                                ),
+                                border: Border.all(
+                                  color: Colors.white
+                                      .withValues(
+                                    alpha: 0.065,
                                   ),
                                 ),
-                                child:
-                                    Center(
-                                  child:
-                                      Container(
-                                    width:
-                                        4 +
-                                        (_brushSize / 360) *
-                                            12,
-                                    height:
-                                        4 +
-                                        (_brushSize / 360) *
-                                            12,
-                                    decoration:
-                                        BoxDecoration(
-                                      color:
-                                          _mode ==
-                                                  _EraserMode.protect
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: Center(
+                                      child: Container(
+                                        width: 5 +
+                                            (_brushSize /
+                                                    360) *
+                                                10,
+                                        height: 5 +
+                                            (_brushSize /
+                                                    360) *
+                                                10,
+                                        decoration:
+                                            BoxDecoration(
+                                          shape:
+                                              BoxShape
+                                                  .circle,
+                                          color: _mode ==
+                                                  _EraserMode
+                                                      .protect
                                               ? _protectGreenLight
                                               : _purpleLight,
-                                      shape:
-                                          BoxShape.circle,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(
+                                    width: 5,
+                                  ),
+                                  const Text(
+                                    'Size',
+                                    style: TextStyle(
+                                      color:
+                                          Colors.white60,
+                                      fontSize: 10,
+                                      fontWeight:
+                                          FontWeight
+                                              .w600,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Slider(
+                                      value:
+                                          _brushSize,
+                                      min: 25,
+                                      max: 360,
+                                      activeColor: _mode ==
+                                              _EraserMode
+                                                  .protect
+                                          ? _protectGreenLight
+                                          : _purpleLight,
+                                      inactiveColor:
+                                          Colors.white12,
+                                      onChanged:
+                                          _isRemoving
+                                              ? null
+                                              : (
+                                                  value,
+                                                ) {
+                                                  setState(
+                                                    () {
+                                                      _brushSize =
+                                                          value;
+                                                    },
+                                                  );
+                                                },
+                                    ),
+                                  ),
+                                ],
                               ),
+                            ),
+                          )
+                        : const SizedBox.shrink(
+                            key: ValueKey(
+                              'no-brush',
+                            ),
+                          ),
+                  ),
 
-                              const SizedBox(
-                                width:
-                                    8,
-                              ),
+                  const SizedBox(
+                    height: 14,
+                  ),
 
+                  // =========================================================
+                  // CURRENT STATE
+                  // =========================================================
+
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(
+                      13,
+                      11,
+                      13,
+                      11,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(
+                        alpha: 0.045,
+                      ),
+                      borderRadius:
+                          BorderRadius.circular(
+                        16,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment
+                                    .start,
+                            children: [
                               Text(
-                                _mode ==
-                                        _EraserMode.protect
-                                    ? 'Protect Brush'
-                                    : 'Remove Brush',
-                                style:
-                                    const TextStyle(
-                                  color:
-                                      Colors.white70,
-                                  fontSize:
-                                      11,
+                                _statusTitle,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
                                   fontWeight:
                                       FontWeight.w600,
                                 ),
                               ),
-
-                              Expanded(
-                                child:
-                                    Slider(
-                                  value:
-                                      _brushSize,
-                                  min:
-                                      25,
-                                  max:
-                                      360,
-                                  activeColor:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? _protectGreen
-                                          : _purple,
-                                  inactiveColor:
-                                      Colors.white12,
-                                  onChanged:
-                                      _isRemoving
-                                          ? null
-                                          : (
-                                              value,
-                                            ) {
-                                              setState(
-                                                () {
-                                                  _brushSize =
-                                                      value;
-                                                },
-                                              );
-                                            },
+                              if (_hasAnyOverlay) ...[
+                                const SizedBox(
+                                  height: 3,
                                 ),
-                              ),
+                                Text(
+                                  '${_selectedMasks.length + _strokes.length} remove'
+                                  '${_hasProtection ? '  •  ${_protectedMasks.length + _protectedStrokes.length} protected' : ''}',
+                                  style: TextStyle(
+                                    color: Colors.white
+                                        .withValues(
+                                      alpha: 0.38,
+                                    ),
+                                    fontSize: 9.5,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
-                      )
-                    : const SizedBox.shrink(
-                        key:
-                            ValueKey(
-                          'no-brush',
-                        ),
-                      ),
-          ),
+                        if (_isPreparingSegmentation)
+                          const SizedBox(
+                            width: 15,
+                            height: 15,
+                            child:
+                                CircularProgressIndicator(
+                              strokeWidth: 1.7,
+                              color: _purpleLight,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
 
-          const SizedBox(
-            height:
-                14,
-          ),
+                  const SizedBox(
+                    height: 14,
+                  ),
 
-          Row(
-            children: [
-              Expanded(
-                child:
-                    Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _statusTitle,
-                      style:
-                          const TextStyle(
-                        color:
+                  // =========================================================
+                  // REMOVE
+                  // =========================================================
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _hasMask &&
+                              !_isRemoving &&
+                              !_isSegmenting &&
+                              !_isLoadingImage
+                          ? _removeSelectedArea
+                          : null,
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
                             Colors.white,
-                        fontSize:
-                            14,
-                        fontWeight:
-                            FontWeight.w700,
+                        foregroundColor:
+                            Colors.black,
+                        disabledBackgroundColor:
+                            Colors.white.withValues(
+                          alpha: 0.10,
+                        ),
+                        disabledForegroundColor:
+                            Colors.white.withValues(
+                          alpha: 0.32,
+                        ),
+                        elevation: 0,
+                        padding: const EdgeInsets
+                            .symmetric(
+                          vertical: 14,
+                        ),
+                        shape:
+                            RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(
+                            15,
+                          ),
+                        ),
+                      ),
+                      icon: _isRemoving
+                          ? const SizedBox(
+                              width: 17,
+                              height: 17,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.black,
+                              ),
+                            )
+                          : const Icon(
+                              Icons
+                                  .auto_fix_high_rounded,
+                              size: 18,
+                            ),
+                      label: Text(
+                        _isRemoving
+                            ? 'Removing'
+                            : 'Remove selected area',
+                        style: const TextStyle(
+                          fontSize: 12.5,
+                          fontWeight:
+                              FontWeight.w700,
+                        ),
                       ),
                     ),
+                  ),
 
+                  if (_hasEditedImage) ...[
                     const SizedBox(
-                      height:
-                          4,
+                      height: 9,
                     ),
-
-                    Text(
-                      _statusSubtitle,
-                      maxLines:
-                          2,
-                      overflow:
-                          TextOverflow.ellipsis,
-                      style:
-                          TextStyle(
-                        color:
-                            Colors.white.withValues(
-                          alpha:
-                              0.43,
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed:
+                            _isRemoving ||
+                                    _isSegmenting
+                                ? null
+                                : _saveAndFinish,
+                        style:
+                            OutlinedButton.styleFrom(
+                          foregroundColor:
+                              Colors.white,
+                          side: BorderSide(
+                            color: Colors.white
+                                .withValues(
+                              alpha: 0.16,
+                            ),
+                          ),
+                          padding:
+                              const EdgeInsets
+                                  .symmetric(
+                            vertical: 13,
+                          ),
+                          shape:
+                              RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(
+                              15,
+                            ),
+                          ),
                         ),
-                        fontSize:
-                            10.5,
-                        height:
-                            1.35,
+                        icon: const Icon(
+                          Icons.check_rounded,
+                          size: 18,
+                        ),
+                        label: const Text(
+                          'Save & Finish',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
-
-              const SizedBox(
-                width:
-                    14,
-              ),
-
-              _PremiumRemoveButton(
-                enabled:
-                    _hasMask &&
-                    !_isRemoving &&
-                    !_isSegmenting &&
-                    !_isLoadingImage,
-                isProcessing:
-                    _isRemoving,
-                onPressed:
-                    _removeSelectedArea,
-              ),
-            ],
+            ),
           ),
-
-          if (_hasEditedImage) ...[
-            const SizedBox(
-              height:
-                  12,
-            ),
-
-            SizedBox(
-              width:
-                  double.infinity,
-              child:
-                  FilledButton.icon(
-                onPressed:
-                    _isRemoving ||
-                            _isSegmenting
-                        ? null
-                        : _saveAndFinish,
-                style:
-                    FilledButton.styleFrom(
-                  backgroundColor:
-                      Colors.white.withValues(
-                    alpha:
-                        0.08,
-                  ),
-                  foregroundColor:
-                      Colors.white,
-                  disabledBackgroundColor:
-                      Colors.white.withValues(
-                    alpha:
-                        0.035,
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(
-                    vertical:
-                        14,
-                  ),
-                  shape:
-                      RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(
-                      16,
-                    ),
-                    side:
-                        BorderSide(
-                      color:
-                          _purpleLight.withValues(
-                        alpha:
-                            0.22,
-                      ),
-                    ),
-                  ),
-                ),
-                icon:
-                    const Icon(
-                  Icons.check_rounded,
-                  size:
-                      19,
-                ),
-                label:
-                    const Text(
-                  'Save & Finish',
-                  style:
-                      TextStyle(
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -2485,6 +2500,219 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     return 'Paint unwanted areas. Pinch with two fingers to zoom.';
   }
 }
+
+
+// =============================================================================
+// PREMIUM FLOATING CONTROLS
+// =============================================================================
+
+class _GlassIconButton extends StatelessWidget {
+  const _GlassIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+    this.active = false,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final bool active;
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    final enabled = onTap != null;
+
+    return Tooltip(
+      message: tooltip,
+      child: ClipOval(
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(
+            sigmaX: 16,
+            sigmaY: 16,
+          ),
+          child: Material(
+            color: active
+                ? Colors.white.withValues(
+                    alpha: 0.18,
+                  )
+                : Colors.black.withValues(
+                    alpha:
+                        enabled ? 0.34 : 0.18,
+                  ),
+            shape: CircleBorder(
+              side: BorderSide(
+                color: Colors.white.withValues(
+                  alpha:
+                      active ? 0.20 : 0.10,
+                ),
+              ),
+            ),
+            child: InkWell(
+              onTap: onTap,
+              customBorder:
+                  const CircleBorder(),
+              child: SizedBox(
+                width: 40,
+                height: 40,
+                child: Icon(
+                  icon,
+                  size: 19,
+                  color: enabled
+                      ? Colors.white
+                      : Colors.white24,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PanelIconButton extends StatelessWidget {
+  const _PanelIconButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.white.withValues(
+          alpha: 0.06,
+        ),
+        shape: const CircleBorder(),
+        child: InkWell(
+          onTap: onTap,
+          customBorder:
+              const CircleBorder(),
+          child: SizedBox(
+            width: 34,
+            height: 34,
+            child: Icon(
+              icon,
+              size: 17,
+              color: onTap == null
+                  ? Colors.white24
+                  : Colors.white70,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactModeButton extends StatelessWidget {
+  const _CompactModeButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.enabled,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final bool enabled;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(
+    BuildContext context,
+  ) {
+    return AnimatedContainer(
+      duration: const Duration(
+        milliseconds: 160,
+      ),
+      decoration: BoxDecoration(
+        color: selected
+            ? Colors.white.withValues(
+                alpha: 0.11,
+              )
+            : Colors.white.withValues(
+                alpha: 0.045,
+              ),
+        borderRadius: BorderRadius.circular(
+          15,
+        ),
+        border: Border.all(
+          color: selected
+              ? Colors.white.withValues(
+                  alpha: 0.17,
+                )
+              : Colors.white.withValues(
+                  alpha: 0.055,
+                ),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(
+          15,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: 11,
+              horizontal: 5,
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  icon,
+                  size: 19,
+                  color: !enabled
+                      ? Colors.white24
+                      : selected
+                          ? color
+                          : Colors.white60,
+                ),
+                const SizedBox(
+                  height: 5,
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: !enabled
+                        ? Colors.white24
+                        : selected
+                            ? Colors.white
+                            : Colors.white60,
+                    fontSize: 9.5,
+                    fontWeight: selected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 // =============================================================================
 // HISTORY
@@ -2686,428 +2914,17 @@ class _BrushOverlayPainter extends CustomPainter {
 // PREMIUM REMOVE BUTTON
 // =============================================================================
 
-class _PremiumRemoveButton extends StatelessWidget {
-  const _PremiumRemoveButton({
-    required this.enabled,
-    required this.isProcessing,
-    required this.onPressed,
-  });
-
-  final bool enabled;
-  final bool isProcessing;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final active =
-        enabled &&
-        !isProcessing;
-
-    return Opacity(
-      opacity:
-          active ||
-                  isProcessing
-              ? 1
-              : 0.38,
-      child:
-          DecoratedBox(
-        decoration:
-            BoxDecoration(
-          gradient:
-              active ||
-                      isProcessing
-                  ? const LinearGradient(
-                      begin:
-                          Alignment.topLeft,
-                      end:
-                          Alignment.bottomRight,
-                      colors: [
-                        Color(
-                          0xFFA78BFA,
-                        ),
-                        Color(
-                          0xFF8B5CF6,
-                        ),
-                        Color(
-                          0xFF6D28D9,
-                        ),
-                      ],
-                    )
-                  : const LinearGradient(
-                      colors: [
-                        Color(
-                          0xFF353A48,
-                        ),
-                        Color(
-                          0xFF292E3B,
-                        ),
-                      ],
-                    ),
-          borderRadius:
-              BorderRadius.circular(
-            16,
-          ),
-          boxShadow:
-              active
-                  ? [
-                      BoxShadow(
-                        color:
-                            const Color(
-                          0xFF8B5CF6,
-                        ).withValues(
-                          alpha:
-                              0.24,
-                        ),
-                        blurRadius:
-                            18,
-                        offset:
-                            const Offset(
-                          0,
-                          6,
-                        ),
-                      ),
-                    ]
-                  : null,
-        ),
-        child:
-            Material(
-          color:
-              Colors.transparent,
-          child:
-              InkWell(
-            onTap:
-                active
-                    ? onPressed
-                    : null,
-            borderRadius:
-                BorderRadius.circular(
-              16,
-            ),
-            child:
-                Padding(
-              padding:
-                  const EdgeInsets.symmetric(
-                horizontal:
-                    18,
-                vertical:
-                    14,
-              ),
-              child:
-                  Row(
-                mainAxisSize:
-                    MainAxisSize.min,
-                children: [
-                  if (isProcessing)
-                    const SizedBox(
-                      width:
-                          17,
-                      height:
-                          17,
-                      child:
-                          CircularProgressIndicator(
-                        strokeWidth:
-                            2,
-                        color:
-                            Colors.white,
-                      ),
-                    )
-                  else
-                    const Icon(
-                      Icons.auto_fix_high_rounded,
-                      color:
-                          Colors.white,
-                      size:
-                          18,
-                    ),
-
-                  const SizedBox(
-                    width:
-                        8,
-                  ),
-
-                  Text(
-                    isProcessing
-                        ? 'Removing'
-                        : 'Remove',
-                    style:
-                        const TextStyle(
-                      color:
-                          Colors.white,
-                      fontSize:
-                          13,
-                      fontWeight:
-                          FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // MODE BUTTON
 // =============================================================================
 
-class _ModeButton extends StatelessWidget {
-  const _ModeButton({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
-    required this.accentColor,
-    required this.accentLight,
-  });
-
-  final IconData icon;
-
-  final String title;
-  final String subtitle;
-
-  final bool selected;
-  final bool enabled;
-
-  final VoidCallback onTap;
-
-  final Color accentColor;
-  final Color accentLight;
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    return AnimatedContainer(
-      duration:
-          const Duration(
-        milliseconds:
-            180,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            selected
-                ? accentColor.withValues(
-                    alpha:
-                        0.14,
-                  )
-                : _ObjectEraserScreenState
-                    ._surfaceHighlight,
-        borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
-        border:
-            Border.all(
-          color:
-              selected
-                  ? accentColor.withValues(
-                      alpha:
-                          0.42,
-                    )
-                  : Colors.white.withValues(
-                      alpha:
-                          0.045,
-                    ),
-        ),
-      ),
-      child:
-          Material(
-        color:
-            Colors.transparent,
-        borderRadius:
-            BorderRadius.circular(
-          16,
-        ),
-        clipBehavior:
-            Clip.antiAlias,
-        child:
-            InkWell(
-          onTap:
-              enabled
-                  ? onTap
-                  : null,
-          child:
-              Padding(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  12,
-              vertical:
-                  11,
-            ),
-            child:
-                Row(
-              children: [
-                Container(
-                  width:
-                      38,
-                  height:
-                      38,
-                  decoration:
-                      BoxDecoration(
-                    color:
-                        selected
-                            ? accentColor.withValues(
-                                alpha:
-                                    0.16,
-                              )
-                            : Colors.white.withValues(
-                                alpha:
-                                    0.035,
-                              ),
-                    borderRadius:
-                        BorderRadius.circular(
-                      12,
-                    ),
-                  ),
-                  child:
-                      Icon(
-                    icon,
-                    color:
-                        enabled
-                            ? selected
-                                ? accentLight
-                                : Colors.white70
-                            : Colors.white24,
-                    size:
-                        20,
-                  ),
-                ),
-
-                const SizedBox(
-                  width:
-                      10,
-                ),
-
-                Expanded(
-                  child:
-                      Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style:
-                            TextStyle(
-                          color:
-                              enabled
-                                  ? Colors.white
-                                  : Colors.white30,
-                          fontSize:
-                              12,
-                          fontWeight:
-                              FontWeight.w700,
-                        ),
-                      ),
-
-                      const SizedBox(
-                        height:
-                            2,
-                      ),
-
-                      Text(
-                        subtitle,
-                        maxLines:
-                            1,
-                        overflow:
-                            TextOverflow.ellipsis,
-                        style:
-                            TextStyle(
-                          color:
-                              Colors.white.withValues(
-                            alpha:
-                                enabled
-                                    ? 0.40
-                                    : 0.18,
-                          ),
-                          fontSize:
-                              9.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // TOP APP BAR ACTION
 // =============================================================================
 
-class _AppBarAction extends StatelessWidget {
-  const _AppBarAction({
-    required this.tooltip,
-    required this.icon,
-    required this.onPressed,
-  });
 
-  final String tooltip;
-  final IconData icon;
-  final VoidCallback? onPressed;
-
-  @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final enabled =
-        onPressed != null;
-
-    return Tooltip(
-      message:
-          tooltip,
-      child:
-          Material(
-        color:
-            Colors.white.withValues(
-          alpha:
-              enabled
-                  ? 0.055
-                  : 0.025,
-        ),
-        shape:
-            const CircleBorder(),
-        child:
-            InkWell(
-          onTap:
-              onPressed,
-          customBorder:
-              const CircleBorder(),
-          child:
-              SizedBox(
-            width:
-                38,
-            height:
-                38,
-            child:
-                Icon(
-              icon,
-              size:
-                  19,
-              color:
-                  enabled
-                      ? Colors.white70
-                      : Colors.white24,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // STATUS PILL

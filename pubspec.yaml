@@ -85,9 +85,32 @@ flutter:
 
   assets:
     - assets/logo/
+    - assets/doodles/cute/
+    - assets/doodles/love/
     - assets/models/mobile_sam_image_encoder.onnx
     - assets/models/sam_mask_decoder_single.onnx
     - assets/models/lama.onnx
+
+  fonts:
+    - family: Caveat
+      fonts:
+        - asset: assets/fonts/Caveat-VariableFont_wght.ttf
+
+    - family: DancingScript
+      fonts:
+        - asset: assets/fonts/DancingScript-VariableFont_wght.ttf
+
+    - family: PatrickHand
+      fonts:
+        - asset: assets/fonts/PatrickHand-Regular.ttf
+
+    - family: PermanentMarker
+      fonts:
+        - asset: assets/fonts/PermanentMarker-Regular.ttf
+
+    - family: Schoolbell
+      fonts:
+        - asset: assets/fonts/Schoolbell-Regular.ttf
     
 
 

@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 class AiToolsBottomSheet extends StatelessWidget {
   const AiToolsBottomSheet({
     required this.onObjectEraser,
+    required this.onDoodles,
     super.key,
   });
 
   final VoidCallback onObjectEraser;
+  final VoidCallback onDoodles;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +28,7 @@ class AiToolsBottomSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'AI Tools',
+              'Advanced Tools',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 22,
@@ -39,7 +41,7 @@ class AiToolsBottomSheet extends StatelessWidget {
             ),
 
             Text(
-              'Powerful AI editing tools.',
+              'Creative and AI-powered editing tools.',
               style: TextStyle(
                 color: Colors.white.withValues(
                   alpha: 0.48,
@@ -51,6 +53,10 @@ class AiToolsBottomSheet extends StatelessWidget {
             const SizedBox(
               height: 18,
             ),
+
+            // ===============================================================
+            // OBJECT ERASER
+            // ===============================================================
 
             _AiToolTile(
               icon: Icons.auto_fix_high_rounded,
@@ -64,30 +70,46 @@ class AiToolsBottomSheet extends StatelessWidget {
               height: 10,
             ),
 
-            const _AiToolTile(
-              icon: Icons.person_remove_alt_1_rounded,
-              title: 'Background Remover',
-              subtitle: 'Coming soon',
+            // ===============================================================
+            // DOODLES
+            // ===============================================================
+
+            _AiToolTile(
+              icon: Icons.draw_rounded,
+              title: 'Doodles',
+              subtitle:
+                  'Draw, sketch and decorate your photo',
+              onTap: onDoodles,
             ),
 
             const SizedBox(
               height: 10,
             ),
+
+            // ===============================================================
+            // COLLAGE
+            // ===============================================================
+
+            const _AiToolTile(
+              icon: Icons.grid_view_rounded,
+              title: 'Collage',
+              subtitle:
+                  'Combine multiple photos into one layout',
+            ),
+
+            const SizedBox(
+              height: 10,
+            ),
+
+            // ===============================================================
+            // NEUROLENS ULTRA
+            // ===============================================================
 
             const _AiToolTile(
               icon: Icons.auto_awesome_rounded,
-              title: 'Enhance Photo',
-              subtitle: 'Coming soon',
-            ),
-
-            const SizedBox(
-              height: 10,
-            ),
-
-            const _AiToolTile(
-              icon: Icons.crop_free_rounded,
-              title: 'Expand Image',
-              subtitle: 'Coming soon',
+              title: 'NeuroLens Ultra',
+              subtitle:
+                  'Advanced AI photo editing',
             ),
           ],
         ),
@@ -95,6 +117,10 @@ class AiToolsBottomSheet extends StatelessWidget {
     );
   }
 }
+
+// =============================================================================
+// TOOL TILE
+// =============================================================================
 
 class _AiToolTile extends StatelessWidget {
   const _AiToolTile({
@@ -185,7 +211,9 @@ class _AiToolTile extends StatelessWidget {
                     ),
 
                     Text(
-                      subtitle,
+                      enabled
+                          ? subtitle
+                          : '$subtitle • Coming soon',
                       style: TextStyle(
                         color: enabled
                             ? Colors.white.withValues(
