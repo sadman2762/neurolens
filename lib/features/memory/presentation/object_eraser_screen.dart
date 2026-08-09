@@ -45,6 +45,16 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
   static const Color _protectGreen = Color(0xFF22C55E);
   static const Color _protectGreenLight = Color(0xFF86EFAC);
 
+  // ===========================================================================
+  // ZOOM
+  // ===========================================================================
+
+  final TransformationController _transformationController =
+      TransformationController();
+
+  static const double _minZoom = 1.0;
+  static const double _maxZoom = 8.0;
+
   final LocalSegmentationService _segmentationService =
       LocalSegmentationService();
 
@@ -100,6 +110,14 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
     }
 
     await _prepareSegmentation();
+  }
+
+  // ===========================================================================
+  // ZOOM HELPERS
+  // ===========================================================================
+
+  void _resetZoom() {
+    _transformationController.value = Matrix4.identity();
   }
 
   // ===========================================================================
@@ -1030,17 +1048,8 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
     });
 
     try {
-      // ---------------------------------------------------------------------
-      // Build masks separately.
-      //
-      // Remove mask is NEVER modified by protection here.
-      //
-      // The preprocessor performs:
-      //
-      // dilate(remove)
-      //      -
-      // protect
-      // ---------------------------------------------------------------------
+      final hadProtection =
+          _hasProtection;
 
       final removeMaskBytes =
           await _createRemoveMask();
@@ -1091,6 +1100,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
         _isLoadingImage = true;
       });
 
+      //
+      // New image generated: return the viewport
+      // to its normal position.
+      //
+      _resetZoom();
+
       await _decodeCurrentImage();
 
       if (!mounted) {
@@ -1104,7 +1119,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
       }
 
       _showMessage(
-        _hasProtection
+        hadProtection
             ? 'Removed while preserving protected areas.'
             : 'Removed offline. Continue editing or save.',
       );
@@ -1169,6 +1184,11 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
       _hasEditedImage = false;
       _isLoadingImage = true;
     });
+
+    //
+    // Reset viewport too.
+    //
+    _resetZoom();
 
     await _decodeCurrentImage();
 
@@ -1236,6 +1256,8 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
 
     _segmentationService
         .clearImageCache();
+
+    _transformationController.dispose();
 
     super.dispose();
   }
@@ -1382,320 +1404,386 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
                           constraints.maxHeight,
                         );
 
-                        return Stack(
-                          fit:
-                              StackFit.expand,
-                          children: [
-                            if (!_isLoadingImage)
-                              Image.memory(
-                                _currentImageBytes,
-                                fit:
-                                    BoxFit.contain,
-                                gaplessPlayback:
-                                    true,
-                                filterQuality:
-                                    FilterQuality.high,
-                              ),
+                        // =====================================================
+                        // INTERACTIVE VIEWER
+                        //
+                        // Everything inside this widget is transformed
+                        // together:
+                        //
+                        // image
+                        // smart masks
+                        // protect masks
+                        // brush overlays
+                        // interaction layer
+                        //
+                        // Therefore taps and brush coordinates continue to use
+                        // the exact same canvas coordinate system even after
+                        // zooming.
+                        // =====================================================
 
-                            // =================================================
-                            // REMOVE MASKS
-                            // =================================================
+                        return InteractiveViewer(
+                          transformationController:
+                              _transformationController,
 
-                            if (!_isLoadingImage)
-                              ..._selectedMasks.map(
-                                (
-                                  result,
-                                ) {
-                                  return Positioned.fill(
+                          minScale:
+                              _minZoom,
+                          maxScale:
+                              _maxZoom,
+
+                          scaleEnabled:
+                              !_isRemoving,
+
+                          //
+                          // Smart Select can pan normally with one finger
+                          // after zooming.
+                          //
+                          // Brush / Protect reserve one-finger drag for
+                          // painting. Two-finger pinch still works.
+                          //
+                          panEnabled:
+                              _mode ==
+                                  _EraserMode.select,
+
+                          boundaryMargin:
+                              const EdgeInsets.all(
+                            80,
+                          ),
+
+                          clipBehavior:
+                              Clip.none,
+
+                          interactionEndFrictionCoefficient:
+                              0.0000135,
+
+                          child: SizedBox(
+                            width:
+                                canvasSize.width,
+                            height:
+                                canvasSize.height,
+                            child: Stack(
+                              fit:
+                                  StackFit.expand,
+                              children: [
+                                if (!_isLoadingImage)
+                                  Image.memory(
+                                    _currentImageBytes,
+                                    fit:
+                                        BoxFit.contain,
+                                    gaplessPlayback:
+                                        true,
+                                    filterQuality:
+                                        FilterQuality.high,
+                                  ),
+
+                                // =============================================
+                                // REMOVE MASKS
+                                // =============================================
+
+                                if (!_isLoadingImage)
+                                  ..._selectedMasks.map(
+                                    (
+                                      result,
+                                    ) {
+                                      return Positioned.fill(
+                                        child:
+                                            IgnorePointer(
+                                          child:
+                                              Opacity(
+                                            opacity:
+                                                0.48,
+                                            child:
+                                                Image.memory(
+                                              result.maskBytes,
+                                              fit:
+                                                  BoxFit.contain,
+                                              gaplessPlayback:
+                                                  true,
+                                              filterQuality:
+                                                  FilterQuality.none,
+                                              color:
+                                                  _purple,
+                                              colorBlendMode:
+                                                  BlendMode.srcIn,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                // =============================================
+                                // PROTECTED MASKS
+                                // =============================================
+
+                                if (!_isLoadingImage)
+                                  ..._protectedMasks.map(
+                                    (
+                                      result,
+                                    ) {
+                                      return Positioned.fill(
+                                        child:
+                                            IgnorePointer(
+                                          child:
+                                              Opacity(
+                                            opacity:
+                                                0.46,
+                                            child:
+                                                Image.memory(
+                                              result.maskBytes,
+                                              fit:
+                                                  BoxFit.contain,
+                                              gaplessPlayback:
+                                                  true,
+                                              filterQuality:
+                                                  FilterQuality.none,
+                                              color:
+                                                  _protectGreen,
+                                              colorBlendMode:
+                                                  BlendMode.srcIn,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                // =============================================
+                                // REMOVE BRUSH OVERLAY
+                                // =============================================
+
+                                if (!_isLoadingImage)
+                                  Positioned.fill(
                                     child:
                                         IgnorePointer(
                                       child:
-                                          Opacity(
-                                        opacity:
-                                            0.48,
-                                        child:
-                                            Image.memory(
-                                          result.maskBytes,
-                                          fit:
-                                              BoxFit.contain,
-                                          gaplessPlayback:
-                                              true,
-                                          filterQuality:
-                                              FilterQuality.none,
+                                          CustomPaint(
+                                        painter:
+                                            _BrushOverlayPainter(
+                                          strokes:
+                                              _strokes,
+                                          mapPoint:
+                                              (
+                                            point,
+                                          ) {
+                                            return _imagePointToCanvas(
+                                              imagePoint:
+                                                  point,
+                                              canvasSize:
+                                                  canvasSize,
+                                            );
+                                          },
+                                          brushSize:
+                                              _displayBrushSize(
+                                            canvasSize,
+                                          ),
                                           color:
                                               _purple,
-                                          colorBlendMode:
-                                              BlendMode.srcIn,
                                         ),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
+                                  ),
 
-                            // =================================================
-                            // PROTECTED MASKS
-                            // =================================================
+                                // =============================================
+                                // PROTECT BRUSH OVERLAY
+                                // =============================================
 
-                            if (!_isLoadingImage)
-                              ..._protectedMasks.map(
-                                (
-                                  result,
-                                ) {
-                                  return Positioned.fill(
+                                if (!_isLoadingImage)
+                                  Positioned.fill(
                                     child:
                                         IgnorePointer(
                                       child:
-                                          Opacity(
-                                        opacity:
-                                            0.46,
-                                        child:
-                                            Image.memory(
-                                          result.maskBytes,
-                                          fit:
-                                              BoxFit.contain,
-                                          gaplessPlayback:
-                                              true,
-                                          filterQuality:
-                                              FilterQuality.none,
+                                          CustomPaint(
+                                        painter:
+                                            _BrushOverlayPainter(
+                                          strokes:
+                                              _protectedStrokes,
+                                          mapPoint:
+                                              (
+                                            point,
+                                          ) {
+                                            return _imagePointToCanvas(
+                                              imagePoint:
+                                                  point,
+                                              canvasSize:
+                                                  canvasSize,
+                                            );
+                                          },
+                                          brushSize:
+                                              _displayBrushSize(
+                                            canvasSize,
+                                          ),
                                           color:
                                               _protectGreen,
-                                          colorBlendMode:
-                                              BlendMode.srcIn,
                                         ),
                                       ),
                                     ),
-                                  );
-                                },
-                              ),
+                                  ),
 
-                            // =================================================
-                            // REMOVE BRUSH OVERLAY
-                            // =================================================
+                                // =============================================
+                                // INTERACTION
+                                // =============================================
 
-                            if (!_isLoadingImage)
-                              Positioned.fill(
-                                child:
-                                    IgnorePointer(
-                                  child:
-                                      CustomPaint(
-                                    painter:
-                                        _BrushOverlayPainter(
-                                      strokes:
-                                          _strokes,
-                                      mapPoint:
-                                          (
-                                        point,
-                                      ) {
-                                        return _imagePointToCanvas(
-                                          imagePoint:
-                                              point,
-                                          canvasSize:
-                                              canvasSize,
-                                        );
-                                      },
-                                      brushSize:
-                                          _displayBrushSize(
-                                        canvasSize,
-                                      ),
-                                      color:
-                                          _purple,
+                                if (!_isLoadingImage)
+                                  Positioned.fill(
+                                    child:
+                                        GestureDetector(
+                                      behavior:
+                                          HitTestBehavior.opaque,
+
+                                      // ---------------------------------------
+                                      // TAP
+                                      // ---------------------------------------
+
+                                      onTapUp:
+                                          _mode ==
+                                                      _EraserMode.select ||
+                                                  _mode ==
+                                                      _EraserMode.protect
+                                              ? (
+                                                  details,
+                                                ) {
+                                                  _handleTap(
+                                                    canvasPoint:
+                                                        details.localPosition,
+                                                    canvasSize:
+                                                        canvasSize,
+                                                  );
+                                                }
+                                              : null,
+
+                                      // ---------------------------------------
+                                      // ONE-FINGER BRUSH
+                                      // ---------------------------------------
+
+                                      onPanStart:
+                                          _mode ==
+                                                      _EraserMode.brush ||
+                                                  _mode ==
+                                                      _EraserMode.protect
+                                              ? (
+                                                  details,
+                                                ) {
+                                                  _startStroke(
+                                                    canvasPoint:
+                                                        details.localPosition,
+                                                    canvasSize:
+                                                        canvasSize,
+                                                  );
+                                                }
+                                              : null,
+
+                                      onPanUpdate:
+                                          _mode ==
+                                                      _EraserMode.brush ||
+                                                  _mode ==
+                                                      _EraserMode.protect
+                                              ? (
+                                                  details,
+                                                ) {
+                                                  _updateStroke(
+                                                    canvasPoint:
+                                                        details.localPosition,
+                                                    canvasSize:
+                                                        canvasSize,
+                                                  );
+                                                }
+                                              : null,
+
+                                      onPanEnd:
+                                          _mode ==
+                                                      _EraserMode.brush ||
+                                                  _mode ==
+                                                      _EraserMode.protect
+                                              ? (_) {
+                                                  _endStroke();
+                                                }
+                                              : null,
+
+                                      onPanCancel:
+                                          _mode ==
+                                                      _EraserMode.brush ||
+                                                  _mode ==
+                                                      _EraserMode.protect
+                                              ? _endStroke
+                                              : null,
                                     ),
                                   ),
-                                ),
-                              ),
 
-                            // =================================================
-                            // PROTECT BRUSH OVERLAY
-                            // =================================================
+                                if (_isLoadingImage)
+                                  const _LoadingView(
+                                    title:
+                                        'Opening photo...',
+                                  ),
 
-                            if (!_isLoadingImage)
-                              Positioned.fill(
-                                child:
-                                    IgnorePointer(
-                                  child:
-                                      CustomPaint(
-                                    painter:
-                                        _BrushOverlayPainter(
-                                      strokes:
-                                          _protectedStrokes,
-                                      mapPoint:
-                                          (
-                                        point,
-                                      ) {
-                                        return _imagePointToCanvas(
-                                          imagePoint:
-                                              point,
-                                          canvasSize:
-                                              canvasSize,
-                                        );
-                                      },
-                                      brushSize:
-                                          _displayBrushSize(
-                                        canvasSize,
-                                      ),
+                                if (_isSegmenting)
+                                  Positioned(
+                                    top: 16,
+                                    left: 0,
+                                    right: 0,
+                                    child:
+                                        _StatusPill(
+                                      icon:
+                                          _mode ==
+                                                  _EraserMode.protect
+                                              ? Icons.shield_outlined
+                                              : Icons.auto_awesome_rounded,
+                                      text:
+                                          _mode ==
+                                                  _EraserMode.protect
+                                              ? 'Protecting subject'
+                                              : 'Selecting object',
                                       color:
-                                          _protectGreen,
+                                          _mode ==
+                                                  _EraserMode.protect
+                                              ? _protectGreenLight
+                                              : _purpleLight,
                                     ),
                                   ),
-                                ),
-                              ),
 
-                            // =================================================
-                            // INTERACTION
-                            // =================================================
-
-                            if (!_isLoadingImage)
-                              Positioned.fill(
-                                child:
-                                    GestureDetector(
-                                  behavior:
-                                      HitTestBehavior.opaque,
-
-                                  onTapUp:
-                                      _mode ==
-                                                  _EraserMode.select ||
-                                              _mode ==
-                                                  _EraserMode.protect
-                                          ? (
-                                              details,
-                                            ) {
-                                              _handleTap(
-                                                canvasPoint:
-                                                    details.localPosition,
-                                                canvasSize:
-                                                    canvasSize,
-                                              );
-                                            }
-                                          : null,
-
-                                  onPanStart:
-                                      _mode ==
-                                                  _EraserMode.brush ||
-                                              _mode ==
-                                                  _EraserMode.protect
-                                          ? (
-                                              details,
-                                            ) {
-                                              _startStroke(
-                                                canvasPoint:
-                                                    details.localPosition,
-                                                canvasSize:
-                                                    canvasSize,
-                                              );
-                                            }
-                                          : null,
-
-                                  onPanUpdate:
-                                      _mode ==
-                                                  _EraserMode.brush ||
-                                              _mode ==
-                                                  _EraserMode.protect
-                                          ? (
-                                              details,
-                                            ) {
-                                              _updateStroke(
-                                                canvasPoint:
-                                                    details.localPosition,
-                                                canvasSize:
-                                                    canvasSize,
-                                              );
-                                            }
-                                          : null,
-
-                                  onPanEnd:
-                                      _mode ==
-                                                  _EraserMode.brush ||
-                                              _mode ==
-                                                  _EraserMode.protect
-                                          ? (_) {
-                                              _endStroke();
-                                            }
-                                          : null,
-
-                                  onPanCancel:
-                                      _mode ==
-                                                  _EraserMode.brush ||
-                                              _mode ==
-                                                  _EraserMode.protect
-                                          ? _endStroke
-                                          : null,
-                                ),
-                              ),
-
-                            if (_isLoadingImage)
-                              const _LoadingView(
-                                title:
-                                    'Opening photo...',
-                              ),
-
-                            if (_isSegmenting)
-                              Positioned(
-                                top: 16,
-                                left: 0,
-                                right: 0,
-                                child:
-                                    _StatusPill(
-                                  icon:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? Icons.shield_outlined
-                                          : Icons.auto_awesome_rounded,
-                                  text:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? 'Protecting subject'
-                                          : 'Selecting object',
-                                  color:
-                                      _mode ==
-                                              _EraserMode.protect
-                                          ? _protectGreenLight
-                                          : _purpleLight,
-                                ),
-                              ),
-
-                            if (_isPreparingSegmentation &&
-                                !_isLoadingImage &&
-                                !_isSegmenting)
-                              const Positioned(
-                                top: 16,
-                                left: 0,
-                                right: 0,
-                                child:
-                                    _StatusPill(
-                                  icon:
-                                      Icons.memory_rounded,
-                                  text:
-                                      'Preparing Smart Select',
-                                  color:
-                                      _purpleLight,
-                                ),
-                              ),
-
-                            if (_hasEditedImage &&
-                                !_isRemoving &&
-                                !_isLoadingImage)
-                              const Positioned(
-                                top: 16,
-                                left: 16,
-                                child:
-                                    _EditedBadge(),
-                              ),
-
-                            if (_isRemoving)
-                              Positioned.fill(
-                                child:
-                                    ColoredBox(
-                                  color:
-                                      Colors.black.withValues(
-                                    alpha:
-                                        0.72,
+                                if (_isPreparingSegmentation &&
+                                    !_isLoadingImage &&
+                                    !_isSegmenting)
+                                  const Positioned(
+                                    top: 16,
+                                    left: 0,
+                                    right: 0,
+                                    child:
+                                        _StatusPill(
+                                      icon:
+                                          Icons.memory_rounded,
+                                      text:
+                                          'Preparing Smart Select',
+                                      color:
+                                          _purpleLight,
+                                    ),
                                   ),
-                                  child:
-                                      const _RemovingView(),
-                                ),
-                              ),
-                          ],
+
+                                if (_hasEditedImage &&
+                                    !_isRemoving &&
+                                    !_isLoadingImage)
+                                  const Positioned(
+                                    top: 16,
+                                    left: 16,
+                                    child:
+                                        _EditedBadge(),
+                                  ),
+
+                                if (_isRemoving)
+                                  Positioned.fill(
+                                    child:
+                                        ColoredBox(
+                                      color:
+                                          Colors.black.withValues(
+                                        alpha:
+                                            0.72,
+                                      ),
+                                      child:
+                                          const _RemovingView(),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -2293,7 +2381,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
 
     if (_mode ==
         _EraserMode.protect) {
-      return 'Tap a subject to protect it automatically, or drag to protect only specific body parts.';
+      return 'Tap or paint protected areas. Pinch with two fingers to zoom.';
     }
 
     if (_hasMask &&
@@ -2311,10 +2399,10 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen> {
 
     if (_mode ==
         _EraserMode.select) {
-      return 'Tap one or multiple objects you want NeuroLens to remove.';
+      return 'Tap objects to select. Pinch with two fingers to zoom.';
     }
 
-    return 'Paint over anything Smart Select did not include.';
+    return 'Paint unwanted areas. Pinch with two fingers to zoom.';
   }
 }
 
