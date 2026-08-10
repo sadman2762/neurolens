@@ -5,18 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:neurolens/features/memory/data/inpainting/offline_inpainting_service.dart';
 import 'package:neurolens/features/memory/data/local_segmentation_service.dart';
 
-enum _EraserMode {
-  select,
-  brush,
-  protect,
-}
+enum _EraserMode { select, brush, protect }
 
-enum _MaskActionType {
-  selection,
-  stroke,
-  protectedSelection,
-  protectedStroke,
-}
+enum _MaskActionType { selection, stroke, protectedSelection, protectedStroke }
 
 class ObjectEraserScreen extends StatefulWidget {
   const ObjectEraserScreen({
@@ -29,13 +20,11 @@ class ObjectEraserScreen extends StatefulWidget {
   final String title;
 
   @override
-  State<ObjectEraserScreen> createState() =>
-      _ObjectEraserScreenState();
+  State<ObjectEraserScreen> createState() => _ObjectEraserScreenState();
 }
 
 class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     with TickerProviderStateMixin {
-  
   static const Color _surfaceHighlight = Color(0xFF141B2D);
 
   static const Color _purple = Color(0xFF8B5CF6);
@@ -68,20 +57,15 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
   ui.Image? _decodedImage;
 
-  final List<SegmentationResult> _selectedMasks =
-      <SegmentationResult>[];
+  final List<SegmentationResult> _selectedMasks = <SegmentationResult>[];
 
-  final List<List<Offset>> _strokes =
-      <List<Offset>>[];
+  final List<List<Offset>> _strokes = <List<Offset>>[];
 
-  final List<SegmentationResult> _protectedMasks =
-      <SegmentationResult>[];
+  final List<SegmentationResult> _protectedMasks = <SegmentationResult>[];
 
-  final List<List<Offset>> _protectedStrokes =
-      <List<Offset>>[];
+  final List<List<Offset>> _protectedStrokes = <List<Offset>>[];
 
-  final List<_MaskAction> _history =
-      <_MaskAction>[];
+  final List<_MaskAction> _history = <_MaskAction>[];
 
   List<Offset>? _activeStroke;
   List<Offset>? _activeProtectedStroke;
@@ -107,17 +91,14 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
     _zoomResetController = AnimationController(
       vsync: this,
-      duration: const Duration(
-        milliseconds: 320,
-      ),
+      duration: const Duration(milliseconds: 320),
     );
 
     _zoomResetController.addListener(() {
       final animation = _zoomResetAnimation;
 
       if (animation != null) {
-        _transformationController.value =
-            animation.value;
+        _transformationController.value = animation.value;
       }
     });
 
@@ -143,19 +124,15 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
     _zoomResetAnimation = null;
 
-    _transformationController.value =
-        Matrix4.identity();
+    _transformationController.value = Matrix4.identity();
   }
 
   Future<void> _animateZoomToDefault() async {
-    final currentMatrix =
-        _transformationController.value.clone();
+    final currentMatrix = _transformationController.value.clone();
 
-    final currentScale =
-        currentMatrix.getMaxScaleOnAxis();
+    final currentScale = currentMatrix.getMaxScaleOnAxis();
 
-    final translation =
-        currentMatrix.getTranslation();
+    final translation = currentMatrix.getTranslation();
 
     final isAlreadyDefault =
         (currentScale - 1.0).abs() < 0.001 &&
@@ -172,15 +149,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     _zoomResetController.reset();
 
     _zoomResetAnimation =
-        Matrix4Tween(
-      begin: currentMatrix,
-      end: Matrix4.identity(),
-    ).animate(
-      CurvedAnimation(
-        parent: _zoomResetController,
-        curve: Curves.easeOutCubic,
-      ),
-    );
+        Matrix4Tween(begin: currentMatrix, end: Matrix4.identity()).animate(
+          CurvedAnimation(
+            parent: _zoomResetController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     try {
       await _zoomResetController.forward();
@@ -194,8 +168,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
     _zoomResetAnimation = null;
 
-    _transformationController.value =
-        Matrix4.identity();
+    _transformationController.value = Matrix4.identity();
   }
 
   // ===========================================================================
@@ -204,9 +177,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
   Future<void> _decodeCurrentImage() async {
     try {
-      final codec = await ui.instantiateImageCodec(
-        _currentImageBytes,
-      );
+      final codec = await ui.instantiateImageCodec(_currentImageBytes);
 
       final frame = await codec.getNextFrame();
 
@@ -226,13 +197,9 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       oldImage?.dispose();
       codec.dispose();
     } catch (error, stackTrace) {
-      debugPrint(
-        'Object Eraser image decode failed: $error',
-      );
+      debugPrint('Object Eraser image decode failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
@@ -242,9 +209,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
         _isLoadingImage = false;
       });
 
-      _showMessage(
-        'Could not open this photo.',
-      );
+      _showMessage('Could not open this photo.');
     }
   }
 
@@ -262,17 +227,11 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
       _segmentationService.clearImageCache();
 
-      await _segmentationService.debugRunEncoder(
-        _currentImageBytes,
-      );
+      await _segmentationService.debugRunEncoder(_currentImageBytes);
     } catch (error, stackTrace) {
-      debugPrint(
-        'MobileSAM preparation failed: $error',
-      );
+      debugPrint('MobileSAM preparation failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (mounted) {
         _showMessage(
@@ -293,20 +252,14 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   // MODE
   // ===========================================================================
 
-  void _setMode(
-    _EraserMode mode,
-  ) {
-    if (_isRemoving ||
-        _isSegmenting) {
+  void _setMode(_EraserMode mode) {
+    if (_isRemoving || _isSegmenting) {
       return;
     }
 
-    if ((mode == _EraserMode.select ||
-            mode == _EraserMode.protect) &&
+    if ((mode == _EraserMode.select || mode == _EraserMode.protect) &&
         _isPreparingSegmentation) {
-      _showMessage(
-        'Smart Select is still preparing.',
-      );
+      _showMessage('Smart Select is still preparing.');
 
       return;
     }
@@ -327,8 +280,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     required Offset canvasPoint,
     required Size canvasSize,
   }) async {
-    if ((_mode != _EraserMode.select &&
-            _mode != _EraserMode.protect) ||
+    if ((_mode != _EraserMode.select && _mode != _EraserMode.protect) ||
         _isRemoving ||
         _isSegmenting ||
         _isPreparingSegmentation ||
@@ -342,15 +294,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     );
 
     if (imagePoint == null) {
-      _showMessage(
-        'Tap directly on the photo.',
-      );
+      _showMessage('Tap directly on the photo.');
 
       return;
     }
 
-    final protectMode =
-        _mode == _EraserMode.protect;
+    final protectMode = _mode == _EraserMode.protect;
 
     setState(() {
       _isSegmenting = true;
@@ -373,35 +322,19 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
       setState(() {
         if (protectMode) {
-          _protectedMasks.add(
-            result,
-          );
+          _protectedMasks.add(result);
 
-          _history.add(
-            _MaskAction.protectedSelection(
-              result,
-            ),
-          );
+          _history.add(_MaskAction.protectedSelection(result));
         } else {
-          _selectedMasks.add(
-            result,
-          );
+          _selectedMasks.add(result);
 
-          _history.add(
-            _MaskAction.selection(
-              result,
-            ),
-          );
+          _history.add(_MaskAction.selection(result));
         }
       });
     } catch (error, stackTrace) {
-      debugPrint(
-        'MobileSAM selection failed: $error',
-      );
+      debugPrint('MobileSAM selection failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
@@ -425,12 +358,8 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   // BRUSH
   // ===========================================================================
 
-  void _startStroke({
-    required Offset canvasPoint,
-    required Size canvasSize,
-  }) {
-    if ((_mode != _EraserMode.brush &&
-            _mode != _EraserMode.protect) ||
+  void _startStroke({required Offset canvasPoint, required Size canvasSize}) {
+    if ((_mode != _EraserMode.brush && _mode != _EraserMode.protect) ||
         _isRemoving ||
         _isLoadingImage ||
         _isSegmenting) {
@@ -446,54 +375,35 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return;
     }
 
-    final stroke = <Offset>[
-      imagePoint,
-    ];
+    final stroke = <Offset>[imagePoint];
 
     setState(() {
       if (_mode == _EraserMode.protect) {
         _activeProtectedStroke = stroke;
 
-        _protectedStrokes.add(
-          stroke,
-        );
+        _protectedStrokes.add(stroke);
 
-        _history.add(
-          _MaskAction.protectedStroke(
-            stroke,
-          ),
-        );
+        _history.add(_MaskAction.protectedStroke(stroke));
       } else {
         _activeStroke = stroke;
 
-        _strokes.add(
-          stroke,
-        );
+        _strokes.add(stroke);
 
-        _history.add(
-          _MaskAction.stroke(
-            stroke,
-          ),
-        );
+        _history.add(_MaskAction.stroke(stroke));
       }
     });
   }
 
-  void _updateStroke({
-    required Offset canvasPoint,
-    required Size canvasSize,
-  }) {
-    if ((_mode != _EraserMode.brush &&
-            _mode != _EraserMode.protect) ||
+  void _updateStroke({required Offset canvasPoint, required Size canvasSize}) {
+    if ((_mode != _EraserMode.brush && _mode != _EraserMode.protect) ||
         _isRemoving ||
         _isSegmenting) {
       return;
     }
 
-    final stroke =
-        _mode == _EraserMode.protect
-            ? _activeProtectedStroke
-            : _activeStroke;
+    final stroke = _mode == _EraserMode.protect
+        ? _activeProtectedStroke
+        : _activeStroke;
 
     if (stroke == null) {
       return;
@@ -509,9 +419,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     }
 
     setState(() {
-      stroke.add(
-        imagePoint,
-      );
+      stroke.add(imagePoint);
     });
   }
 
@@ -534,38 +442,24 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return null;
     }
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRect = _calculateDisplayedImageRect(
       canvasSize: canvasSize,
       imageSize: imageSize,
     );
 
-    if (imageRect == null ||
-        !imageRect.contains(
-          canvasPoint,
-        )) {
+    if (imageRect == null || !imageRect.contains(canvasPoint)) {
       return null;
     }
 
-    final normalizedX =
-        (canvasPoint.dx -
-                imageRect.left) /
-            imageRect.width;
+    final normalizedX = (canvasPoint.dx - imageRect.left) / imageRect.width;
 
-    final normalizedY =
-        (canvasPoint.dy -
-                imageRect.top) /
-            imageRect.height;
+    final normalizedY = (canvasPoint.dy - imageRect.top) / imageRect.height;
 
     return Offset(
-      normalizedX *
-          imageSize.width,
-      normalizedY *
-          imageSize.height,
+      normalizedX * imageSize.width,
+      normalizedY * imageSize.height,
     );
   }
 
@@ -575,10 +469,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   }) {
     final image = _decodedImage!;
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRect = _calculateDisplayedImageRect(
       canvasSize: canvasSize,
@@ -586,14 +477,8 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     )!;
 
     return Offset(
-      imageRect.left +
-          (imagePoint.dx /
-                  imageSize.width) *
-              imageRect.width,
-      imageRect.top +
-          (imagePoint.dy /
-                  imageSize.height) *
-              imageRect.height,
+      imageRect.left + (imagePoint.dx / imageSize.width) * imageRect.width,
+      imageRect.top + (imagePoint.dy / imageSize.height) * imageRect.height,
     );
   }
 
@@ -608,75 +493,42 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return null;
     }
 
-    final canvasAspect =
-        canvasSize.width /
-        canvasSize.height;
+    final canvasAspect = canvasSize.width / canvasSize.height;
 
-    final imageAspect =
-        imageSize.width /
-        imageSize.height;
+    final imageAspect = imageSize.width / imageSize.height;
 
     late final Size displayedSize;
     late final Offset origin;
 
-    if (imageAspect >
-        canvasAspect) {
-      final width =
-          canvasSize.width;
+    if (imageAspect > canvasAspect) {
+      final width = canvasSize.width;
 
-      final height =
-          width /
-          imageAspect;
+      final height = width / imageAspect;
 
-      displayedSize = Size(
-        width,
-        height,
-      );
+      displayedSize = Size(width, height);
 
-      origin = Offset(
-        0,
-        (canvasSize.height -
-                height) /
-            2,
-      );
+      origin = Offset(0, (canvasSize.height - height) / 2);
     } else {
-      final height =
-          canvasSize.height;
+      final height = canvasSize.height;
 
-      final width =
-          height *
-          imageAspect;
+      final width = height * imageAspect;
 
-      displayedSize = Size(
-        width,
-        height,
-      );
+      displayedSize = Size(width, height);
 
-      origin = Offset(
-        (canvasSize.width -
-                width) /
-            2,
-        0,
-      );
+      origin = Offset((canvasSize.width - width) / 2, 0);
     }
 
-    return origin &
-        displayedSize;
+    return origin & displayedSize;
   }
 
-  double _displayBrushSize(
-    Size canvasSize,
-  ) {
+  double _displayBrushSize(Size canvasSize) {
     final image = _decodedImage;
 
     if (image == null) {
       return _brushSize;
     }
 
-    final imageSize = Size(
-      image.width.toDouble(),
-      image.height.toDouble(),
-    );
+    final imageSize = Size(image.width.toDouble(), image.height.toDouble());
 
     final imageRect = _calculateDisplayedImageRect(
       canvasSize: canvasSize,
@@ -687,80 +539,58 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return _brushSize;
     }
 
-    return _brushSize *
-        imageRect.width /
-        imageSize.width;
+    return _brushSize * imageRect.width / imageSize.width;
   }
 
   // ===========================================================================
   // HISTORY
   // ===========================================================================
 
-  bool get _hasMask =>
-      _selectedMasks.isNotEmpty ||
-      _strokes.isNotEmpty;
+  bool get _hasMask => _selectedMasks.isNotEmpty || _strokes.isNotEmpty;
 
   bool get _hasProtection =>
-      _protectedMasks.isNotEmpty ||
-      _protectedStrokes.isNotEmpty;
+      _protectedMasks.isNotEmpty || _protectedStrokes.isNotEmpty;
 
-  bool get _hasAnyOverlay =>
-      _hasMask ||
-      _hasProtection;
+  bool get _hasAnyOverlay => _hasMask || _hasProtection;
 
   void _undo() {
-    if (_isRemoving ||
-        _isSegmenting ||
-        _history.isEmpty) {
+    if (_isRemoving || _isSegmenting || _history.isEmpty) {
       return;
     }
 
-    final last =
-        _history.removeLast();
+    final last = _history.removeLast();
 
     setState(() {
       switch (last.type) {
         case _MaskActionType.selection:
-          final selection =
-              last.selection;
+          final selection = last.selection;
 
           if (selection != null) {
-            _selectedMasks.remove(
-              selection,
-            );
+            _selectedMasks.remove(selection);
           }
           break;
 
         case _MaskActionType.stroke:
-          final stroke =
-              last.stroke;
+          final stroke = last.stroke;
 
           if (stroke != null) {
-            _strokes.remove(
-              stroke,
-            );
+            _strokes.remove(stroke);
           }
           break;
 
         case _MaskActionType.protectedSelection:
-          final selection =
-              last.selection;
+          final selection = last.selection;
 
           if (selection != null) {
-            _protectedMasks.remove(
-              selection,
-            );
+            _protectedMasks.remove(selection);
           }
           break;
 
         case _MaskActionType.protectedStroke:
-          final stroke =
-              last.stroke;
+          final stroke = last.stroke;
 
           if (stroke != null) {
-            _protectedStrokes.remove(
-              stroke,
-            );
+            _protectedStrokes.remove(stroke);
           }
           break;
       }
@@ -771,9 +601,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   }
 
   void _clearSelection() {
-    if (_isRemoving ||
-        _isSegmenting ||
-        !_hasAnyOverlay) {
+    if (_isRemoving || _isSegmenting || !_hasAnyOverlay) {
       return;
     }
 
@@ -799,40 +627,24 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     final image = _decodedImage;
 
     if (image == null) {
-      throw StateError(
-        'Image is not available.',
-      );
+      throw StateError('Image is not available.');
     }
 
-    final recorder =
-        ui.PictureRecorder();
+    final recorder = ui.PictureRecorder();
 
-    final canvas =
-        Canvas(
-      recorder,
-    );
+    final canvas = Canvas(recorder);
 
-    final fullRect =
-        Rect.fromLTWH(
+    final fullRect = Rect.fromLTWH(
       0,
       0,
       image.width.toDouble(),
       image.height.toDouble(),
     );
 
-    canvas.drawRect(
-      fullRect,
-      Paint()
-        ..color =
-            Colors.transparent,
-    );
+    canvas.drawRect(fullRect, Paint()..color = Colors.transparent);
 
-    for (final result
-        in _selectedMasks) {
-      final maskImage =
-          await _decodeUiImage(
-        result.maskBytes,
-      );
+    for (final result in _selectedMasks) {
+      final maskImage = await _decodeUiImage(result.maskBytes);
 
       try {
         canvas.drawImageRect(
@@ -845,33 +657,23 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           ),
           fullRect,
           Paint()
-            ..blendMode =
-                BlendMode.srcOver
-            ..filterQuality =
-                FilterQuality.none,
+            ..blendMode = BlendMode.srcOver
+            ..filterQuality = FilterQuality.none,
         );
       } finally {
         maskImage.dispose();
       }
     }
 
-    final brushPaint =
-        Paint()
-          ..color =
-              Colors.white
-          ..strokeWidth =
-              _brushSize
-          ..strokeCap =
-              StrokeCap.round
-          ..strokeJoin =
-              StrokeJoin.round
-          ..style =
-              PaintingStyle.stroke
-          ..blendMode =
-              BlendMode.srcOver;
+    final brushPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = _brushSize
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..blendMode = BlendMode.srcOver;
 
-    for (final stroke
-        in _strokes) {
+    for (final stroke in _strokes) {
       _drawStroke(
         canvas: canvas,
         stroke: stroke,
@@ -895,40 +697,24 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     final image = _decodedImage;
 
     if (image == null) {
-      throw StateError(
-        'Image is not available.',
-      );
+      throw StateError('Image is not available.');
     }
 
-    final recorder =
-        ui.PictureRecorder();
+    final recorder = ui.PictureRecorder();
 
-    final canvas =
-        Canvas(
-      recorder,
-    );
+    final canvas = Canvas(recorder);
 
-    final fullRect =
-        Rect.fromLTWH(
+    final fullRect = Rect.fromLTWH(
       0,
       0,
       image.width.toDouble(),
       image.height.toDouble(),
     );
 
-    canvas.drawRect(
-      fullRect,
-      Paint()
-        ..color =
-            Colors.transparent,
-    );
+    canvas.drawRect(fullRect, Paint()..color = Colors.transparent);
 
-    for (final result
-        in _protectedMasks) {
-      final maskImage =
-          await _decodeUiImage(
-        result.maskBytes,
-      );
+    for (final result in _protectedMasks) {
+      final maskImage = await _decodeUiImage(result.maskBytes);
 
       try {
         canvas.drawImageRect(
@@ -941,33 +727,23 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           ),
           fullRect,
           Paint()
-            ..blendMode =
-                BlendMode.srcOver
-            ..filterQuality =
-                FilterQuality.none,
+            ..blendMode = BlendMode.srcOver
+            ..filterQuality = FilterQuality.none,
         );
       } finally {
         maskImage.dispose();
       }
     }
 
-    final protectPaint =
-        Paint()
-          ..color =
-              Colors.white
-          ..strokeWidth =
-              _brushSize
-          ..strokeCap =
-              StrokeCap.round
-          ..strokeJoin =
-              StrokeJoin.round
-          ..style =
-              PaintingStyle.stroke
-          ..blendMode =
-              BlendMode.srcOver;
+    final protectPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = _brushSize
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke
+      ..blendMode = BlendMode.srcOver;
 
-    for (final stroke
-        in _protectedStrokes) {
+    for (final stroke in _protectedStrokes) {
       _drawStroke(
         canvas: canvas,
         stroke: stroke,
@@ -988,30 +764,20 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     required int width,
     required int height,
   }) async {
-    final picture =
-        recorder.endRecording();
+    final picture = recorder.endRecording();
 
-    final maskImage =
-        await picture.toImage(
-      width,
-      height,
-    );
+    final maskImage = await picture.toImage(width, height);
 
     try {
-      final byteData =
-          await maskImage.toByteData(
-        format:
-            ui.ImageByteFormat.png,
+      final byteData = await maskImage.toByteData(
+        format: ui.ImageByteFormat.png,
       );
 
       if (byteData == null) {
-        throw StateError(
-          'Could not encode mask.',
-        );
+        throw StateError('Could not encode mask.');
       }
 
-      return byteData.buffer
-          .asUint8List(
+      return byteData.buffer.asUint8List(
         byteData.offsetInBytes,
         byteData.lengthInBytes,
       );
@@ -1036,50 +802,27 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
         stroke.first,
         brushSize / 2,
         Paint()
-          ..color =
-              Colors.white
-          ..style =
-              PaintingStyle.fill,
+          ..color = Colors.white
+          ..style = PaintingStyle.fill,
       );
 
       return;
     }
 
-    final path =
-        Path()
-          ..moveTo(
-            stroke.first.dx,
-            stroke.first.dy,
-          );
+    final path = Path()..moveTo(stroke.first.dx, stroke.first.dy);
 
-    for (
-      var index = 1;
-      index < stroke.length;
-      index++
-    ) {
-      path.lineTo(
-        stroke[index].dx,
-        stroke[index].dy,
-      );
+    for (var index = 1; index < stroke.length; index++) {
+      path.lineTo(stroke[index].dx, stroke[index].dy);
     }
 
-    canvas.drawPath(
-      path,
-      paint,
-    );
+    canvas.drawPath(path, paint);
   }
 
-  Future<ui.Image> _decodeUiImage(
-    Uint8List bytes,
-  ) async {
-    final codec =
-        await ui.instantiateImageCodec(
-      bytes,
-    );
+  Future<ui.Image> _decodeUiImage(Uint8List bytes) async {
+    final codec = await ui.instantiateImageCodec(bytes);
 
     try {
-      final frame =
-          await codec.getNextFrame();
+      final frame = await codec.getNextFrame();
 
       return frame.image;
     } finally {
@@ -1092,15 +835,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   // ===========================================================================
 
   Future<void> _removeSelectedArea() async {
-    if (_isRemoving ||
-        _isSegmenting) {
+    if (_isRemoving || _isSegmenting) {
       return;
     }
 
     if (!_hasMask) {
-      _showMessage(
-        'Select an object or paint an area first.',
-      );
+      _showMessage('Select an object or paint an area first.');
 
       return;
     }
@@ -1123,27 +863,20 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     });
 
     try {
-      final hadProtection =
-          _hasProtection;
+      final hadProtection = _hasProtection;
 
-      final removeMaskBytes =
-          await _createRemoveMask();
+      final removeMaskBytes = await _createRemoveMask();
 
-      final protectionMaskBytes =
-          await _createProtectionMask();
+      final protectionMaskBytes = await _createProtectionMask();
 
       if (!mounted) {
         return;
       }
 
-      final editedBytes =
-          await _offlineInpaintingService.inpaint(
-        imageBytes:
-            _currentImageBytes,
-        maskBytes:
-            removeMaskBytes,
-        protectionMaskBytes:
-            protectionMaskBytes,
+      final editedBytes = await _offlineInpaintingService.inpaint(
+        imageBytes: _currentImageBytes,
+        maskBytes: removeMaskBytes,
+        protectionMaskBytes: protectionMaskBytes,
       );
 
       if (!mounted) {
@@ -1157,8 +890,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       }
 
       setState(() {
-        _currentImageBytes =
-            editedBytes;
+        _currentImageBytes = editedBytes;
 
         _selectedMasks.clear();
         _strokes.clear();
@@ -1199,25 +931,17 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
         return;
       }
 
-      _showMessage(
-        error.message,
-      );
+      _showMessage(error.message);
     } catch (error, stackTrace) {
-      debugPrint(
-        'Offline object removal failed: $error',
-      );
+      debugPrint('Offline object removal failed: $error');
 
-      debugPrintStack(
-        stackTrace: stackTrace,
-      );
+      debugPrintStack(stackTrace: stackTrace);
 
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'Could not rebuild the selected area.',
-      );
+      _showMessage('Could not rebuild the selected area.');
     } finally {
       if (mounted) {
         setState(() {
@@ -1232,8 +956,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   // ===========================================================================
 
   Future<void> _resetToOriginal() async {
-    if (_isRemoving ||
-        _isSegmenting) {
+    if (_isRemoving || _isSegmenting) {
       return;
     }
 
@@ -1244,8 +967,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     }
 
     setState(() {
-      _currentImageBytes =
-          widget.imageBytes;
+      _currentImageBytes = widget.imageBytes;
 
       _selectedMasks.clear();
       _strokes.clear();
@@ -1278,32 +1000,24 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   // ===========================================================================
 
   void _saveAndFinish() {
-    if (_isRemoving ||
-        _isSegmenting) {
+    if (_isRemoving || _isSegmenting) {
       return;
     }
 
     if (!_hasEditedImage) {
-      _showMessage(
-        'Remove something first.',
-      );
+      _showMessage('Remove something first.');
 
       return;
     }
 
-    Navigator.of(context)
-        .pop<Uint8List>(
-      _currentImageBytes,
-    );
+    Navigator.of(context).pop<Uint8List>(_currentImageBytes);
   }
 
   // ===========================================================================
   // MESSAGE
   // ===========================================================================
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     if (!mounted) {
       return;
     }
@@ -1312,14 +1026,9 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content:
-              Text(
-            message,
-          ),
-          behavior:
-              SnackBarBehavior.floating,
-          backgroundColor:
-              _surfaceHighlight,
+          content: Text(message),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: _surfaceHighlight,
         ),
       );
   }
@@ -1328,8 +1037,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   void dispose() {
     _decodedImage?.dispose();
 
-    _segmentationService
-        .clearImageCache();
+    _segmentationService.clearImageCache();
 
     _zoomResetController.dispose();
 
@@ -1343,9 +1051,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
   // ===========================================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -1354,31 +1060,22 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           // ===================================================================
           // FULL-SCREEN PHOTO WORKSPACE
           // ===================================================================
-
           LayoutBuilder(
-            builder: (
-              context,
-              constraints,
-            ) {
+            builder: (context, constraints) {
               final viewportSize = Size(
                 constraints.maxWidth,
                 constraints.maxHeight,
               );
 
               return InteractiveViewer(
-                transformationController:
-                    _transformationController,
+                transformationController: _transformationController,
                 minScale: _minZoom,
                 maxScale: _maxZoom,
                 scaleEnabled: !_isRemoving,
-                panEnabled:
-                    _mode == _EraserMode.select,
-                boundaryMargin: const EdgeInsets.all(
-                  120,
-                ),
+                panEnabled: _mode == _EraserMode.select,
+                boundaryMargin: const EdgeInsets.all(120),
                 clipBehavior: Clip.hardEdge,
-                interactionEndFrictionCoefficient:
-                    0.0000135,
+                interactionEndFrictionCoefficient: 0.0000135,
                 child: SizedBox(
                   width: viewportSize.width,
                   height: viewportSize.height,
@@ -1388,101 +1085,76 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                       // Black letterbox space is intentional.
                       // The photo always uses BoxFit.contain, so no part of it
                       // is cropped simply to fill the device screen.
-                      const ColoredBox(
-                        color: Colors.black,
-                      ),
+                      const ColoredBox(color: Colors.black),
 
                       if (!_isLoadingImage)
                         Image.memory(
                           _currentImageBytes,
                           fit: BoxFit.contain,
                           gaplessPlayback: true,
-                          filterQuality:
-                              FilterQuality.high,
+                          filterQuality: FilterQuality.high,
                         ),
 
                       // =====================================================
                       // REMOVE MASKS
                       // =====================================================
-
                       if (!_isLoadingImage)
-                        ..._selectedMasks.map(
-                          (
-                            result,
-                          ) {
-                            return Positioned.fill(
-                              child: IgnorePointer(
-                                child: Opacity(
-                                  opacity: 0.48,
-                                  child: Image.memory(
-                                    result.maskBytes,
-                                    fit: BoxFit.contain,
-                                    gaplessPlayback: true,
-                                    filterQuality:
-                                        FilterQuality.none,
-                                    color: _purple,
-                                    colorBlendMode:
-                                        BlendMode.srcIn,
-                                  ),
+                        ..._selectedMasks.map((result) {
+                          return Positioned.fill(
+                            child: IgnorePointer(
+                              child: Opacity(
+                                opacity: 0.48,
+                                child: Image.memory(
+                                  result.maskBytes,
+                                  fit: BoxFit.contain,
+                                  gaplessPlayback: true,
+                                  filterQuality: FilterQuality.none,
+                                  color: _purple,
+                                  colorBlendMode: BlendMode.srcIn,
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        }),
 
                       // =====================================================
                       // PROTECTED MASKS
                       // =====================================================
-
                       if (!_isLoadingImage)
-                        ..._protectedMasks.map(
-                          (
-                            result,
-                          ) {
-                            return Positioned.fill(
-                              child: IgnorePointer(
-                                child: Opacity(
-                                  opacity: 0.46,
-                                  child: Image.memory(
-                                    result.maskBytes,
-                                    fit: BoxFit.contain,
-                                    gaplessPlayback: true,
-                                    filterQuality:
-                                        FilterQuality.none,
-                                    color: _protectGreen,
-                                    colorBlendMode:
-                                        BlendMode.srcIn,
-                                  ),
+                        ..._protectedMasks.map((result) {
+                          return Positioned.fill(
+                            child: IgnorePointer(
+                              child: Opacity(
+                                opacity: 0.46,
+                                child: Image.memory(
+                                  result.maskBytes,
+                                  fit: BoxFit.contain,
+                                  gaplessPlayback: true,
+                                  filterQuality: FilterQuality.none,
+                                  color: _protectGreen,
+                                  colorBlendMode: BlendMode.srcIn,
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        }),
 
                       // =====================================================
                       // REMOVE BRUSH
                       // =====================================================
-
                       if (!_isLoadingImage)
                         Positioned.fill(
                           child: IgnorePointer(
                             child: CustomPaint(
-                              painter:
-                                  _BrushOverlayPainter(
+                              painter: _BrushOverlayPainter(
                                 strokes: _strokes,
-                                mapPoint: (
-                                  point,
-                                ) {
+                                mapPoint: (point) {
                                   return _imagePointToCanvas(
                                     imagePoint: point,
-                                    canvasSize:
-                                        viewportSize,
+                                    canvasSize: viewportSize,
                                   );
                                 },
-                                brushSize:
-                                    _displayBrushSize(
-                                  viewportSize,
-                                ),
+                                brushSize: _displayBrushSize(viewportSize),
                                 color: _purple,
                               ),
                             ),
@@ -1492,30 +1164,20 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                       // =====================================================
                       // PROTECT BRUSH
                       // =====================================================
-
                       if (!_isLoadingImage)
                         Positioned.fill(
                           child: IgnorePointer(
                             child: CustomPaint(
-                              painter:
-                                  _BrushOverlayPainter(
-                                strokes:
-                                    _protectedStrokes,
-                                mapPoint: (
-                                  point,
-                                ) {
+                              painter: _BrushOverlayPainter(
+                                strokes: _protectedStrokes,
+                                mapPoint: (point) {
                                   return _imagePointToCanvas(
                                     imagePoint: point,
-                                    canvasSize:
-                                        viewportSize,
+                                    canvasSize: viewportSize,
                                   );
                                 },
-                                brushSize:
-                                    _displayBrushSize(
-                                  viewportSize,
-                                ),
-                                color:
-                                    _protectGreen,
+                                brushSize: _displayBrushSize(viewportSize),
+                                color: _protectGreen,
                               ),
                             ),
                           ),
@@ -1528,89 +1190,52 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                       // black letterbox region, so users cannot edit outside
                       // the actual photo.
                       // =====================================================
-
                       if (!_isLoadingImage)
                         Positioned.fill(
                           child: GestureDetector(
-                            behavior:
-                                HitTestBehavior.opaque,
+                            behavior: HitTestBehavior.opaque,
                             onTapUp:
-                                _mode ==
-                                            _EraserMode
-                                                .select ||
-                                        _mode ==
-                                            _EraserMode
-                                                .protect
-                                    ? (
-                                        details,
-                                      ) {
-                                        _handleTap(
-                                          canvasPoint:
-                                              details
-                                                  .localPosition,
-                                          canvasSize:
-                                              viewportSize,
-                                        );
-                                      }
-                                    : null,
+                                _mode == _EraserMode.select ||
+                                    _mode == _EraserMode.protect
+                                ? (details) {
+                                    _handleTap(
+                                      canvasPoint: details.localPosition,
+                                      canvasSize: viewportSize,
+                                    );
+                                  }
+                                : null,
                             onPanStart:
-                                _mode ==
-                                            _EraserMode
-                                                .brush ||
-                                        _mode ==
-                                            _EraserMode
-                                                .protect
-                                    ? (
-                                        details,
-                                      ) {
-                                        _startStroke(
-                                          canvasPoint:
-                                              details
-                                                  .localPosition,
-                                          canvasSize:
-                                              viewportSize,
-                                        );
-                                      }
-                                    : null,
+                                _mode == _EraserMode.brush ||
+                                    _mode == _EraserMode.protect
+                                ? (details) {
+                                    _startStroke(
+                                      canvasPoint: details.localPosition,
+                                      canvasSize: viewportSize,
+                                    );
+                                  }
+                                : null,
                             onPanUpdate:
-                                _mode ==
-                                            _EraserMode
-                                                .brush ||
-                                        _mode ==
-                                            _EraserMode
-                                                .protect
-                                    ? (
-                                        details,
-                                      ) {
-                                        _updateStroke(
-                                          canvasPoint:
-                                              details
-                                                  .localPosition,
-                                          canvasSize:
-                                              viewportSize,
-                                        );
-                                      }
-                                    : null,
+                                _mode == _EraserMode.brush ||
+                                    _mode == _EraserMode.protect
+                                ? (details) {
+                                    _updateStroke(
+                                      canvasPoint: details.localPosition,
+                                      canvasSize: viewportSize,
+                                    );
+                                  }
+                                : null,
                             onPanEnd:
-                                _mode ==
-                                            _EraserMode
-                                                .brush ||
-                                        _mode ==
-                                            _EraserMode
-                                                .protect
-                                    ? (_) {
-                                        _endStroke();
-                                      }
-                                    : null,
+                                _mode == _EraserMode.brush ||
+                                    _mode == _EraserMode.protect
+                                ? (_) {
+                                    _endStroke();
+                                  }
+                                : null,
                             onPanCancel:
-                                _mode ==
-                                            _EraserMode
-                                                .brush ||
-                                        _mode ==
-                                            _EraserMode
-                                                .protect
-                                    ? _endStroke
-                                    : null,
+                                _mode == _EraserMode.brush ||
+                                    _mode == _EraserMode.protect
+                                ? _endStroke
+                                : null,
                           ),
                         ),
                     ],
@@ -1623,88 +1248,58 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           // ===================================================================
           // TOP FLOATING BAR
           // ===================================================================
-
           SafeArea(
             bottom: false,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(
-                12,
-                8,
-                12,
-                0,
-              ),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Row(
                   children: [
                     _GlassIconButton(
                       tooltip: 'Back',
-                      icon:
-                          Icons.arrow_back_ios_new_rounded,
-                      onTap:
-                          _isRemoving || _isSegmenting
-                              ? null
-                              : () {
-                                  Navigator.of(context)
-                                      .maybePop();
-                                },
+                      icon: Icons.arrow_back_ios_new_rounded,
+                      onTap: _isRemoving || _isSegmenting
+                          ? null
+                          : () {
+                              Navigator.of(context).maybePop();
+                            },
                     ),
 
-                    const SizedBox(
-                      width: 10,
-                    ),
+                    const SizedBox(width: 10),
 
                     Expanded(
                       child: Column(
-                        mainAxisSize:
-                            MainAxisSize.min,
-                        crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
                             'Object Eraser',
                             maxLines: 1,
-                            overflow:
-                                TextOverflow.ellipsis,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 15,
-                              fontWeight:
-                                  FontWeight.w700,
+                              fontWeight: FontWeight.w700,
                               letterSpacing: -0.2,
                               shadows: [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 8,
-                                ),
+                                Shadow(color: Colors.black54, blurRadius: 8),
                               ],
                             ),
                           ),
-                          const SizedBox(
-                            height: 1,
-                          ),
+                          const SizedBox(height: 1),
                           Text(
                             switch (_mode) {
-                              _EraserMode.select =>
-                                'Smart select',
-                              _EraserMode.brush =>
-                                'Remove brush',
-                              _EraserMode.protect =>
-                                'Protect',
+                              _EraserMode.select => 'Smart select',
+                              _EraserMode.brush => 'Remove brush',
+                              _EraserMode.protect => 'Protect',
                             },
                             style: TextStyle(
-                              color: Colors.white
-                                  .withValues(
-                                alpha: 0.56,
-                              ),
+                              color: Colors.white.withValues(alpha: 0.56),
                               fontSize: 10,
-                              fontWeight:
-                                  FontWeight.w500,
+                              fontWeight: FontWeight.w500,
                               shadows: const [
-                                Shadow(
-                                  color: Colors.black54,
-                                  blurRadius: 6,
-                                ),
+                                Shadow(color: Colors.black54, blurRadius: 6),
                               ],
                             ),
                           ),
@@ -1715,31 +1310,24 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                     _GlassIconButton(
                       tooltip: 'Undo',
                       icon: Icons.undo_rounded,
-                      onTap: _history.isEmpty ||
-                              _isRemoving ||
-                              _isSegmenting
+                      onTap: _history.isEmpty || _isRemoving || _isSegmenting
                           ? null
                           : _undo,
                     ),
 
-                    const SizedBox(
-                      width: 7,
-                    ),
+                    const SizedBox(width: 7),
 
                     _GlassIconButton(
                       tooltip: 'Editing tools',
-                      icon:
-                          Icons.more_vert_rounded,
+                      icon: Icons.more_vert_rounded,
                       active: _showTools,
-                      onTap:
-                          _isRemoving || _isSegmenting
-                              ? null
-                              : () {
-                                  setState(() {
-                                    _showTools =
-                                        !_showTools;
-                                  });
-                                },
+                      onTap: _isRemoving || _isSegmenting
+                          ? null
+                          : () {
+                              setState(() {
+                                _showTools = !_showTools;
+                              });
+                            },
                     ),
                   ],
                 ),
@@ -1750,33 +1338,22 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           // ===================================================================
           // STATUS
           // ===================================================================
-
-          if (_isLoadingImage)
-            const _LoadingView(
-              title: 'Opening photo...',
-            ),
+          if (_isLoadingImage) const _LoadingView(title: 'Opening photo...'),
 
           if (_isSegmenting)
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.only(
-                  top: 66,
-                ),
+                padding: const EdgeInsets.only(top: 66),
                 child: Align(
-                  alignment:
-                      Alignment.topCenter,
+                  alignment: Alignment.topCenter,
                   child: _StatusPill(
-                    icon: _mode ==
-                            _EraserMode.protect
+                    icon: _mode == _EraserMode.protect
                         ? Icons.shield_outlined
-                        : Icons
-                            .auto_awesome_rounded,
-                    text: _mode ==
-                            _EraserMode.protect
+                        : Icons.auto_awesome_rounded,
+                    text: _mode == _EraserMode.protect
                         ? 'Protecting subject'
                         : 'Selecting object',
-                    color: _mode ==
-                            _EraserMode.protect
+                    color: _mode == _EraserMode.protect
                         ? _protectGreenLight
                         : _purpleLight,
                   ),
@@ -1790,34 +1367,24 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
               !_isRemoving)
             const SafeArea(
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: 66,
-                ),
+                padding: EdgeInsets.only(top: 66),
                 child: Align(
-                  alignment:
-                      Alignment.topCenter,
+                  alignment: Alignment.topCenter,
                   child: _StatusPill(
                     icon: Icons.memory_rounded,
-                    text:
-                        'Preparing Smart Select',
+                    text: 'Preparing Smart Select',
                     color: _purpleLight,
                   ),
                 ),
               ),
             ),
 
-          if (_hasEditedImage &&
-              !_isRemoving &&
-              !_isLoadingImage)
+          if (_hasEditedImage && !_isRemoving && !_isLoadingImage)
             const SafeArea(
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: 68,
-                  left: 14,
-                ),
+                padding: EdgeInsets.only(top: 68, left: 14),
                 child: Align(
-                  alignment:
-                      Alignment.topLeft,
+                  alignment: Alignment.topLeft,
                   child: _EditedBadge(),
                 ),
               ),
@@ -1826,7 +1393,6 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           // ===================================================================
           // FLOATING EDITOR PANEL
           // ===================================================================
-
           Positioned(
             left: 10,
             right: 10,
@@ -1834,28 +1400,15 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
             child: IgnorePointer(
               ignoring: !_showTools,
               child: AnimatedSlide(
-                duration: const Duration(
-                  milliseconds: 260,
-                ),
+                duration: const Duration(milliseconds: 260),
                 curve: Curves.easeOutCubic,
-                offset: _showTools
-                    ? Offset.zero
-                    : const Offset(
-                        0,
-                        1.08,
-                      ),
+                offset: _showTools ? Offset.zero : const Offset(0, 1.08),
                 child: AnimatedOpacity(
-                  duration: const Duration(
-                    milliseconds: 180,
-                  ),
-                  opacity:
-                      _showTools ? 1 : 0,
+                  duration: const Duration(milliseconds: 180),
+                  opacity: _showTools ? 1 : 0,
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxHeight:
-                          MediaQuery.sizeOf(context)
-                                  .height *
-                              0.70,
+                      maxHeight: MediaQuery.sizeOf(context).height * 0.70,
                     ),
                     child: _buildControls(),
                   ),
@@ -1867,13 +1420,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
           // ===================================================================
           // REBUILDING OVERLAY
           // ===================================================================
-
           if (_isRemoving)
             Positioned.fill(
               child: ColoredBox(
-                color: Colors.black.withValues(
-                  alpha: 0.64,
-                ),
+                color: Theme.of(
+                  context,
+                ).colorScheme.scrim.withValues(alpha: 0.45),
                 child: const _RemovingView(),
               ),
             ),
@@ -1888,40 +1440,20 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
 
   Widget _buildControls() {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(
-        28,
-      ),
+      borderRadius: BorderRadius.circular(28),
       child: BackdropFilter(
-        filter: ui.ImageFilter.blur(
-          sigmaX: 24,
-          sigmaY: 24,
-        ),
+        filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: const Color(
-              0xE61A1B1F,
-            ),
-            borderRadius: BorderRadius.circular(
-              28,
-            ),
-            border: Border.all(
-              color: Colors.white.withValues(
-                alpha: 0.10,
-              ),
-            ),
-            
+            color: const Color(0xE61A1B1F),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
           child: SafeArea(
             top: false,
             child: SingleChildScrollView(
-              physics:
-                  const BouncingScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(
-                16,
-                10,
-                16,
-                16,
-              ),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1929,19 +1461,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                     width: 34,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: 0.22,
-                      ),
-                      borderRadius:
-                          BorderRadius.circular(
-                        999,
-                      ),
+                      color: Colors.white.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(999),
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 13,
-                  ),
+                  const SizedBox(height: 13),
 
                   Row(
                     children: [
@@ -1951,8 +1476,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
-                            fontWeight:
-                                FontWeight.w700,
+                            fontWeight: FontWeight.w700,
                             letterSpacing: -0.3,
                           ),
                         ),
@@ -1961,29 +1485,20 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                       if (_hasAnyOverlay)
                         _PanelIconButton(
                           tooltip: 'Clear selection',
-                          icon: Icons
-                              .delete_sweep_outlined,
-                          onTap:
-                              _clearSelection,
+                          icon: Icons.delete_sweep_outlined,
+                          onTap: _clearSelection,
                         ),
 
                       if (_hasEditedImage) ...[
-                        const SizedBox(
-                          width: 6,
-                        ),
+                        const SizedBox(width: 6),
                         _PanelIconButton(
-                          tooltip:
-                              'Restore original',
-                          icon: Icons
-                              .restart_alt_rounded,
-                          onTap:
-                              _resetToOriginal,
+                          tooltip: 'Restore original',
+                          icon: Icons.restart_alt_rounded,
+                          onTap: _resetToOriginal,
                         ),
                       ],
 
-                      const SizedBox(
-                        width: 6,
-                      ),
+                      const SizedBox(width: 6),
 
                       _PanelIconButton(
                         tooltip: 'Close',
@@ -1997,93 +1512,64 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                     ],
                   ),
 
-                  const SizedBox(
-                    height: 5,
-                  ),
+                  const SizedBox(height: 5),
 
                   Align(
-                    alignment:
-                        Alignment.centerLeft,
+                    alignment: Alignment.centerLeft,
                     child: Text(
                       _statusSubtitle,
                       maxLines: 2,
-                      overflow:
-                          TextOverflow.ellipsis,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: Colors.white
-                            .withValues(
-                          alpha: 0.45,
-                        ),
+                        color: Colors.white.withValues(alpha: 0.45),
                         fontSize: 10.5,
                         height: 1.35,
                       ),
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 15,
-                  ),
+                  const SizedBox(height: 15),
 
                   // =========================================================
                   // MODE SELECTOR
                   // =========================================================
-
                   Row(
                     children: [
                       Expanded(
                         child: _CompactModeButton(
-                          icon: Icons
-                              .touch_app_rounded,
+                          icon: Icons.touch_app_rounded,
                           label: 'Select',
-                          selected: _mode ==
-                              _EraserMode.select,
-                          enabled:
-                              !_isPreparingSegmentation,
+                          selected: _mode == _EraserMode.select,
+                          enabled: !_isPreparingSegmentation,
                           color: _purpleLight,
                           onTap: () {
-                            _setMode(
-                              _EraserMode.select,
-                            );
+                            _setMode(_EraserMode.select);
                           },
                         ),
                       ),
-                      const SizedBox(
-                        width: 8,
-                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _CompactModeButton(
-                          icon:
-                              Icons.brush_rounded,
+                          icon: Icons.brush_rounded,
                           label: 'Brush',
-                          selected: _mode ==
-                              _EraserMode.brush,
+                          selected: _mode == _EraserMode.brush,
                           enabled: true,
                           color: _purpleLight,
                           onTap: () {
-                            _setMode(
-                              _EraserMode.brush,
-                            );
+                            _setMode(_EraserMode.brush);
                           },
                         ),
                       ),
-                      const SizedBox(
-                        width: 8,
-                      ),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: _CompactModeButton(
-                          icon:
-                              Icons.shield_outlined,
+                          icon: Icons.shield_outlined,
                           label: 'Protect',
-                          selected: _mode ==
-                              _EraserMode.protect,
-                          enabled:
-                              !_isPreparingSegmentation,
-                          color:
-                              _protectGreenLight,
+                          selected: _mode == _EraserMode.protect,
+                          enabled: !_isPreparingSegmentation,
+                          color: _protectGreenLight,
                           onTap: () {
-                            _setMode(
-                              _EraserMode.protect,
-                            );
+                            _setMode(_EraserMode.protect);
                           },
                         ),
                       ),
@@ -2093,48 +1579,21 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                   // =========================================================
                   // BRUSH SIZE
                   // =========================================================
-
                   AnimatedSwitcher(
-                    duration: const Duration(
-                      milliseconds: 170,
-                    ),
-                    child: (_mode ==
-                                _EraserMode.brush ||
-                            _mode ==
-                                _EraserMode.protect)
+                    duration: const Duration(milliseconds: 170),
+                    child:
+                        (_mode == _EraserMode.brush ||
+                            _mode == _EraserMode.protect)
                         ? Padding(
-                            key: ValueKey(
-                              'brush-${_mode.name}',
-                            ),
-                            padding:
-                                const EdgeInsets.only(
-                              top: 14,
-                            ),
+                            key: ValueKey('brush-${_mode.name}'),
+                            padding: const EdgeInsets.only(top: 14),
                             child: Container(
-                              padding:
-                                  const EdgeInsets
-                                      .fromLTRB(
-                                12,
-                                7,
-                                8,
-                                7,
-                              ),
-                              decoration:
-                                  BoxDecoration(
-                                color: Colors.white
-                                    .withValues(
-                                  alpha: 0.055,
-                                ),
-                                borderRadius:
-                                    BorderRadius
-                                        .circular(
-                                  16,
-                                ),
+                              padding: const EdgeInsets.fromLTRB(12, 7, 8, 7),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.055),
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: Colors.white
-                                      .withValues(
-                                    alpha: 0.065,
-                                  ),
+                                  color: Colors.white.withValues(alpha: 0.065),
                                 ),
                               ),
                               child: Row(
@@ -2144,135 +1603,84 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                                     height: 28,
                                     child: Center(
                                       child: Container(
-                                        width: 5 +
-                                            (_brushSize /
-                                                    360) *
-                                                10,
-                                        height: 5 +
-                                            (_brushSize /
-                                                    360) *
-                                                10,
-                                        decoration:
-                                            BoxDecoration(
-                                          shape:
-                                              BoxShape
-                                                  .circle,
-                                          color: _mode ==
-                                                  _EraserMode
-                                                      .protect
+                                        width: 5 + (_brushSize / 360) * 10,
+                                        height: 5 + (_brushSize / 360) * 10,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: _mode == _EraserMode.protect
                                               ? _protectGreenLight
                                               : _purpleLight,
                                         ),
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(
-                                    width: 5,
-                                  ),
+                                  const SizedBox(width: 5),
                                   const Text(
                                     'Size',
                                     style: TextStyle(
-                                      color:
-                                          Colors.white60,
+                                      color: Colors.white60,
                                       fontSize: 10,
-                                      fontWeight:
-                                          FontWeight
-                                              .w600,
+                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                   Expanded(
                                     child: Slider(
-                                      value:
-                                          _brushSize,
+                                      value: _brushSize,
                                       min: 25,
                                       max: 360,
-                                      activeColor: _mode ==
-                                              _EraserMode
-                                                  .protect
+                                      activeColor: _mode == _EraserMode.protect
                                           ? _protectGreenLight
                                           : _purpleLight,
-                                      inactiveColor:
-                                          Colors.white12,
-                                      onChanged:
-                                          _isRemoving
-                                              ? null
-                                              : (
-                                                  value,
-                                                ) {
-                                                  setState(
-                                                    () {
-                                                      _brushSize =
-                                                          value;
-                                                    },
-                                                  );
-                                                },
+                                      inactiveColor: Colors.white12,
+                                      onChanged: _isRemoving
+                                          ? null
+                                          : (value) {
+                                              setState(() {
+                                                _brushSize = value;
+                                              });
+                                            },
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                           )
-                        : const SizedBox.shrink(
-                            key: ValueKey(
-                              'no-brush',
-                            ),
-                          ),
+                        : const SizedBox.shrink(key: ValueKey('no-brush')),
                   ),
 
-                  const SizedBox(
-                    height: 14,
-                  ),
+                  const SizedBox(height: 14),
 
                   // =========================================================
                   // CURRENT STATE
                   // =========================================================
-
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.fromLTRB(
-                      13,
-                      11,
-                      13,
-                      11,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(13, 11, 13, 11),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(
-                        alpha: 0.045,
-                      ),
-                      borderRadius:
-                          BorderRadius.circular(
-                        16,
-                      ),
+                      color: Colors.white.withValues(alpha: 0.045),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment
-                                    .start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 _statusTitle,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 12,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                               if (_hasAnyOverlay) ...[
-                                const SizedBox(
-                                  height: 3,
-                                ),
+                                const SizedBox(height: 3),
                                 Text(
                                   '${_selectedMasks.length + _strokes.length} remove'
                                   '${_hasProtection ? '  •  ${_protectedMasks.length + _protectedStrokes.length} protected' : ''}',
                                   style: TextStyle(
-                                    color: Colors.white
-                                        .withValues(
-                                      alpha: 0.38,
-                                    ),
+                                    color: Colors.white.withValues(alpha: 0.38),
                                     fontSize: 9.5,
                                   ),
                                 ),
@@ -2284,8 +1692,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                           const SizedBox(
                             width: 15,
                             height: 15,
-                            child:
-                                CircularProgressIndicator(
+                            child: CircularProgressIndicator(
                               strokeWidth: 1.7,
                               color: _purpleLight,
                             ),
@@ -2294,123 +1701,80 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
                     ),
                   ),
 
-                  const SizedBox(
-                    height: 14,
-                  ),
+                  const SizedBox(height: 14),
 
                   // =========================================================
                   // REMOVE
                   // =========================================================
-
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
-                      onPressed: _hasMask &&
+                      onPressed:
+                          _hasMask &&
                               !_isRemoving &&
                               !_isSegmenting &&
                               !_isLoadingImage
                           ? _removeSelectedArea
                           : null,
                       style: FilledButton.styleFrom(
-                        backgroundColor:
-                            Colors.white,
-                        foregroundColor:
-                            Colors.black,
-                        disabledBackgroundColor:
-                            Colors.white.withValues(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black,
+                        disabledBackgroundColor: Colors.white.withValues(
                           alpha: 0.10,
                         ),
-                        disabledForegroundColor:
-                            Colors.white.withValues(
+                        disabledForegroundColor: Colors.white.withValues(
                           alpha: 0.32,
                         ),
                         elevation: 0,
-                        padding: const EdgeInsets
-                            .symmetric(
-                          vertical: 14,
-                        ),
-                        shape:
-                            RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(
-                            15,
-                          ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
                       ),
                       icon: _isRemoving
                           ? const SizedBox(
                               width: 17,
                               height: 17,
-                              child:
-                                  CircularProgressIndicator(
+                              child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 color: Colors.black,
                               ),
                             )
-                          : const Icon(
-                              Icons
-                                  .auto_fix_high_rounded,
-                              size: 18,
-                            ),
+                          : const Icon(Icons.auto_fix_high_rounded, size: 18),
                       label: Text(
-                        _isRemoving
-                            ? 'Removing'
-                            : 'Remove selected area',
+                        _isRemoving ? 'Removing' : 'Remove selected area',
                         style: const TextStyle(
                           fontSize: 12.5,
-                          fontWeight:
-                              FontWeight.w700,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ),
                   ),
 
                   if (_hasEditedImage) ...[
-                    const SizedBox(
-                      height: 9,
-                    ),
+                    const SizedBox(height: 9),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed:
-                            _isRemoving ||
-                                    _isSegmenting
-                                ? null
-                                : _saveAndFinish,
-                        style:
-                            OutlinedButton.styleFrom(
-                          foregroundColor:
-                              Colors.white,
+                        onPressed: _isRemoving || _isSegmenting
+                            ? null
+                            : _saveAndFinish,
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
                           side: BorderSide(
-                            color: Colors.white
-                                .withValues(
-                              alpha: 0.16,
-                            ),
+                            color: Colors.white.withValues(alpha: 0.16),
                           ),
-                          padding:
-                              const EdgeInsets
-                                  .symmetric(
-                            vertical: 13,
-                          ),
-                          shape:
-                              RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                              15,
-                            ),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
                           ),
                         ),
-                        icon: const Icon(
-                          Icons.check_rounded,
-                          size: 18,
-                        ),
+                        icon: const Icon(Icons.check_rounded, size: 18),
                         label: const Text(
                           'Save & Finish',
                           style: TextStyle(
                             fontSize: 12,
-                            fontWeight:
-                                FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
@@ -2431,14 +1795,12 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
     }
 
     if (_isSegmenting) {
-      return _mode ==
-              _EraserMode.protect
+      return _mode == _EraserMode.protect
           ? 'Detecting protected subject'
           : 'Detecting object';
     }
 
-    if (_mode ==
-        _EraserMode.protect) {
+    if (_mode == _EraserMode.protect) {
       return 'Protect important areas';
     }
 
@@ -2450,8 +1812,7 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return 'Edit complete';
     }
 
-    if (_mode ==
-        _EraserMode.select) {
+    if (_mode == _EraserMode.select) {
       return 'Tap objects to select';
     }
 
@@ -2463,13 +1824,11 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return 'LaMa is reconstructing the background while protected pixels remain untouched.';
     }
 
-    if (_mode ==
-        _EraserMode.protect) {
+    if (_mode == _EraserMode.protect) {
       return 'Tap or paint protected areas. Pinch with two fingers to zoom.';
     }
 
-    if (_hasMask &&
-        _hasProtection) {
+    if (_hasMask && _hasProtection) {
       return 'Green areas have priority and will never be sent to LaMa for reconstruction.';
     }
 
@@ -2481,15 +1840,13 @@ class _ObjectEraserScreenState extends State<ObjectEraserScreen>
       return 'Keep editing, or save the finished result.';
     }
 
-    if (_mode ==
-        _EraserMode.select) {
+    if (_mode == _EraserMode.select) {
       return 'Tap objects to select. Pinch with two fingers to zoom.';
     }
 
     return 'Paint unwanted areas. Pinch with two fingers to zoom.';
   }
 }
-
 
 // =============================================================================
 // PREMIUM FLOATING CONTROLS
@@ -2509,49 +1866,33 @@ class _GlassIconButton extends StatelessWidget {
   final bool active;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     final enabled = onTap != null;
 
     return Tooltip(
       message: tooltip,
       child: ClipOval(
         child: BackdropFilter(
-          filter: ui.ImageFilter.blur(
-            sigmaX: 16,
-            sigmaY: 16,
-          ),
+          filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
           child: Material(
             color: active
-                ? Colors.white.withValues(
-                    alpha: 0.18,
-                  )
-                : Colors.black.withValues(
-                    alpha:
-                        enabled ? 0.34 : 0.18,
-                  ),
+                ? Colors.white.withValues(alpha: 0.18)
+                : Colors.black.withValues(alpha: enabled ? 0.34 : 0.18),
             shape: CircleBorder(
               side: BorderSide(
-                color: Colors.white.withValues(
-                  alpha:
-                      active ? 0.20 : 0.10,
-                ),
+                color: Colors.white.withValues(alpha: active ? 0.20 : 0.10),
               ),
             ),
             child: InkWell(
               onTap: onTap,
-              customBorder:
-                  const CircleBorder(),
+              customBorder: const CircleBorder(),
               child: SizedBox(
                 width: 40,
                 height: 40,
                 child: Icon(
                   icon,
                   size: 19,
-                  color: enabled
-                      ? Colors.white
-                      : Colors.white24,
+                  color: enabled ? Colors.white : Colors.white24,
                 ),
               ),
             ),
@@ -2574,29 +1915,22 @@ class _PanelIconButton extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.white.withValues(
-          alpha: 0.06,
-        ),
+        color: Colors.white.withValues(alpha: 0.06),
         shape: const CircleBorder(),
         child: InkWell(
           onTap: onTap,
-          customBorder:
-              const CircleBorder(),
+          customBorder: const CircleBorder(),
           child: SizedBox(
             width: 34,
             height: 34,
             child: Icon(
               icon,
               size: 17,
-              color: onTap == null
-                  ? Colors.white24
-                  : Colors.white70,
+              color: onTap == null ? Colors.white24 : Colors.white70,
             ),
           ),
         ),
@@ -2623,47 +1957,28 @@ class _CompactModeButton extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(
-        milliseconds: 160,
-      ),
+      duration: const Duration(milliseconds: 160),
       decoration: BoxDecoration(
         color: selected
-            ? Colors.white.withValues(
-                alpha: 0.11,
-              )
-            : Colors.white.withValues(
-                alpha: 0.045,
-              ),
-        borderRadius: BorderRadius.circular(
-          15,
-        ),
+            ? Colors.white.withValues(alpha: 0.11)
+            : Colors.white.withValues(alpha: 0.045),
+        borderRadius: BorderRadius.circular(15),
         border: Border.all(
           color: selected
-              ? Colors.white.withValues(
-                  alpha: 0.17,
-                )
-              : Colors.white.withValues(
-                  alpha: 0.055,
-                ),
+              ? Colors.white.withValues(alpha: 0.17)
+              : Colors.white.withValues(alpha: 0.055),
         ),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(
-          15,
-        ),
+        borderRadius: BorderRadius.circular(15),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: enabled ? onTap : null,
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 11,
-              horizontal: 5,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 5),
             child: Column(
               children: [
                 Icon(
@@ -2672,12 +1987,10 @@ class _CompactModeButton extends StatelessWidget {
                   color: !enabled
                       ? Colors.white24
                       : selected
-                          ? color
-                          : Colors.white60,
+                      ? color
+                      : Colors.white60,
                 ),
-                const SizedBox(
-                  height: 5,
-                ),
+                const SizedBox(height: 5),
                 Text(
                   label,
                   maxLines: 1,
@@ -2685,12 +1998,10 @@ class _CompactModeButton extends StatelessWidget {
                     color: !enabled
                         ? Colors.white24
                         : selected
-                            ? Colors.white
-                            : Colors.white60,
+                        ? Colors.white
+                        : Colors.white60,
                     fontSize: 9.5,
-                    fontWeight: selected
-                        ? FontWeight.w600
-                        : FontWeight.w500,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
               ],
@@ -2702,60 +2013,30 @@ class _CompactModeButton extends StatelessWidget {
   }
 }
 
-
 // =============================================================================
 // HISTORY
 // =============================================================================
 
 class _MaskAction {
-  const _MaskAction._({
-    required this.type,
-    this.selection,
-    this.stroke,
-  });
+  const _MaskAction._({required this.type, this.selection, this.stroke});
 
-  factory _MaskAction.selection(
-    SegmentationResult result,
-  ) {
+  factory _MaskAction.selection(SegmentationResult result) {
+    return _MaskAction._(type: _MaskActionType.selection, selection: result);
+  }
+
+  factory _MaskAction.stroke(List<Offset> stroke) {
+    return _MaskAction._(type: _MaskActionType.stroke, stroke: stroke);
+  }
+
+  factory _MaskAction.protectedSelection(SegmentationResult result) {
     return _MaskAction._(
-      type:
-          _MaskActionType.selection,
-      selection:
-          result,
+      type: _MaskActionType.protectedSelection,
+      selection: result,
     );
   }
 
-  factory _MaskAction.stroke(
-    List<Offset> stroke,
-  ) {
-    return _MaskAction._(
-      type:
-          _MaskActionType.stroke,
-      stroke:
-          stroke,
-    );
-  }
-
-  factory _MaskAction.protectedSelection(
-    SegmentationResult result,
-  ) {
-    return _MaskAction._(
-      type:
-          _MaskActionType.protectedSelection,
-      selection:
-          result,
-    );
-  }
-
-  factory _MaskAction.protectedStroke(
-    List<Offset> stroke,
-  ) {
-    return _MaskAction._(
-      type:
-          _MaskActionType.protectedStroke,
-      stroke:
-          stroke,
-    );
+  factory _MaskAction.protectedStroke(List<Offset> stroke) {
+    return _MaskAction._(type: _MaskActionType.protectedStroke, stroke: stroke);
   }
 
   final _MaskActionType type;
@@ -2779,122 +2060,62 @@ class _BrushOverlayPainter extends CustomPainter {
 
   final List<List<Offset>> strokes;
 
-  final Offset Function(
-    Offset imagePoint,
-  )
-  mapPoint;
+  final Offset Function(Offset imagePoint) mapPoint;
 
   final double brushSize;
   final Color color;
 
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
-    final glowPaint =
-        Paint()
-          ..color =
-              color.withValues(
-            alpha:
-                0.22,
-          )
-          ..strokeWidth =
-              brushSize +
-              8
-          ..strokeCap =
-              StrokeCap.round
-          ..strokeJoin =
-              StrokeJoin.round
-          ..style =
-              PaintingStyle.stroke;
+  void paint(Canvas canvas, Size size) {
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: 0.22)
+      ..strokeWidth = brushSize + 8
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
 
-    final strokePaint =
-        Paint()
-          ..color =
-              color.withValues(
-            alpha:
-                0.57,
-          )
-          ..strokeWidth =
-              brushSize
-          ..strokeCap =
-              StrokeCap.round
-          ..strokeJoin =
-              StrokeJoin.round
-          ..style =
-              PaintingStyle.stroke;
+    final strokePaint = Paint()
+      ..color = color.withValues(alpha: 0.57)
+      ..strokeWidth = brushSize
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
 
-    for (final stroke
-        in strokes) {
+    for (final stroke in strokes) {
       if (stroke.isEmpty) {
         continue;
       }
 
       if (stroke.length == 1) {
-        final point =
-            mapPoint(
-          stroke.first,
-        );
+        final point = mapPoint(stroke.first);
 
         canvas.drawCircle(
           point,
           brushSize / 2,
-          Paint()
-            ..color =
-                color.withValues(
-              alpha:
-                  0.57,
-            ),
+          Paint()..color = color.withValues(alpha: 0.57),
         );
 
         continue;
       }
 
-      final first =
-          mapPoint(
-        stroke.first,
-      );
+      final first = mapPoint(stroke.first);
 
-      final path =
-          Path()
-            ..moveTo(
-              first.dx,
-              first.dy,
-            );
+      final path = Path()..moveTo(first.dx, first.dy);
 
-      for (
-        var index = 1;
-        index < stroke.length;
-        index++
-      ) {
-        final point =
-            mapPoint(
-          stroke[index],
-        );
+      for (var index = 1; index < stroke.length; index++) {
+        final point = mapPoint(stroke[index]);
 
-        path.lineTo(
-          point.dx,
-          point.dy,
-        );
+        path.lineTo(point.dx, point.dy);
       }
 
-      canvas.drawPath(
-        path,
-        glowPaint,
-      );
+      canvas.drawPath(path, glowPaint);
 
-      canvas.drawPath(
-        path,
-        strokePaint,
-      );
+      canvas.drawPath(path, strokePaint);
     }
   }
 
   @override
-  bool shouldRepaint(
-    covariant _BrushOverlayPainter oldDelegate,
-  ) {
+  bool shouldRepaint(covariant _BrushOverlayPainter oldDelegate) {
     return true;
   }
 }
@@ -2903,17 +2124,13 @@ class _BrushOverlayPainter extends CustomPainter {
 // PREMIUM REMOVE BUTTON
 // =============================================================================
 
-
 // =============================================================================
 // MODE BUTTON
 // =============================================================================
 
-
 // =============================================================================
 // TOP APP BAR ACTION
 // =============================================================================
-
-
 
 // =============================================================================
 // STATUS PILL
@@ -2931,100 +2148,43 @@ class _StatusPill extends StatelessWidget {
   final Color color;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Center(
-      child:
-          ClipRRect(
-        borderRadius:
-            BorderRadius.circular(
-          999,
-        ),
-        child:
-            BackdropFilter(
-          filter:
-              ui.ImageFilter.blur(
-            sigmaX:
-                12,
-            sigmaY:
-                12,
-          ),
-          child:
-              Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal:
-                  12,
-              vertical:
-                  8,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: BackdropFilter(
+          filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xCC0D1321),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
-            decoration:
-                BoxDecoration(
-              color:
-                  const Color(
-                0xCC0D1321,
-              ),
-              borderRadius:
-                  BorderRadius.circular(
-                999,
-              ),
-              border:
-                  Border.all(
-                color:
-                    Colors.white.withValues(
-                  alpha:
-                      0.08,
-                ),
-              ),
-            ),
-            child:
-                Row(
-              mainAxisSize:
-                  MainAxisSize.min,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
                 SizedBox(
-                  width:
-                      12,
-                  height:
-                      12,
-                  child:
-                      CircularProgressIndicator(
-                    strokeWidth:
-                        1.7,
-                    color:
-                        color,
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1.7,
+                    color: color,
                   ),
                 ),
 
-                const SizedBox(
-                  width:
-                      8,
-                ),
+                const SizedBox(width: 8),
 
-                Icon(
-                  icon,
-                  color:
-                      color,
-                  size:
-                      14,
-                ),
+                Icon(icon, color: color, size: 14),
 
-                const SizedBox(
-                  width:
-                      6,
-                ),
+                const SizedBox(width: 6),
 
                 Text(
                   text,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white,
-                    fontSize:
-                        10.5,
-                    fontWeight:
-                        FontWeight.w600,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -3044,71 +2204,27 @@ class _EditedBadge extends StatelessWidget {
   const _EditedBadge();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal:
-            10,
-        vertical:
-            6,
-      ),
-      decoration:
-          BoxDecoration(
-        color:
-            const Color(
-          0xFF052E1B,
-        ).withValues(
-          alpha:
-              0.92,
-        ),
-        borderRadius:
-            BorderRadius.circular(
-          999,
-        ),
-        border:
-            Border.all(
-          color:
-              const Color(
-            0xFF22C55E,
-          ).withValues(
-            alpha:
-                0.24,
-          ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF052E1B).withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: const Color(0xFF22C55E).withValues(alpha: 0.24),
         ),
       ),
-      child:
-          const Row(
-        mainAxisSize:
-            MainAxisSize.min,
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            Icons.check_circle_rounded,
-            color:
-                Color(
-              0xFF86EFAC,
-            ),
-            size:
-                14,
-          ),
-          SizedBox(
-            width:
-                5,
-          ),
+          Icon(Icons.check_circle_rounded, color: Color(0xFF86EFAC), size: 14),
+          SizedBox(width: 5),
           Text(
             'Edited',
-            style:
-                TextStyle(
-              color:
-                  Color(
-                0xFFBBF7D0,
-              ),
-              fontSize:
-                  10.5,
-              fontWeight:
-                  FontWeight.w700,
+            style: TextStyle(
+              color: Color(0xFFBBF7D0),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -3122,72 +2238,40 @@ class _EditedBadge extends StatelessWidget {
 // =============================================================================
 
 class _LoadingView extends StatelessWidget {
-  const _LoadingView({
-    required this.title,
-  });
+  const _LoadingView({required this.title});
 
   final String title;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Center(
-      child:
-          Column(
-        mainAxisSize:
-            MainAxisSize.min,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width:
-                54,
-            height:
-                54,
-            decoration:
-                BoxDecoration(
-              color:
-                  const Color(
-                0xFF8B5CF6,
-              ).withValues(
-                alpha:
-                    0.08,
-              ),
-              shape:
-                  BoxShape.circle,
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+              shape: BoxShape.circle,
             ),
-            child:
-                const Padding(
-              padding:
-                  EdgeInsets.all(
-                15,
-              ),
-              child:
-                  CircularProgressIndicator(
-                strokeWidth:
-                    2,
-                color:
-                    Color(
-                  0xFFC4B5FD,
-                ),
+            child: const Padding(
+              padding: EdgeInsets.all(15),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Color(0xFFC4B5FD),
               ),
             ),
           ),
 
-          const SizedBox(
-            height:
-                16,
-          ),
+          const SizedBox(height: 16),
 
           Text(
             title,
-            style:
-                const TextStyle(
-              color:
-                  Colors.white70,
-              fontSize:
-                  12,
-              fontWeight:
-                  FontWeight.w600,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -3204,166 +2288,78 @@ class _RemovingView extends StatelessWidget {
   const _RemovingView();
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Center(
-      child:
-          ConstrainedBox(
-        constraints:
-            const BoxConstraints(
-          maxWidth:
-              340,
-        ),
-        child:
-            Container(
-          margin:
-              const EdgeInsets.symmetric(
-            horizontal:
-                24,
-          ),
-          padding:
-              const EdgeInsets.fromLTRB(
-            28,
-            26,
-            28,
-            24,
-          ),
-          decoration:
-              BoxDecoration(
-            color:
-                const Color(
-              0xF20D1321,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 340),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.fromLTRB(28, 26, 28, 24),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.45),
             ),
-            borderRadius:
-                BorderRadius.circular(
-              24,
-            ),
-            border:
-                Border.all(
-              color:
-                  const Color(
-                0xFF8B5CF6,
-              ).withValues(
-                alpha:
-                    0.18,
-              ),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    const Color(
-                  0xFF8B5CF6,
-                ).withValues(
-                  alpha:
-                      0.12,
-                ),
-                blurRadius:
-                    32,
-              ),
-            ],
           ),
-          child:
-              const Column(
-            mainAxisSize:
-                MainAxisSize.min,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
-                width:
-                    42,
-                height:
-                    42,
-                child:
-                    CircularProgressIndicator(
-                  strokeWidth:
-                      2.4,
-                  color:
-                      Color(
-                    0xFFC4B5FD,
-                  ),
+                width: 42,
+                height: 42,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  color: colorScheme.primary,
                 ),
               ),
 
-              SizedBox(
-                height:
-                    20,
-              ),
+              const SizedBox(height: 20),
 
               Text(
                 'Rebuilding background',
-                textAlign:
-                    TextAlign.center,
-                style:
-                    TextStyle(
-                  color:
-                      Colors.white,
-                  fontSize:
-                      16,
-                  fontWeight:
-                      FontWeight.w800,
-                  letterSpacing:
-                      -0.2,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
                 ),
               ),
 
-              SizedBox(
-                height:
-                    7,
-              ),
+              const SizedBox(height: 7),
 
               Text(
                 'Protected subjects stay untouched while neural inpainting rebuilds the selected area.',
-                textAlign:
-                    TextAlign.center,
-                style:
-                    TextStyle(
-                  color:
-                      Colors.white54,
-                  fontSize:
-                      11,
-                  height:
-                      1.45,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  height: 1.45,
                 ),
               ),
 
-              SizedBox(
-                height:
-                    14,
-              ),
+              const SizedBox(height: 14),
 
               Row(
-                mainAxisSize:
-                    MainAxisSize.min,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.shield_outlined,
-                    color:
-                        Color(
-                      0xFF86EFAC,
-                    ),
-                    size:
-                        13,
+                    color: colorScheme.primary,
+                    size: 13,
                   ),
-                  SizedBox(
-                    width:
-                        5,
-                  ),
+
+                  const SizedBox(width: 5),
+
                   Flexible(
-                    child:
-                        Text(
+                    child: Text(
                       'Protected pixels are locked',
-                      textAlign:
-                          TextAlign.center,
-                      style:
-                          TextStyle(
-                        color:
-                            Color(
-                          0xFF86EFAC,
-                        ),
-                        fontSize:
-                            9.5,
-                        fontWeight:
-                            FontWeight.w600,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

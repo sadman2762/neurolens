@@ -92,6 +92,9 @@ flutter:
     - assets/models/sam_mask_decoder_single.onnx
     - assets/models/lama.onnx
 
+  shaders:
+    - shaders/neurolens_grade.frag
+    
   fonts:
     - family: Caveat
       fonts:
