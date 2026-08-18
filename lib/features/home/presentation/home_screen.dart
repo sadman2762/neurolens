@@ -11,7 +11,6 @@ import 'package:neurolens/features/memory/presentation/widgets/memory_grid_item.
 import 'package:neurolens/features/memory/providers/memory_filter_provider.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:neurolens/features/search/providers/voice_search_providers.dart';
-import 'package:neurolens/features/subscription/presentation/premium_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -205,18 +204,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Future<void> _openPremiumScreen() async {
-    final purchased = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(builder: (_) => const PremiumScreen()),
-    );
-
-    if (!mounted || purchased != true) {
-      return;
-    }
-
-    _showMessage('Premium activated successfully.');
-  }
-
   void _openAccountSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -224,10 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       isScrollControlled: true,
       backgroundColor: _surfaceColor,
       builder: (_) {
-        return AccountBottomSheet(
-          onSignOut: _signOut,
-          onUpgrade: _openPremiumScreen,
-        );
+        return AccountBottomSheet(onSignOut: _signOut);
       },
     );
   }

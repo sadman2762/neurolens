@@ -7,19 +7,16 @@ import 'package:neurolens/features/auth/presentation/delete_account_screen.dart'
 class AccountBottomSheet extends ConsumerWidget {
   const AccountBottomSheet({
     required this.onSignOut,
-    required this.onUpgrade,
     super.key,
   });
 
   final Future<void> Function() onSignOut;
-  final VoidCallback onUpgrade;
 
   static const Color _cardColor = Color(0xFF141B2D);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final profileState = ref.watch(userProfileProvider);
 
     final email = user?.email ?? 'No email available';
     final displayName = user?.displayName?.trim();
@@ -27,284 +24,234 @@ class AccountBottomSheet extends ConsumerWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
-        child: profileState.when(
-          loading: () => const SizedBox(
-            height: 360,
-            child: Center(
-              child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
-            ),
-          ),
-          error: (error, stackTrace) {
-            return SizedBox(
-              height: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF60A5FA),
+                    Color(0xFF8B5CF6),
+                    Color(0xFFC084FC),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(
+                      0xFF8B5CF6,
+                    ).withValues(alpha: 0.28),
+                    blurRadius: 22,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
               child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Could not load account information.\n$error',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.65),
-                      height: 1.5,
-                    ),
+                child: Text(
+                  _accountInitial(
+                    displayName: displayName,
+                    email: email,
+                  ),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
-            );
-          },
-          data: (profile) {
-            final isPremium = profile?.isPremium == true;
-            final planLabel = isPremium ? 'Premium' : 'Free';
-            final creditsRemaining = profile?.creditsRemaining ?? 0;
-            final creditsUsed = profile?.creditsUsed ?? 0;
+            ),
+            const SizedBox(height: 14),
 
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF60A5FA),
-                        Color(0xFF8B5CF6),
-                        Color(0xFFC084FC),
-                      ],
+            Text(
+              displayName?.isNotEmpty == true
+                  ? displayName!
+                  : 'NeuroLens account',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 5),
+
+            Text(
+              email,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 14,
+              ),
+            ),
+
+            const SizedBox(height: 26),
+
+            Container(
+              decoration: BoxDecoration(
+                color: _cardColor,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+              child: Column(
+                children: [
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 2,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.35),
-                        blurRadius: 24,
-                        spreadRadius: 2,
+                    leading: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(
+                          0xFF60A5FA,
+                        ).withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(11),
                       ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      _accountInitial(displayName: displayName, email: email),
-                      style: const TextStyle(
+                      child: const Icon(
+                        Icons.lock_outline_rounded,
+                        color: Color(0xFF60A5FA),
+                        size: 21,
+                      ),
+                    ),
+                    title: const Text(
+                      'Change password',
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
                       ),
                     ),
+                    subtitle: Text(
+                      'Update your account password',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.42),
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white30,
+                      size: 15,
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  displayName?.isNotEmpty == true
-                      ? displayName!
-                      : 'NeuroLens account',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 21,
-                    fontWeight: FontWeight.w700,
+
+                  Divider(
+                    height: 1,
+                    indent: 72,
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
+
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 2,
+                    ),
+                    leading: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(
+                          0xFFF87171,
+                        ).withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Color(0xFFF87171),
+                        size: 21,
+                      ),
+                    ),
+                    title: const Text(
+                      'Delete account',
+                      style: TextStyle(
+                        color: Color(0xFFFCA5A5),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                    subtitle: Text(
+                      'Permanently remove your account',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.42),
+                        fontSize: 12,
+                      ),
+                    ),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      color: Colors.white30,
+                      size: 15,
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              const DeleteAccountScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await onSignOut();
+                },
+                icon: const Icon(
+                  Icons.logout_rounded,
+                  size: 20,
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  email,
-                  textAlign: TextAlign.center,
+                label: const Text(
+                  'Sign out',
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.5),
-                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 22),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _AccountStatCard(
-                        icon: Icons.workspace_premium_outlined,
-                        label: 'Current plan',
-                        value: planLabel,
-                        iconColor: const Color(0xFFC4B5FD),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _AccountStatCard(
-                        icon: Icons.auto_awesome_rounded,
-                        label: 'AI credits',
-                        value: '$creditsRemaining remaining',
-                        iconColor: const Color(0xFF60A5FA),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 13,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFFCA5A5),
+                  side: BorderSide(
+                    color: const Color(
+                      0xFFF87171,
+                    ).withValues(alpha: 0.22),
                   ),
-                  decoration: BoxDecoration(
-                    color: _cardColor,
+                  backgroundColor: const Color(
+                    0xFFF87171,
+                  ).withValues(alpha: 0.05),
+                  shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.analytics_outlined,
-                        color: Colors.white.withValues(alpha: 0.5),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '$creditsUsed AI credits used this month',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.6),
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                Container(
-                  decoration: BoxDecoration(
-                    color: _cardColor,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.06),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      if (!isPremium)
-                        ListTile(
-                          leading: const Icon(
-                            Icons.workspace_premium_outlined,
-                            color: Color(0xFFC4B5FD),
-                          ),
-                          title: const Text(
-                            'Upgrade to Premium',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          subtitle: Text(
-                            '500 AI credits and no ads',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.45),
-                            ),
-                          ),
-                          trailing: const Icon(
-                            Icons.arrow_forward_ios_rounded,
-                            color: Colors.white38,
-                            size: 16,
-                          ),
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            onUpgrade();
-                          },
-                        ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.lock_outline_rounded,
-                          color: Color(0xFF60A5FA),
-                        ),
-                        title: const Text(
-                          'Change password',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.white38,
-                          size: 16,
-                        ),
-                        onTap: () {
-                          Navigator.of(context).pop();
-
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => const ChangePasswordScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.delete_forever_rounded,
-                          color: Color(0xFFF87171),
-                        ),
-                        title: const Text(
-                          'Delete account',
-                          style: TextStyle(
-                            color: Color(0xFFFCA5A5),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        subtitle: Text(
-                          'Permanently remove your account and cloud data',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.42),
-                          ),
-                        ),
-                        trailing: const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          color: Colors.white38,
-                          size: 16,
-                        ),
-                        onTap: () {
-                          Navigator.of(context).pop();
-
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const DeleteAccountScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
-                      Divider(
-                        height: 1,
-                        color: Colors.white.withValues(alpha: 0.06),
-                      ),
-                      if (!isPremium)
-                        Divider(
-                          height: 1,
-                          color: Colors.white.withValues(alpha: 0.06),
-                        ),
-                      ListTile(
-                        leading: const Icon(
-                          Icons.logout_rounded,
-                          color: Color(0xFFF87171),
-                        ),
-                        title: const Text(
-                          'Sign out',
-                          style: TextStyle(
-                            color: Color(0xFFFCA5A5),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        onTap: () async {
-                          Navigator.of(context).pop();
-                          await onSignOut();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -314,7 +261,8 @@ class AccountBottomSheet extends ConsumerWidget {
     required String? displayName,
     required String email,
   }) {
-    if (displayName != null && displayName.trim().isNotEmpty) {
+    if (displayName != null &&
+        displayName.trim().isNotEmpty) {
       return displayName.trim()[0].toUpperCase();
     }
 
@@ -323,56 +271,5 @@ class AccountBottomSheet extends ConsumerWidget {
     }
 
     return 'N';
-  }
-}
-
-class _AccountStatCard extends StatelessWidget {
-  const _AccountStatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.iconColor,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color iconColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        color: AccountBottomSheet._cardColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 22),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.45),
-              fontSize: 12,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

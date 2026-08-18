@@ -46,19 +46,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      final credential = await ref
-          .read(authServiceProvider)
-          .register(
+      await ref.read(authServiceProvider).register(
             name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
           );
-
-      final user = credential.user;
-
-      if (user != null) {
-        await ref.read(userProfileServiceProvider).createProfileIfMissing(user);
-      }
 
       if (!mounted) {
         return;
@@ -70,9 +62,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         return;
       }
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.message)));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message),
+        ),
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -91,7 +85,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 440),
+              constraints: const BoxConstraints(
+                maxWidth: 440,
+              ),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -110,13 +106,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     SizedBox(
                       width: 160,
                       height: 160,
-                      child: Image.asset('assets/logo/neurolens_logo.png'),
+                      child: Image.asset(
+                        'assets/logo/neurolens_logo.png',
+                      ),
                     ),
+
                     const SizedBox(height: 24),
+
                     const Text(
                       'Create your account',
                       textAlign: TextAlign.center,
@@ -127,27 +129,37 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         letterSpacing: -0.7,
                       ),
                     ),
+
                     const SizedBox(height: 8),
+
                     Text(
                       'Start building your private searchable memory.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.55),
+                        color: Colors.white.withValues(
+                          alpha: 0.55,
+                        ),
                         fontSize: 15,
                       ),
                     ),
+
                     const SizedBox(height: 32),
+
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
                         color: _surfaceColor,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.07),
+                          color: Colors.white.withValues(
+                            alpha: 0.07,
+                          ),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
+                            color: Colors.black.withValues(
+                              alpha: 0.2,
+                            ),
                             blurRadius: 30,
                             offset: const Offset(0, 14),
                           ),
@@ -157,15 +169,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         children: [
                           TextFormField(
                             controller: _nameController,
-                            textCapitalization: TextCapitalization.words,
-                            autofillHints: const [AutofillHints.name],
-                            style: const TextStyle(color: Colors.white),
+                            textCapitalization:
+                                TextCapitalization.words,
+                            autofillHints: const [
+                              AutofillHints.name,
+                            ],
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
                             decoration: _inputDecoration(
                               label: 'Full name',
-                              icon: Icons.person_outline_rounded,
+                              icon:
+                                  Icons.person_outline_rounded,
                             ),
                             validator: (value) {
-                              final name = value?.trim() ?? '';
+                              final name =
+                                  value?.trim() ?? '';
 
                               if (name.isEmpty) {
                                 return 'Enter your name.';
@@ -178,18 +197,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 16),
+
                           TextFormField(
                             controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            autofillHints: const [AutofillHints.email],
-                            style: const TextStyle(color: Colors.white),
+                            keyboardType:
+                                TextInputType.emailAddress,
+                            autofillHints: const [
+                              AutofillHints.email,
+                            ],
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
                             decoration: _inputDecoration(
                               label: 'Email address',
-                              icon: Icons.mail_outline_rounded,
+                              icon:
+                                  Icons.mail_outline_rounded,
                             ),
                             validator: (value) {
-                              final email = value?.trim() ?? '';
+                              final email =
+                                  value?.trim() ?? '';
 
                               if (email.isEmpty) {
                                 return 'Enter your email address.';
@@ -202,35 +230,46 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 16),
+
                           TextFormField(
-                            controller: _passwordController,
+                            controller:
+                                _passwordController,
                             obscureText: _obscurePassword,
-                            autofillHints: const [AutofillHints.newPassword],
-                            style: const TextStyle(color: Colors.white),
-                            decoration:
-                                _inputDecoration(
-                                  label: 'Password',
-                                  icon: Icons.lock_outline_rounded,
-                                ).copyWith(
-                                  suffixIcon: IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscurePassword = !_obscurePassword;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      _obscurePassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                    ),
+                            autofillHints: const [
+                              AutofillHints.newPassword,
+                            ],
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+                            decoration: _inputDecoration(
+                              label: 'Password',
+                              icon:
+                                  Icons.lock_outline_rounded,
+                            ).copyWith(
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _obscurePassword =
+                                        !_obscurePassword;
+                                  });
+                                },
+                                icon: Icon(
+                                  _obscurePassword
+                                      ? Icons
+                                          .visibility_off_outlined
+                                      : Icons
+                                          .visibility_outlined,
+                                  color: Colors.white.withValues(
+                                    alpha: 0.55,
                                   ),
                                 ),
+                              ),
+                            ),
                             validator: (value) {
-                              final password = value ?? '';
+                              final password =
+                                  value ?? '';
 
                               if (password.isEmpty) {
                                 return 'Enter a password.';
@@ -243,69 +282,93 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 16),
+
                           TextFormField(
-                            controller: _confirmPasswordController,
-                            obscureText: _obscureConfirmPassword,
-                            autofillHints: const [AutofillHints.newPassword],
-                            style: const TextStyle(color: Colors.white),
-                            decoration:
-                                _inputDecoration(
-                                  label: 'Confirm password',
-                                  icon: Icons.lock_reset_rounded,
-                                ).copyWith(
-                                  suffixIcon: IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _obscureConfirmPassword =
-                                            !_obscureConfirmPassword;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      _obscureConfirmPassword
-                                          ? Icons.visibility_off_outlined
-                                          : Icons.visibility_outlined,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                    ),
+                            controller:
+                                _confirmPasswordController,
+                            obscureText:
+                                _obscureConfirmPassword,
+                            autofillHints: const [
+                              AutofillHints.newPassword,
+                            ],
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+                            decoration: _inputDecoration(
+                              label: 'Confirm password',
+                              icon:
+                                  Icons.lock_reset_rounded,
+                            ).copyWith(
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _obscureConfirmPassword =
+                                        !_obscureConfirmPassword;
+                                  });
+                                },
+                                icon: Icon(
+                                  _obscureConfirmPassword
+                                      ? Icons
+                                          .visibility_off_outlined
+                                      : Icons
+                                          .visibility_outlined,
+                                  color: Colors.white.withValues(
+                                    alpha: 0.55,
                                   ),
                                 ),
+                              ),
+                            ),
                             validator: (value) {
                               if ((value ?? '').isEmpty) {
                                 return 'Confirm your password.';
                               }
 
-                              if (value != _passwordController.text) {
+                              if (value !=
+                                  _passwordController.text) {
                                 return 'Passwords do not match.';
                               }
 
                               return null;
                             },
                           ),
+
                           const SizedBox(height: 24),
+
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton(
-                              onPressed: _isLoading ? null : _register,
-                              style: FilledButton.styleFrom(
+                              onPressed: _isLoading
+                                  ? null
+                                  : _register,
+                              style:
+                                  FilledButton.styleFrom(
                                 backgroundColor: _purple,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: _purple.withValues(
+                                foregroundColor:
+                                    Colors.white,
+                                disabledBackgroundColor:
+                                    _purple.withValues(
                                   alpha: 0.45,
                                 ),
-                                padding: const EdgeInsets.symmetric(
+                                padding:
+                                    const EdgeInsets.symmetric(
                                   vertical: 16,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                                shape:
+                                    RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(
+                                    16,
+                                  ),
                                 ),
                               ),
                               child: _isLoading
                                   ? const SizedBox(
                                       width: 22,
                                       height: 22,
-                                      child: CircularProgressIndicator(
+                                      child:
+                                          CircularProgressIndicator(
                                         strokeWidth: 2.4,
                                         color: Colors.white,
                                       ),
@@ -314,7 +377,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                       'Create account',
                                       style: TextStyle(
                                         fontSize: 16,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight:
+                                            FontWeight.w700,
                                       ),
                                     ),
                             ),
@@ -322,21 +386,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 24),
+
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisAlignment:
+                          MainAxisAlignment.center,
                       children: [
                         Text(
                           'Already have an account?',
                           style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.55),
+                            color: Colors.white.withValues(
+                              alpha: 0.55,
+                            ),
                           ),
                         ),
                         TextButton(
                           onPressed: _isLoading
                               ? null
                               : () {
-                                  Navigator.of(context).pop();
+                                  Navigator.of(context)
+                                      .pop();
                                 },
                           child: const Text(
                             'Sign in',
@@ -364,8 +434,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }) {
     return InputDecoration(
       labelText: label,
-      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-      prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.5)),
+      labelStyle: TextStyle(
+        color: Colors.white.withValues(alpha: 0.5),
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: Colors.white.withValues(alpha: 0.5),
+      ),
       filled: true,
       fillColor: const Color(0xFF141B2D),
       border: OutlineInputBorder(
@@ -374,19 +449,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        borderSide: BorderSide(
+          color: Colors.white.withValues(alpha: 0.05),
+        ),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: _purple, width: 1.4),
+        borderSide: const BorderSide(
+          color: _purple,
+          width: 1.4,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFF87171)),
+        borderSide: const BorderSide(
+          color: Color(0xFFF87171),
+        ),
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFF87171), width: 1.4),
+        borderSide: const BorderSide(
+          color: Color(0xFFF87171),
+          width: 1.4,
+        ),
       ),
     );
   }
