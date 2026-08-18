@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/ai_tools_bottom_sheet.dart';
+import 'package:neurolens/features/memory/presentation/screens/collage_editor_screen.dart';
 import 'package:neurolens/features/memory/presentation/screens/doodle_editor_screen.dart';
 import 'package:neurolens/features/memory/presentation/object_eraser_screen.dart';
 import 'package:neurolens/features/memory/presentation/photo_editor_screen.dart';
@@ -21,7 +22,8 @@ class MemoryDetailScreen extends ConsumerStatefulWidget {
   final String title;
 
   @override
-  ConsumerState<MemoryDetailScreen> createState() => _MemoryDetailScreenState();
+  ConsumerState<MemoryDetailScreen> createState() =>
+      _MemoryDetailScreenState();
 }
 
 class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
@@ -88,8 +90,34 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
             _openDoodles(imageBytes);
           },
+          onCollage: () {
+            Navigator.of(bottomSheetContext).pop();
+
+            _openCollage();
+          },
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // COLLAGE
+  // ---------------------------------------------------------------------------
+
+  Future<void> _openCollage() async {
+    if (_isAiEditing || _isSavingEdit || !mounted) {
+      return;
+    }
+
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) {
+          return CollageEditorScreen(
+            initialAssetId: widget.assetId,
+            title: widget.title,
+          );
+        },
+      ),
     );
   }
 
@@ -482,7 +510,11 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       return;
     }
 
-    await Clipboard.setData(ClipboardData(text: cleanText));
+    await Clipboard.setData(
+      ClipboardData(
+        text: cleanText,
+      ),
+    );
 
     _showMessage('Extracted text copied.');
   }
@@ -510,7 +542,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
           title: const Text(
             'Remove this photo?',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
           ),
           content: Text(
             'The photo will be removed from NeuroLens. '
@@ -584,9 +619,11 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   Memory? _findMemory(List<Memory> memories) {
@@ -607,26 +644,31 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   Widget build(BuildContext context) {
     final timeline = ref.watch(memoryTimelineProvider);
 
-    final memory = timeline.maybeWhen(data: _findMemory, orElse: () => null);
+    final memory = timeline.maybeWhen(
+      data: _findMemory,
+      orElse: () => null,
+    );
 
     final extractedText = memory?.content?.trim() ?? '';
 
-    final isBusy = _isSharing || _isDeleting || _isSavingEdit || _isAiEditing;
+    final isBusy =
+        _isSharing ||
+        _isDeleting ||
+        _isSavingEdit ||
+        _isAiEditing;
 
     return Scaffold(
       backgroundColor: _backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            // ===============================================================
-            // TOP NAV
-            //
-            // The photo starts BELOW this row. Nothing here overlays the photo.
-            // Edit and Share are intentionally only available from the 3-dot
-            // menu.
-            // ===============================================================
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+              padding: const EdgeInsets.fromLTRB(
+                14,
+                8,
+                14,
+                10,
+              ),
               child: Row(
                 children: [
                   _CircleActionButton(
@@ -645,7 +687,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     tooltip: memory?.isFavorite == true
                         ? 'Remove from favorites'
                         : 'Add to favorites',
-                    onPressed: memory == null || _isUpdatingFavorite || isBusy
+                    onPressed:
+                        memory == null ||
+                            _isUpdatingFavorite ||
+                            isBusy
                         ? null
                         : () {
                             _toggleFavorite(memory);
@@ -668,7 +713,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                           ),
                   ),
 
-                  const SizedBox(width: 9),
+                  const SizedBox(
+                    width: 9,
+                  ),
 
                   _CircleActionButton(
                     tooltip: 'Advanced tools',
@@ -692,15 +739,11 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
               ),
             ),
 
-            // ===============================================================
-            // PHOTO
-            //
-            // The whole image is visible. BoxFit.contain preserves landscape
-            // and portrait photos without cropping.
-            // ===============================================================
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(22),
                   child: Container(
@@ -715,15 +758,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
               ),
             ),
 
-            // ===============================================================
-            // ACTIONS ONLY
-            //
-            // No file name.
-            // No date.
-            // No extracted text box.
-            // ===============================================================
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              padding: const EdgeInsets.fromLTRB(
+                14,
+                12,
+                14,
+                14,
+              ),
               child: _DetailsPanel(
                 extractedText: extractedText,
                 isSharing: _isSharing,
@@ -749,7 +790,10 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 // =============================================================================
 
 class _PhotoBackground extends StatelessWidget {
-  const _PhotoBackground({required this.imageFuture, required this.assetId});
+  const _PhotoBackground({
+    required this.imageFuture,
+    required this.assetId,
+  });
 
   final Future<Uint8List?> imageFuture;
   final String assetId;
@@ -763,7 +807,9 @@ class _PhotoBackground extends StatelessWidget {
           return const ColoredBox(
             color: Color(0xFF050816),
             child: Center(
-              child: CircularProgressIndicator(color: Color(0xFF8B5CF6)),
+              child: CircularProgressIndicator(
+                color: Color(0xFF8B5CF6),
+              ),
             ),
           );
         }
@@ -796,10 +842,6 @@ class _PhotoBackground extends StatelessWidget {
     );
   }
 }
-
-// =============================================================================
-// BOTTOM GRADIENT
-// =============================================================================
 
 // =============================================================================
 // DETAILS PANEL
@@ -838,7 +880,9 @@ class _DetailsPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: _MemoryDetailScreenState._surfaceColor,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.07),
+        ),
       ),
       child: Row(
         children: [
@@ -847,22 +891,31 @@ class _DetailsPanel extends StatelessWidget {
               icon: Icons.tune_rounded,
               label: 'Edit',
               foregroundColor: const Color(0xFFC4B5FD),
-              backgroundColor: const Color(0xFF36235E).withValues(alpha: 0.72),
+              backgroundColor: const Color(
+                0xFF36235E,
+              ).withValues(alpha: 0.72),
               onPressed: isBusy ? null : onEditPressed,
             ),
           ),
 
-          const SizedBox(width: 7),
+          const SizedBox(
+            width: 7,
+          ),
 
           Expanded(
             child: _PillActionButton(
               icon: Icons.document_scanner_outlined,
               label: 'OCR',
-              onPressed: extractedText.isEmpty || isBusy ? null : onOcrPressed,
+              onPressed:
+                  extractedText.isEmpty || isBusy
+                  ? null
+                  : onOcrPressed,
             ),
           ),
 
-          const SizedBox(width: 7),
+          const SizedBox(
+            width: 7,
+          ),
 
           Expanded(
             child: _PillActionButton(
@@ -872,14 +925,18 @@ class _DetailsPanel extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(width: 7),
+          const SizedBox(
+            width: 7,
+          ),
 
           Expanded(
             child: _PillActionButton(
               icon: Icons.delete_outline_rounded,
               label: 'Delete',
               foregroundColor: const Color(0xFFFF667B),
-              backgroundColor: const Color(0xFF581A29).withValues(alpha: 0.48),
+              backgroundColor: const Color(
+                0xFF581A29,
+              ).withValues(alpha: 0.48),
               onPressed: isBusy ? null : onDeletePressed,
             ),
           ),
@@ -921,7 +978,13 @@ class _CircleActionButton extends StatelessWidget {
           child: Center(
             child: Tooltip(
               message: tooltip,
-              child: child ?? Icon(icon, color: Colors.white, size: 25),
+              child:
+                  child ??
+                  Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 25,
+                  ),
             ),
           ),
         ),
@@ -962,7 +1025,10 @@ class _PillActionButton extends StatelessWidget {
         onTap: onPressed,
         borderRadius: BorderRadius.circular(28),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 15),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 8,
+            vertical: 15,
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -974,7 +1040,9 @@ class _PillActionButton extends StatelessWidget {
                 size: 19,
               ),
 
-              const SizedBox(width: 5),
+              const SizedBox(
+                width: 5,
+              ),
 
               Flexible(
                 child: Text(
@@ -1002,7 +1070,9 @@ class _PillActionButton extends StatelessWidget {
 // =============================================================================
 
 class _ImageErrorView extends StatelessWidget {
-  const _ImageErrorView({required this.message});
+  const _ImageErrorView({
+    required this.message,
+  });
 
   final String message;
 
@@ -1021,7 +1091,9 @@ class _ImageErrorView extends StatelessWidget {
                 height: 72,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                  color: const Color(
+                    0xFF8B5CF6,
+                  ).withValues(alpha: 0.12),
                 ),
                 child: const Icon(
                   Icons.broken_image_outlined,
@@ -1030,7 +1102,9 @@ class _ImageErrorView extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 18),
+              const SizedBox(
+                height: 18,
+              ),
 
               Text(
                 message,

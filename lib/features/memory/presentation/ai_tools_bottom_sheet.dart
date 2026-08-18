@@ -4,11 +4,13 @@ class AiToolsBottomSheet extends StatelessWidget {
   const AiToolsBottomSheet({
     required this.onObjectEraser,
     required this.onDoodles,
+    required this.onCollage,
     super.key,
   });
 
   final VoidCallback onObjectEraser;
   final VoidCallback onDoodles;
+  final VoidCallback onCollage;
 
   @override
   Widget build(BuildContext context) {
@@ -77,8 +79,7 @@ class AiToolsBottomSheet extends StatelessWidget {
             _AiToolTile(
               icon: Icons.draw_rounded,
               title: 'Doodles',
-              subtitle:
-                  'Draw, sketch and decorate your photo',
+              subtitle: 'Draw, sketch and decorate your photo',
               onTap: onDoodles,
             ),
 
@@ -90,11 +91,11 @@ class AiToolsBottomSheet extends StatelessWidget {
             // COLLAGE
             // ===============================================================
 
-            const _AiToolTile(
+            _AiToolTile(
               icon: Icons.grid_view_rounded,
               title: 'Collage',
-              subtitle:
-                  'Combine multiple photos into one layout',
+              subtitle: 'Combine multiple photos into one layout',
+              onTap: onCollage,
             ),
 
             const SizedBox(
@@ -108,8 +109,7 @@ class AiToolsBottomSheet extends StatelessWidget {
             const _AiToolTile(
               icon: Icons.auto_awesome_rounded,
               title: 'NeuroLens Ultra',
-              subtitle:
-                  'Advanced AI photo editing',
+              subtitle: 'Advanced AI photo editing',
             ),
           ],
         ),
@@ -193,15 +193,13 @@ class _AiToolTile extends StatelessWidget {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       style: TextStyle(
-                        color: enabled
-                            ? Colors.white
-                            : Colors.white38,
+                        color:
+                            enabled ? Colors.white : Colors.white38,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
