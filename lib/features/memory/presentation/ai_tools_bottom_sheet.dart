@@ -97,20 +97,6 @@ class AiToolsBottomSheet extends StatelessWidget {
               subtitle: 'Combine multiple photos into one layout',
               onTap: onCollage,
             ),
-
-            const SizedBox(
-              height: 10,
-            ),
-
-            // ===============================================================
-            // NEUROLENS ULTRA
-            // ===============================================================
-
-            const _AiToolTile(
-              icon: Icons.auto_awesome_rounded,
-              title: 'NeuroLens Ultra',
-              subtitle: 'Advanced AI photo editing',
-            ),
           ],
         ),
       ),
@@ -198,8 +184,9 @@ class _AiToolTile extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        color:
-                            enabled ? Colors.white : Colors.white38,
+                        color: enabled
+                            ? Colors.white
+                            : Colors.white38,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

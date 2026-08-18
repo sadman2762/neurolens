@@ -8,9 +8,7 @@ import 'photo_editor/filters/engine/filter_image_processor.dart';
 import 'photo_editor/filters/filter_processor.dart';
 import 'photo_editor/filters/midnight_vignette.dart';
 import 'photo_editor/filters/neurolens_filters.dart';
-
 import 'photo_editor/filters/presets/neurolens_filter_presets.dart';
-
 import 'photo_editor/filters/lut/neurolens_filter_recipe.dart';
 import 'photo_editor/filters/lut/neurolens_filter_recipes.dart';
 import 'photo_editor/filters/lut/neurolens_grade_widget.dart';
@@ -36,17 +34,13 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   // ===========================================================================
 
   static const Color _background = Color(0xFF050816);
-
   static const Color _surface = Color(0xFF0D1321);
-
   static const Color _surfaceLight = Color(0xFF151C2E);
 
   static const Color _purple = Color(0xFF8B5CF6);
-
   static const Color _purpleLight = Color(0xFFC4B5FD);
 
   static const Color _textPrimary = Color(0xFFF8FAFC);
-
   static const Color _textSecondary = Color(0xFF94A3B8);
 
   // ===========================================================================
@@ -54,7 +48,6 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   // ===========================================================================
 
   static const String _normalFilterName = 'Normal';
-
   static const String _midnightFilterName = 'Midnight';
 
   // ===========================================================================
@@ -108,13 +101,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       return null;
     }
 
-    final bytes = await asset.originBytes;
-
-    if (bytes == null) {
-      return null;
-    }
-
-    return bytes;
+    return asset.originBytes;
   }
 
   // ===========================================================================
@@ -125,10 +112,6 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
     Uint8List editedBytes,
   ) async {
     Uint8List outputBytes = editedBytes;
-
-    // =======================================================================
-    // PREMIUM MIDNIGHT EXPORT
-    // =======================================================================
 
     if (_selectedFilterName == _midnightFilterName) {
       final intensity = _visibleIntensityFor(
@@ -152,7 +135,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   }
 
   // ===========================================================================
-  // PREMIUM THUMBNAIL RECIPES
+  // PREMIUM RECIPES
   // ===========================================================================
 
   NeuroLensFilterRecipe? _premiumRecipeByName(
@@ -176,9 +159,6 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           (filter) {
             final List<double> matrix;
 
-            // Midnight remains identity inside ProImageEditor.
-            //
-            // Its final premium processing happens during export.
             if (filter.name == _midnightFilterName) {
               matrix = _identityMatrix;
             } else {
@@ -329,9 +309,11 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
+
                               const SizedBox(
                                 height: 3,
                               ),
+
                               Text(
                                 '$percentage',
                                 style: const TextStyle(
@@ -407,16 +389,6 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                           _selectedFilterName =
                               filterName;
 
-                          // ===============================================
-                          // MIDNIGHT
-                          // ===============================================
-                          //
-                          // ProImageEditor stays on the identity matrix.
-                          //
-                          // Midnight's premium pixel processing happens
-                          // during final export.
-                          // ===============================================
-
                           if (isMidnight) {
                             setState(
                               () {},
@@ -450,7 +422,9 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
                               fontSize: 9,
                             ),
                           ),
+
                           const Spacer(),
+
                           Text(
                             '100',
                             style: TextStyle(
@@ -497,9 +471,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
     );
 
     const double previewSize = 84;
-
     const double itemWidth = 96;
-
     const double itemHeight = 106;
 
     final intensity = isSelected
@@ -510,10 +482,6 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
 
     Widget preview = editorImage;
 
-    // =====================================================================
-    // PREMIUM THUMBNAIL LOOK
-    // =====================================================================
-
     if (premiumRecipe != null && !isNormal) {
       preview = NeuroLensGradeWidget(
         recipe: premiumRecipe,
@@ -521,10 +489,6 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         child: preview,
       );
     }
-
-    // =====================================================================
-    // MIDNIGHT THUMBNAIL VIGNETTE
-    // =====================================================================
 
     if (isMidnight) {
       preview = MidnightVignette(
@@ -686,7 +650,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
   }
 
   // ===========================================================================
-  // THEME
+  // EDITOR THEME
   // ===========================================================================
 
   ThemeData _editorTheme() {
@@ -697,12 +661,20 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       canvasColor: _background,
       cardColor: _surface,
       dividerColor: _purple.withValues(
-        alpha: 0.16,
+        alpha: 0.14,
       ),
+      splashColor: _purple.withValues(
+        alpha: 0.08,
+      ),
+      highlightColor: _purple.withValues(
+        alpha: 0.05,
+      ),
+
       dialogTheme: const DialogThemeData(
         backgroundColor: _surface,
         surfaceTintColor: Colors.transparent,
       ),
+
       colorScheme: const ColorScheme.dark(
         primary: _purple,
         secondary: _purpleLight,
@@ -716,6 +688,7 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           0xFFF87171,
         ),
       ),
+
       appBarTheme: const AppBarTheme(
         backgroundColor: _background,
         foregroundColor: _textPrimary,
@@ -723,34 +696,42 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         elevation: 0,
         centerTitle: false,
       ),
+
       iconTheme: const IconThemeData(
         color: _purpleLight,
       ),
+
       textTheme: ThemeData.dark()
           .textTheme
           .apply(
         bodyColor: _textPrimary,
         displayColor: _textPrimary,
       ),
+
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
           foregroundColor: _purpleLight,
         ),
       ),
+
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: _purple,
           foregroundColor: Colors.white,
         ),
       ),
+
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: _purpleLight,
-          side: const BorderSide(
-            color: _purple,
+          side: BorderSide(
+            color: _purple.withValues(
+              alpha: 0.55,
+            ),
           ),
         ),
       ),
+
       sliderTheme: SliderThemeData(
         activeTrackColor: _purple,
         inactiveTrackColor:
@@ -762,17 +743,20 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           alpha: 0.16,
         ),
       ),
+
       bottomSheetTheme:
           const BottomSheetThemeData(
         backgroundColor: _surface,
         modalBackgroundColor: _surface,
         surfaceTintColor: Colors.transparent,
       ),
+
       popupMenuTheme:
           const PopupMenuThemeData(
         color: _surface,
         surfaceTintColor: Colors.transparent,
       ),
+
       snackBarTheme:
           const SnackBarThemeData(
         backgroundColor: _surfaceLight,
@@ -792,10 +776,27 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
       designMode:
           ImageEditorDesignMode.material,
 
+      // =======================================================================
+      // MAIN EDITOR
+      // =======================================================================
+
       mainEditor: MainEditorConfigs(
         enableZoom: true,
         enableDoubleTapZoom: true,
         editorMaxScale: 5,
+
+        style: const MainEditorStyle(
+          background: _background,
+
+          appBarBackground: _surface,
+          appBarColor: _textPrimary,
+
+          bottomBarBackground: _surface,
+          bottomBarColor: _textPrimary,
+
+          outsideCaptureAreaLayerOpacity: 0.72,
+        ),
+
         tools: [
           SubEditorMode.cropRotate,
           SubEditorMode.tune,
@@ -806,16 +807,62 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         ],
       ),
 
+      // =======================================================================
+      // PREMIUM CROP / ROTATE
+      // =======================================================================
+
       cropRotateEditor:
           CropRotateEditorConfigs(
         enableKeepAspectRatioOnRotate:
             true,
+
         tools: [
           CropRotateTool.rotate,
           CropRotateTool.flip,
           CropRotateTool.aspectRatio,
           CropRotateTool.reset,
         ],
+
+        style: const CropRotateEditorStyle(
+          // NeuroLens screen colors
+          background: _background,
+
+          appBarBackground: _surface,
+          appBarColor: _textPrimary,
+
+          bottomBarBackground: _surface,
+          bottomBarColor: _textPrimary,
+
+          // ---------------------------------------------------------------
+          // PREMIUM WHITE CROP FRAME
+          // ---------------------------------------------------------------
+
+          cropCornerColor: Colors.white,
+
+          // Much thinner than the package default of 6.
+          cropCornerThickness: 2,
+
+          // Shorter corner lines feel cleaner/premium.
+          cropCornerLength: 20,
+
+          // Fine inner guide lines.
+          helperLineColor: Color(
+            0xA6FFFFFF,
+          ),
+          helperLineWidth: 0.6,
+
+          // Dark surrounding mask.
+          cropOverlayColor: Colors.black,
+          cropOverlayOpacity: 0.72,
+          cropOverlayInteractionOpacity: 0.34,
+
+          // Aspect-ratio sheet also matches NeuroLens.
+          aspectRatioSheetBackgroundColor:
+              _surface,
+          aspectRatioSheetForegroundColor:
+              _textPrimary,
+        ),
+
         aspectRatios: [
           AspectRatioItem(
             text: 'Free',
@@ -847,6 +894,10 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
           ),
         ],
       ),
+
+      // =======================================================================
+      // FILTER EDITOR
+      // =======================================================================
 
       filterEditor: FilterEditorConfigs(
         enableMultiSelection: false,
@@ -911,9 +962,17 @@ class _PhotoEditorScreenState extends State<PhotoEditorScreen> {
         ),
       ),
 
+      // =======================================================================
+      // HISTORY
+      // =======================================================================
+
       stateHistory: StateHistoryConfigs(
         stateHistoryLimit: 100,
       ),
+
+      // =======================================================================
+      // EXPORT
+      // =======================================================================
 
       imageGeneration:
           ImageGenerationConfigs(
@@ -1117,9 +1176,11 @@ class _EditorErrorView extends StatelessWidget {
                     size: 40,
                   ),
                 ),
+
                 const SizedBox(
                   height: 20,
                 ),
+
                 const Text(
                   'Photo unavailable',
                   style: TextStyle(
@@ -1131,9 +1192,11 @@ class _EditorErrorView extends StatelessWidget {
                         FontWeight.w800,
                   ),
                 ),
+
                 const SizedBox(
                   height: 9,
                 ),
+
                 const Text(
                   'NeuroLens could not access the original photo.',
                   textAlign: TextAlign.center,
@@ -1144,9 +1207,11 @@ class _EditorErrorView extends StatelessWidget {
                     height: 1.45,
                   ),
                 ),
+
                 const SizedBox(
                   height: 24,
                 ),
+
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
