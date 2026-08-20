@@ -106,11 +106,15 @@ class _MemoryGridItemState extends State<MemoryGridItem> {
               color: _surfaceColor,
               borderRadius: BorderRadius.zero,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.06),
+                color: Colors.white.withValues(
+                  alpha: 0.06,
+                ),
               ),
             ),
             child: memory.type == 'image'
-                ? _ImageMemoryCard(memory: memory)
+                ? _ImageMemoryCard(
+                    memory: memory,
+                  )
                 : _DocumentMemoryCard(
                     memory: memory,
                     icon: _typeIcon,
@@ -124,6 +128,10 @@ class _MemoryGridItemState extends State<MemoryGridItem> {
   }
 }
 
+// =============================================================================
+// IMAGE MEMORY
+// =============================================================================
+
 class _ImageMemoryCard extends StatelessWidget {
   const _ImageMemoryCard({
     required this.memory,
@@ -136,13 +144,10 @@ class _ImageMemoryCard extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        Hero(
-          tag: 'memory-image-${memory.id}',
-          child: Material(
-            color: Colors.transparent,
-            child: MemoryThumbnail(
-              assetId: memory.id,
-            ),
+        Material(
+          color: Colors.transparent,
+          child: MemoryThumbnail(
+            assetId: memory.id,
           ),
         ),
         const DecoratedBox(
@@ -168,6 +173,10 @@ class _ImageMemoryCard extends StatelessWidget {
   }
 }
 
+// =============================================================================
+// DOCUMENT MEMORY
+// =============================================================================
+
 class _DocumentMemoryCard extends StatelessWidget {
   const _DocumentMemoryCard({
     required this.memory,
@@ -192,8 +201,12 @@ class _DocumentMemoryCard extends StatelessWidget {
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: typeColor.withValues(alpha: 0.13),
-              borderRadius: BorderRadius.circular(12),
+              color: typeColor.withValues(
+                alpha: 0.13,
+              ),
+              borderRadius: BorderRadius.circular(
+                12,
+              ),
             ),
             child: Icon(
               icon,
@@ -201,7 +214,9 @@ class _DocumentMemoryCard extends StatelessWidget {
               size: 21,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(
+            height: 12,
+          ),
           Expanded(
             child: Text(
               memory.title,
@@ -215,7 +230,9 @@ class _DocumentMemoryCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(
+            height: 8,
+          ),
           Row(
             children: [
               Container(
@@ -226,11 +243,15 @@ class _DocumentMemoryCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(
+                width: 6,
+              ),
               Text(
                 typeLabel,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withValues(
+                    alpha: 0.5,
+                  ),
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
                 ),

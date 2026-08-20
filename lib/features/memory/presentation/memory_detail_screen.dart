@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/features/memory/domain/models/memory.dart';
 import 'package:neurolens/features/memory/presentation/ai_tools_bottom_sheet.dart';
-import 'package:neurolens/features/memory/presentation/screens/collage_editor_screen.dart';
-import 'package:neurolens/features/memory/presentation/screens/doodle_editor_screen.dart';
 import 'package:neurolens/features/memory/presentation/object_eraser_screen.dart';
 import 'package:neurolens/features/memory/presentation/photo_editor_screen.dart';
+import 'package:neurolens/features/memory/presentation/screens/collage_editor_screen.dart';
+import 'package:neurolens/features/memory/presentation/screens/doodle_editor_screen.dart';
 import 'package:neurolens/features/memory/providers/memory_providers.dart';
 import 'package:photo_manager/photo_manager.dart';
 import 'package:share_plus/share_plus.dart';
@@ -32,18 +32,21 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
   static const Color _danger = Color(0xFFEF4444);
 
   late final Future<Uint8List?> _imageFuture;
+  late Future<List<_PersonLabelTarget>> _peopleFuture;
 
   bool _isSharing = false;
   bool _isDeleting = false;
   bool _isSavingEdit = false;
   bool _isUpdatingFavorite = false;
   bool _isAiEditing = false;
+  bool _isUpdatingPersonLabel = false;
 
   @override
   void initState() {
     super.initState();
 
     _imageFuture = _loadImage();
+    _peopleFuture = _loadPeople();
   }
 
   Future<Uint8List?> _loadImage() async {
@@ -52,12 +55,292 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     return asset?.originBytes;
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // PEOPLE / FACE LABELS
+  // ===========================================================================
+
+  Future<List<_PersonLabelTarget>> _loadPeople() async {
+    final repository = ref.read(memoryRepositoryProvider);
+
+    final relationships = await repository.getPeopleForMemory(
+      widget.assetId,
+    );
+
+    if (relationships.isEmpty) {
+      return const [];
+    }
+
+    final people = <_PersonLabelTarget>[];
+
+    for (var index = 0; index < relationships.length; index++) {
+      final relationship = relationships[index];
+
+      final person = await repository.getPersonById(
+        relationship.personId,
+      );
+
+      if (person == null) {
+        continue;
+      }
+
+      people.add(
+        _PersonLabelTarget(
+          personId: person.id,
+          name: person.name?.trim(),
+          displayIndex: index + 1,
+        ),
+      );
+    }
+
+    return people;
+  }
+
+  Future<void> _openPersonLabelFlow(
+    List<_PersonLabelTarget> people,
+  ) async {
+    if (people.isEmpty || _isUpdatingPersonLabel) {
+      return;
+    }
+
+    _PersonLabelTarget? target;
+
+    if (people.length == 1) {
+      target = people.first;
+    } else {
+      target = await showDialog<_PersonLabelTarget>(
+        context: context,
+        builder: (dialogContext) {
+          return SimpleDialog(
+            backgroundColor: const Color(0xFF0D1321),
+            surfaceTintColor: Colors.transparent,
+            title: const Text(
+              'Choose person',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            children: [
+              for (final person in people)
+                SimpleDialogOption(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(person);
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 7,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(
+                              0xFF8B5CF6,
+                            ).withValues(
+                              alpha: 0.16,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: Color(0xFFC4B5FD),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            person.hasName
+                                ? person.name!
+                                : 'Person ${person.displayIndex}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white54,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      );
+    }
+
+    if (target == null || !mounted) {
+      return;
+    }
+
+    await _showPersonNameDialog(target);
+  }
+
+  Future<void> _showPersonNameDialog(
+    _PersonLabelTarget person,
+  ) async {
+    final controller = TextEditingController(
+      text: person.name ?? '',
+    );
+
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0D1321),
+          surfaceTintColor: Colors.transparent,
+          icon: const Icon(
+            Icons.person_add_alt_1_rounded,
+            color: Color(0xFFC4B5FD),
+            size: 32,
+          ),
+          title: Text(
+            person.hasName ? 'Rename person' : 'Label person',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            maxLength: 40,
+            style: const TextStyle(
+              color: Colors.white,
+            ),
+            decoration: InputDecoration(
+              hintText: 'e.g. Sadman',
+              hintStyle: TextStyle(
+                color: Colors.white.withValues(
+                  alpha: 0.35,
+                ),
+              ),
+              filled: true,
+              fillColor: const Color(0xFF151C2E),
+              counterStyle: TextStyle(
+                color: Colors.white.withValues(
+                  alpha: 0.4,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(
+                    alpha: 0.08,
+                  ),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: const BorderSide(
+                  color: Color(0xFF8B5CF6),
+                ),
+              ),
+            ),
+            onSubmitted: (value) {
+              Navigator.of(dialogContext).pop(
+                value.trim(),
+              );
+            },
+          ),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(
+                  controller.text.trim(),
+                );
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF8B5CF6),
+                foregroundColor: Colors.white,
+              ),
+              child: Text(
+                person.hasName ? 'Save' : 'Label',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    controller.dispose();
+
+    if (name == null || name.trim().isEmpty || !mounted) {
+      return;
+    }
+
+    await _savePersonLabel(
+      personId: person.personId,
+      name: name.trim(),
+    );
+  }
+
+  Future<void> _savePersonLabel({
+    required String personId,
+    required String name,
+  }) async {
+    if (_isUpdatingPersonLabel) {
+      return;
+    }
+
+    setState(() {
+      _isUpdatingPersonLabel = true;
+    });
+
+    try {
+      await ref.read(memoryRepositoryProvider).updatePersonName(
+            personId: personId,
+            name: name,
+          );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _peopleFuture = _loadPeople();
+      });
+
+      _showMessage(
+        'Person labeled as $name.',
+      );
+    } catch (error) {
+      _showMessage(
+        'Could not save person label: $error',
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingPersonLabel = false;
+        });
+      }
+    }
+  }
+
+  // ===========================================================================
   // ADVANCED TOOLS
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   Future<void> _openAiTools() async {
-    if (_isAiEditing || _isSharing || _isDeleting || _isSavingEdit) {
+    if (_isAiEditing ||
+        _isSharing ||
+        _isDeleting ||
+        _isSavingEdit) {
       return;
     }
 
@@ -68,7 +351,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
 
     if (imageBytes == null || imageBytes.isEmpty) {
-      _showMessage('Could not load this photo for editing.');
+      _showMessage(
+        'Could not load this photo for editing.',
+      );
 
       return;
     }
@@ -100,9 +385,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // COLLAGE
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   Future<void> _openCollage() async {
     if (_isAiEditing || _isSavingEdit || !mounted) {
@@ -121,11 +406,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // UNIFIED OBJECT ERASER
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // OBJECT ERASER
+  // ===========================================================================
 
-  Future<void> _openObjectEraser(Uint8List imageBytes) async {
+  Future<void> _openObjectEraser(
+    Uint8List imageBytes,
+  ) async {
     if (_isAiEditing || _isSavingEdit) {
       return;
     }
@@ -154,17 +441,25 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         return;
       }
 
-      await _replaceWithAiEditedImage(editedBytes);
+      await _replaceWithAiEditedImage(
+        editedBytes,
+      );
     } catch (error, stackTrace) {
-      debugPrint('Unified Object Eraser error: $error');
+      debugPrint(
+        'Unified Object Eraser error: $error',
+      );
 
-      debugPrintStack(stackTrace: stackTrace);
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
 
       if (!mounted) {
         return;
       }
 
-      _showMessage('Could not finish the Object Eraser edit.');
+      _showMessage(
+        'Could not finish the Object Eraser edit.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -174,11 +469,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // DOODLES
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
-  Future<void> _openDoodles(Uint8List imageBytes) async {
+  Future<void> _openDoodles(
+    Uint8List imageBytes,
+  ) async {
     if (_isAiEditing || _isSavingEdit) {
       return;
     }
@@ -207,17 +504,25 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         return;
       }
 
-      await _replaceWithAiEditedImage(editedBytes);
+      await _replaceWithAiEditedImage(
+        editedBytes,
+      );
     } catch (error, stackTrace) {
-      debugPrint('Doodle editor error: $error');
+      debugPrint(
+        'Doodle editor error: $error',
+      );
 
-      debugPrintStack(stackTrace: stackTrace);
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
 
       if (!mounted) {
         return;
       }
 
-      _showMessage('Could not finish the Doodles edit.');
+      _showMessage(
+        'Could not finish the Doodles edit.',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -227,11 +532,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // REPLACE CURRENT NEUROLENS IMAGE WITH ADVANCED EDIT
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
+  // REPLACE CURRENT IMAGE
+  // ===========================================================================
 
-  Future<void> _replaceWithAiEditedImage(Uint8List editedBytes) async {
+  Future<void> _replaceWithAiEditedImage(
+    Uint8List editedBytes,
+  ) async {
     if (_isSavingEdit) {
       return;
     }
@@ -253,10 +560,14 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
       final repository = ref.read(memoryRepositoryProvider);
 
-      final oldMemory = await repository.getMemoryById(widget.assetId);
+      final oldMemory = await repository.getMemoryById(
+        widget.assetId,
+      );
 
       if (oldMemory == null) {
-        _showMessage('Could not find the current NeuroLens memory.');
+        _showMessage(
+          'Could not find the current NeuroLens memory.',
+        );
 
         return;
       }
@@ -264,9 +575,15 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       final cleanTitle = oldMemory.title
-          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(
+            RegExp(r'[^\w\s-]'),
+            '',
+          )
           .trim()
-          .replaceAll(RegExp(r'\s+'), '_');
+          .replaceAll(
+            RegExp(r'\s+'),
+            '_',
+          );
 
       final fileName = cleanTitle.isEmpty
           ? 'neurolens_ai_$timestamp.png'
@@ -281,7 +598,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       final newAssetId = savedAsset.id;
 
       if (newAssetId.isEmpty) {
-        throw StateError('The edited gallery image has no asset ID.');
+        throw StateError(
+          'The edited gallery image has no asset ID.',
+        );
       }
 
       await repository.replaceImageMemory(
@@ -307,12 +626,18 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         ),
       );
     } catch (error, stackTrace) {
-      debugPrint('Advanced image replacement error: $error');
+      debugPrint(
+        'Advanced image replacement error: $error',
+      );
 
-      debugPrintStack(stackTrace: stackTrace);
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
 
       if (mounted) {
-        _showMessage('Could not replace the image: $error');
+        _showMessage(
+          'Could not replace the image: $error',
+        );
       }
     } finally {
       if (mounted) {
@@ -323,12 +648,15 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // NORMAL PHOTO EDITOR
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   Future<void> _openEditor() async {
-    if (_isSharing || _isDeleting || _isSavingEdit || _isAiEditing) {
+    if (_isSharing ||
+        _isDeleting ||
+        _isSavingEdit ||
+        _isAiEditing) {
       return;
     }
 
@@ -343,14 +671,20 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       ),
     );
 
-    if (!mounted || editedBytes == null || editedBytes.isEmpty) {
+    if (!mounted ||
+        editedBytes == null ||
+        editedBytes.isEmpty) {
       return;
     }
 
-    await _saveEditedCopy(editedBytes);
+    await _saveEditedCopy(
+      editedBytes,
+    );
   }
 
-  Future<void> _saveEditedCopy(Uint8List editedBytes) async {
+  Future<void> _saveEditedCopy(
+    Uint8List editedBytes,
+  ) async {
     if (_isSavingEdit) {
       return;
     }
@@ -373,9 +707,15 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
       final cleanTitle = widget.title
-          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(
+            RegExp(r'[^\w\s-]'),
+            '',
+          )
           .trim()
-          .replaceAll(RegExp(r'\s+'), '_');
+          .replaceAll(
+            RegExp(r'\s+'),
+            '_',
+          );
 
       final fileName = cleanTitle.isEmpty
           ? 'neurolens_edit_$timestamp.png'
@@ -389,23 +729,37 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
       final importedCount = await ref
           .read(photoImportServiceProvider)
-          .importPhotos(selectedAssets: [savedAsset]);
+          .importPhotos(
+        selectedAssets: [
+          savedAsset,
+        ],
+      );
 
       if (!mounted) {
         return;
       }
 
       if (importedCount == 1) {
-        _showMessage('Edited copy saved, indexed and added to NeuroLens.');
+        _showMessage(
+          'Edited copy saved, indexed and added to NeuroLens.',
+        );
       } else {
-        _showMessage('Edited copy was saved to your gallery.');
+        _showMessage(
+          'Edited copy was saved to your gallery.',
+        );
       }
     } catch (error, stackTrace) {
-      debugPrint('Edited photo save error: $error');
+      debugPrint(
+        'Edited photo save error: $error',
+      );
 
-      debugPrintStack(stackTrace: stackTrace);
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
 
-      _showMessage('Could not save the edited photo: $error');
+      _showMessage(
+        'Could not save the edited photo: $error',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -415,11 +769,13 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // FAVORITE
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
-  Future<void> _toggleFavorite(Memory memory) async {
+  Future<void> _toggleFavorite(
+    Memory memory,
+  ) async {
     if (_isUpdatingFavorite) {
       return;
     }
@@ -429,9 +785,15 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     });
 
     try {
-      await ref.read(memoryRepositoryProvider).toggleMemoryFavorite(memory);
+      await ref
+          .read(memoryRepositoryProvider)
+          .toggleMemoryFavorite(
+            memory,
+          );
     } catch (error) {
-      _showMessage('Could not update favorite: $error');
+      _showMessage(
+        'Could not update favorite: $error',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -441,12 +803,14 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // SHARE
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   Future<void> _shareImage() async {
-    if (_isSharing || _isDeleting || _isAiEditing) {
+    if (_isSharing ||
+        _isDeleting ||
+        _isAiEditing) {
       return;
     }
 
@@ -455,18 +819,26 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     });
 
     try {
-      final asset = await AssetEntity.fromId(widget.assetId);
+      final asset = await AssetEntity.fromId(
+        widget.assetId,
+      );
 
       if (asset == null) {
-        _showMessage('This image is no longer available.');
+        _showMessage(
+          'This image is no longer available.',
+        );
 
         return;
       }
 
-      final imageFile = await asset.originFile ?? await asset.file;
+      final imageFile = await asset.originFile ??
+          await asset.file;
 
-      if (imageFile == null || !await imageFile.exists()) {
-        _showMessage('Could not access this image.');
+      if (imageFile == null ||
+          !await imageFile.exists()) {
+        _showMessage(
+          'Could not access this image.',
+        );
 
         return;
       }
@@ -479,15 +851,25 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
       await SharePlus.instance.share(
         ShareParams(
-          files: [XFile(imageFile.path, name: widget.title)],
+          files: [
+            XFile(
+              imageFile.path,
+              name: widget.title,
+            ),
+          ],
           subject: widget.title,
           sharePositionOrigin: renderBox == null
               ? null
-              : renderBox.localToGlobal(Offset.zero) & renderBox.size,
+              : renderBox.localToGlobal(
+                    Offset.zero,
+                  ) &
+                  renderBox.size,
         ),
       );
     } catch (error) {
-      _showMessage('Could not share this image: $error');
+      _showMessage(
+        'Could not share this image: $error',
+      );
     } finally {
       if (mounted) {
         setState(() {
@@ -497,15 +879,19 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // OCR COPY
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
-  Future<void> _copyExtractedText(String text) async {
+  Future<void> _copyExtractedText(
+    String text,
+  ) async {
     final cleanText = text.trim();
 
     if (cleanText.isEmpty) {
-      _showMessage('No extracted text is available.');
+      _showMessage(
+        'No extracted text is available.',
+      );
 
       return;
     }
@@ -516,15 +902,19 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
       ),
     );
 
-    _showMessage('Extracted text copied.');
+    _showMessage(
+      'Extracted text copied.',
+    );
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // DELETE
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   Future<void> _confirmDelete() async {
-    if (_isSharing || _isDeleting || _isAiEditing) {
+    if (_isSharing ||
+        _isDeleting ||
+        _isAiEditing) {
       return;
     }
 
@@ -552,7 +942,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
             'The original image will remain in your phone gallery.',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.62),
+              color: Colors.white.withValues(
+                alpha: 0.62,
+              ),
               height: 1.5,
             ),
           ),
@@ -592,7 +984,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     });
 
     try {
-      await ref.read(memoryRepositoryProvider).deleteMemory(widget.assetId);
+      await ref.read(memoryRepositoryProvider).deleteMemory(
+            widget.assetId,
+          );
 
       if (!mounted) {
         return;
@@ -606,15 +1000,19 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
         });
       }
 
-      _showMessage('Could not remove this photo: $error');
+      _showMessage(
+        'Could not remove this photo: $error',
+      );
     }
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // HELPERS
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
-  void _showMessage(String message) {
+  void _showMessage(
+    String message,
+  ) {
     if (!mounted) {
       return;
     }
@@ -626,7 +1024,9 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     );
   }
 
-  Memory? _findMemory(List<Memory> memories) {
+  Memory? _findMemory(
+    List<Memory> memories,
+  ) {
     for (final memory in memories) {
       if (memory.id == widget.assetId) {
         return memory;
@@ -636,13 +1036,17 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
     return null;
   }
 
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
   // UI
-  // ---------------------------------------------------------------------------
+  // ===========================================================================
 
   @override
-  Widget build(BuildContext context) {
-    final timeline = ref.watch(memoryTimelineProvider);
+  Widget build(
+    BuildContext context,
+  ) {
+    final timeline = ref.watch(
+      memoryTimelineProvider,
+    );
 
     final memory = timeline.maybeWhen(
       data: _findMemory,
@@ -651,11 +1055,11 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 
     final extractedText = memory?.content?.trim() ?? '';
 
-    final isBusy =
-        _isSharing ||
+    final isBusy = _isSharing ||
         _isDeleting ||
         _isSavingEdit ||
-        _isAiEditing;
+        _isAiEditing ||
+        _isUpdatingPersonLabel;
 
     return Scaffold(
       backgroundColor: _backgroundColor,
@@ -680,20 +1084,19 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                             Navigator.of(context).pop();
                           },
                   ),
-
                   const Spacer(),
-
                   _CircleActionButton(
                     tooltip: memory?.isFavorite == true
                         ? 'Remove from favorites'
                         : 'Add to favorites',
-                    onPressed:
-                        memory == null ||
+                    onPressed: memory == null ||
                             _isUpdatingFavorite ||
                             isBusy
                         ? null
                         : () {
-                            _toggleFavorite(memory);
+                            _toggleFavorite(
+                              memory,
+                            );
                           },
                     child: _isUpdatingFavorite
                         ? const SizedBox(
@@ -712,14 +1115,12 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                             size: 25,
                           ),
                   ),
-
-                  const SizedBox(
-                    width: 9,
-                  ),
-
+                  const SizedBox(width: 9),
                   _CircleActionButton(
                     tooltip: 'Advanced tools',
-                    onPressed: isBusy ? null : _openAiTools,
+                    onPressed: isBusy
+                        ? null
+                        : _openAiTools,
                     child: _isAiEditing
                         ? const SizedBox(
                             width: 18,
@@ -738,7 +1139,6 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                 ],
               ),
             ),
-
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(
@@ -751,32 +1151,71 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
                     color: _backgroundColor,
                     child: _PhotoBackground(
                       imageFuture: _imageFuture,
-                      assetId: widget.assetId,
                     ),
                   ),
                 ),
               ),
             ),
+            FutureBuilder<List<_PersonLabelTarget>>(
+              future: _peopleFuture,
+              builder: (
+                context,
+                peopleSnapshot,
+              ) {
+                final people = peopleSnapshot.data ??
+                    const <_PersonLabelTarget>[];
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                14,
-                12,
-                14,
-                14,
-              ),
-              child: _DetailsPanel(
-                extractedText: extractedText,
-                isSharing: _isSharing,
-                isDeleting: _isDeleting,
-                isSavingEdit: _isSavingEdit || _isAiEditing,
-                onEditPressed: _openEditor,
-                onOcrPressed: () {
-                  _copyExtractedText(extractedText);
-                },
-                onSharePressed: _shareImage,
-                onDeletePressed: _confirmDelete,
-              ),
+                final hasFaces = people.isNotEmpty;
+
+                final namedPeople = people
+                    .where(
+                      (person) => person.hasName,
+                    )
+                    .toList(
+                      growable: false,
+                    );
+
+                String personLabel = 'Label';
+
+                if (namedPeople.length == 1) {
+                  personLabel = namedPeople.first.name!;
+                } else if (namedPeople.length > 1) {
+                  personLabel = 'People';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    14,
+                    12,
+                    14,
+                    14,
+                  ),
+                  child: _DetailsPanel(
+                    extractedText: extractedText,
+                    hasFaces: hasFaces,
+                    personLabel: personLabel,
+                    isSharing: _isSharing,
+                    isDeleting: _isDeleting,
+                    isSavingEdit: _isSavingEdit ||
+                        _isAiEditing ||
+                        _isUpdatingPersonLabel,
+                    onEditPressed: _openEditor,
+                    onMiddlePressed: hasFaces
+                        ? () {
+                            _openPersonLabelFlow(
+                              people,
+                            );
+                          }
+                        : () {
+                            _copyExtractedText(
+                              extractedText,
+                            );
+                          },
+                    onSharePressed: _shareImage,
+                    onDeletePressed: _confirmDelete,
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -786,24 +1225,53 @@ class _MemoryDetailScreenState extends ConsumerState<MemoryDetailScreen> {
 }
 
 // =============================================================================
+// PERSON LABEL TARGET
+// =============================================================================
+
+class _PersonLabelTarget {
+  const _PersonLabelTarget({
+    required this.personId,
+    required this.name,
+    required this.displayIndex,
+  });
+
+  final String personId;
+  final String? name;
+  final int displayIndex;
+
+  bool get hasName =>
+      name != null &&
+      name!.trim().isNotEmpty;
+}
+
+// =============================================================================
 // PHOTO BACKGROUND
+//
+// IMPORTANT:
+// Hero has deliberately been removed from this widget.
+// This prevents the image detail route from participating in Hero transitions
+// while the underlying memory/provider tree is rebuilding.
 // =============================================================================
 
 class _PhotoBackground extends StatelessWidget {
   const _PhotoBackground({
     required this.imageFuture,
-    required this.assetId,
   });
 
   final Future<Uint8List?> imageFuture;
-  final String assetId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return FutureBuilder<Uint8List?>(
       future: imageFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+      builder: (
+        context,
+        snapshot,
+      ) {
+        if (snapshot.connectionState ==
+            ConnectionState.waiting) {
           return const ColoredBox(
             color: Color(0xFF050816),
             child: Center(
@@ -814,26 +1282,25 @@ class _PhotoBackground extends StatelessWidget {
           );
         }
 
-        if (snapshot.hasError || snapshot.data == null) {
+        if (snapshot.hasError ||
+            snapshot.data == null) {
           return const _ImageErrorView(
-            message: 'This photo is no longer available.',
+            message:
+                'This photo is no longer available.',
           );
         }
 
-        return Hero(
-          tag: 'memory-image-$assetId',
-          child: Material(
-            color: Colors.transparent,
-            child: InteractiveViewer(
-              minScale: 1,
-              maxScale: 5,
-              child: SizedBox.expand(
-                child: Image.memory(
-                  snapshot.data!,
-                  fit: BoxFit.contain,
-                  gaplessPlayback: true,
-                  filterQuality: FilterQuality.high,
-                ),
+        return Material(
+          color: Colors.transparent,
+          child: InteractiveViewer(
+            minScale: 1,
+            maxScale: 5,
+            child: SizedBox.expand(
+              child: Image.memory(
+                snapshot.data!,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.high,
               ),
             ),
           ),
@@ -850,10 +1317,12 @@ class _PhotoBackground extends StatelessWidget {
 class _DetailsPanel extends StatelessWidget {
   const _DetailsPanel({
     required this.extractedText,
+    required this.hasFaces,
+    required this.personLabel,
     required this.isSharing,
     required this.isDeleting,
     required this.onEditPressed,
-    required this.onOcrPressed,
+    required this.onMiddlePressed,
     required this.onSharePressed,
     required this.onDeletePressed,
     required this.isSavingEdit,
@@ -861,18 +1330,31 @@ class _DetailsPanel extends StatelessWidget {
 
   final String extractedText;
 
+  final bool hasFaces;
+
+  final String personLabel;
+
   final bool isSharing;
   final bool isDeleting;
   final bool isSavingEdit;
 
   final VoidCallback onEditPressed;
-  final VoidCallback onOcrPressed;
+  final VoidCallback onMiddlePressed;
   final VoidCallback onSharePressed;
   final VoidCallback onDeletePressed;
 
   @override
-  Widget build(BuildContext context) {
-    final isBusy = isSharing || isDeleting || isSavingEdit;
+  Widget build(
+    BuildContext context,
+  ) {
+    final isBusy =
+        isSharing ||
+        isDeleting ||
+        isSavingEdit;
+
+    final middleEnabled =
+        !isBusy &&
+        (hasFaces || extractedText.isNotEmpty);
 
     return Container(
       width: double.infinity,
@@ -881,7 +1363,9 @@ class _DetailsPanel extends StatelessWidget {
         color: _MemoryDetailScreenState._surfaceColor,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(
-          color: Colors.white.withValues(alpha: 0.07),
+          color: Colors.white.withValues(
+            alpha: 0.07,
+          ),
         ),
       ),
       child: Row(
@@ -893,42 +1377,49 @@ class _DetailsPanel extends StatelessWidget {
               foregroundColor: const Color(0xFFC4B5FD),
               backgroundColor: const Color(
                 0xFF36235E,
-              ).withValues(alpha: 0.72),
-              onPressed: isBusy ? null : onEditPressed,
+              ).withValues(
+                alpha: 0.72,
+              ),
+              onPressed: isBusy
+                  ? null
+                  : onEditPressed,
             ),
           ),
-
-          const SizedBox(
-            width: 7,
-          ),
-
+          const SizedBox(width: 7),
           Expanded(
             child: _PillActionButton(
-              icon: Icons.document_scanner_outlined,
-              label: 'OCR',
-              onPressed:
-                  extractedText.isEmpty || isBusy
-                  ? null
-                  : onOcrPressed,
+              icon: hasFaces
+                  ? Icons.person_add_alt_1_rounded
+                  : Icons.document_scanner_outlined,
+              label: hasFaces
+                  ? personLabel
+                  : 'OCR',
+              foregroundColor: hasFaces
+                  ? const Color(0xFFC4B5FD)
+                  : Colors.white,
+              backgroundColor: hasFaces
+                  ? const Color(
+                      0xFF36235E,
+                    ).withValues(
+                      alpha: 0.60,
+                    )
+                  : const Color(0xFF171E2C),
+              onPressed: middleEnabled
+                  ? onMiddlePressed
+                  : null,
             ),
           ),
-
-          const SizedBox(
-            width: 7,
-          ),
-
+          const SizedBox(width: 7),
           Expanded(
             child: _PillActionButton(
               icon: Icons.ios_share_rounded,
               label: 'Share',
-              onPressed: isBusy ? null : onSharePressed,
+              onPressed: isBusy
+                  ? null
+                  : onSharePressed,
             ),
           ),
-
-          const SizedBox(
-            width: 7,
-          ),
-
+          const SizedBox(width: 7),
           Expanded(
             child: _PillActionButton(
               icon: Icons.delete_outline_rounded,
@@ -936,8 +1427,12 @@ class _DetailsPanel extends StatelessWidget {
               foregroundColor: const Color(0xFFFF667B),
               backgroundColor: const Color(
                 0xFF581A29,
-              ).withValues(alpha: 0.48),
-              onPressed: isBusy ? null : onDeletePressed,
+              ).withValues(
+                alpha: 0.48,
+              ),
+              onPressed: isBusy
+                  ? null
+                  : onDeletePressed,
             ),
           ),
         ],
@@ -964,9 +1459,13 @@ class _CircleActionButton extends StatelessWidget {
   final Widget? child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return Material(
-      color: Colors.black.withValues(alpha: 0.28),
+      color: Colors.black.withValues(
+        alpha: 0.28,
+      ),
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -978,8 +1477,7 @@ class _CircleActionButton extends StatelessWidget {
           child: Center(
             child: Tooltip(
               message: tooltip,
-              child:
-                  child ??
+              child: child ??
                   Icon(
                     icon,
                     color: Colors.white,
@@ -1003,18 +1501,23 @@ class _PillActionButton extends StatelessWidget {
     required this.label,
     required this.onPressed,
     this.foregroundColor = Colors.white,
-    this.backgroundColor = const Color(0xFF171E2C),
+    this.backgroundColor = const Color(
+      0xFF171E2C,
+    ),
   });
 
   final IconData icon;
   final String label;
+
   final VoidCallback? onPressed;
 
   final Color foregroundColor;
   final Color backgroundColor;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     final enabled = onPressed != null;
 
     return Material(
@@ -1036,14 +1539,12 @@ class _PillActionButton extends StatelessWidget {
                 icon,
                 color: enabled
                     ? foregroundColor
-                    : foregroundColor.withValues(alpha: 0.35),
+                    : foregroundColor.withValues(
+                        alpha: 0.35,
+                      ),
                 size: 19,
               ),
-
-              const SizedBox(
-                width: 5,
-              ),
-
+              const SizedBox(width: 5),
               Flexible(
                 child: Text(
                   label,
@@ -1051,7 +1552,9 @@ class _PillActionButton extends StatelessWidget {
                   style: TextStyle(
                     color: enabled
                         ? foregroundColor
-                        : foregroundColor.withValues(alpha: 0.35),
+                        : foregroundColor.withValues(
+                            alpha: 0.35,
+                          ),
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1077,7 +1580,9 @@ class _ImageErrorView extends StatelessWidget {
   final String message;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(
+    BuildContext context,
+  ) {
     return ColoredBox(
       color: const Color(0xFF050816),
       child: Center(
@@ -1093,7 +1598,9 @@ class _ImageErrorView extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: const Color(
                     0xFF8B5CF6,
-                  ).withValues(alpha: 0.12),
+                  ).withValues(
+                    alpha: 0.12,
+                  ),
                 ),
                 child: const Icon(
                   Icons.broken_image_outlined,
@@ -1101,11 +1608,7 @@ class _ImageErrorView extends StatelessWidget {
                   color: Color(0xFFC084FC),
                 ),
               ),
-
-              const SizedBox(
-                height: 18,
-              ),
-
+              const SizedBox(height: 18),
               Text(
                 message,
                 textAlign: TextAlign.center,

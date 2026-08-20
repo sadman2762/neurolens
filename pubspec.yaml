@@ -40,6 +40,7 @@ dependencies:
   path_provider: ^2.1.6
   flutter_riverpod: ^2.6.1
   google_mlkit_text_recognition: ^0.16.0
+  google_mlkit_face_detection: ^0.14.0
   file_picker: 10.3.10
   syncfusion_flutter_pdf: ^33.2.13
   syncfusion_flutter_pdfviewer: ^33.2.13
@@ -91,6 +92,7 @@ flutter:
     - assets/models/mobile_sam_image_encoder.onnx
     - assets/models/sam_mask_decoder_single.onnx
     - assets/models/lama.onnx
+    - assets/models/edgeface_xs_gamma_06.onnx
 
   shaders:
     - shaders/neurolens_grade.frag
