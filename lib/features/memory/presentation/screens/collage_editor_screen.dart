@@ -91,6 +91,7 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
 
   bool _isPickingPhoto = false;
   bool _isExporting = false;
+  bool _isLoadingInitialPhoto = true;
 
   final List<Color> _backgroundColors = const [
     Colors.white,
@@ -104,6 +105,56 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     Color(0xFFD1FAE5),
     Color(0xFFFFF3C4),
   ];
+
+  // ===========================================================================
+  // INIT
+  // ===========================================================================
+
+  @override
+  void initState() {
+    super.initState();
+
+    _loadInitialPhoto();
+  }
+
+  Future<void> _loadInitialPhoto() async {
+    try {
+      final assetId = widget.initialAssetId.trim();
+
+      if (assetId.isEmpty) {
+        return;
+      }
+
+      final asset = await AssetEntity.fromId(assetId);
+
+      if (!mounted) {
+        return;
+      }
+
+      if (asset != null) {
+        setState(() {
+          _slots[0] = asset;
+        });
+      } else {
+        debugPrint(
+          'CollageEditorScreen: '
+          'Could not find initial asset with id $assetId',
+        );
+      }
+    } catch (error, stackTrace) {
+      debugPrint(
+        'CollageEditorScreen initial photo error: $error',
+      );
+
+      debugPrintStack(stackTrace: stackTrace);
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingInitialPhoto = false;
+        });
+      }
+    }
+  }
 
   // ===========================================================================
   // REQUIRED PHOTO COUNT
@@ -216,7 +267,7 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
   // ===========================================================================
 
   Future<void> _pickPhotoForSlot(int slotIndex) async {
-    if (_isPickingPhoto || _isExporting) {
+    if (_isPickingPhoto || _isExporting || _isLoadingInitialPhoto) {
       return;
     }
 
@@ -228,7 +279,9 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       final permission = await PhotoManager.requestPermissionExtend();
 
       if (!permission.hasAccess) {
-        _showMessage('Gallery permission is required to select a photo.');
+        _showMessage(
+          'Gallery permission is required to select a photo.',
+        );
 
         return;
       }
@@ -244,7 +297,8 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
         pickerConfig: AssetPickerConfig(
           maxAssets: 1,
           requestType: RequestType.image,
-          selectedAssets: currentAsset == null ? const [] : [currentAsset],
+          selectedAssets:
+              currentAsset == null ? const [] : [currentAsset],
           themeColor: _accent,
         ),
       );
@@ -272,7 +326,7 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
   // ===========================================================================
 
   void _removePhotoFromSlot(int index) {
-    if (_isExporting) {
+    if (_isExporting || _isLoadingInitialPhoto) {
       return;
     }
 
@@ -318,12 +372,13 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       final permission = await PhotoManager.requestPermissionExtend();
 
       if (!permission.hasAccess) {
-        _showMessage('Gallery permission is required to save the collage.');
+        _showMessage(
+          'Gallery permission is required to save the collage.',
+        );
 
         return;
       }
 
-      // Rebuild once without editor buttons over the photos.
       await WidgetsBinding.instance.endOfFrame;
 
       if (!mounted) {
@@ -339,7 +394,9 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       final renderObject = boundaryContext.findRenderObject();
 
       if (renderObject is! RenderRepaintBoundary) {
-        throw StateError('Could not prepare collage for export.');
+        throw StateError(
+          'Could not prepare collage for export.',
+        );
       }
 
       final logicalSize = renderObject.size;
@@ -348,66 +405,81 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
         throw StateError('Invalid collage export size.');
       }
 
-      // Target approximately 2400 px on the longest side.
-      // This produces:
-      //
-      // 1:1  -> about 2400 x 2400
-      // 4:5  -> about 1920 x 2400
-      // 9:16 -> about 1350 x 2400
-      //
-      // while avoiding excessive memory usage.
       const targetLongestSide = 2400.0;
 
-      final longestLogicalSide = logicalSize.width > logicalSize.height
-          ? logicalSize.width
-          : logicalSize.height;
+      final longestLogicalSide =
+          logicalSize.width > logicalSize.height
+              ? logicalSize.width
+              : logicalSize.height;
 
-      var pixelRatio = targetLongestSide / longestLogicalSide;
+      var pixelRatio =
+          targetLongestSide / longestLogicalSide;
 
       pixelRatio = pixelRatio.clamp(1.0, 8.0);
 
-      final image = await renderObject.toImage(pixelRatio: pixelRatio);
+      final image = await renderObject.toImage(
+        pixelRatio: pixelRatio,
+      );
 
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
 
       image.dispose();
 
       if (byteData == null) {
-        throw StateError('Could not encode collage image.');
+        throw StateError(
+          'Could not encode collage image.',
+        );
       }
 
       final bytes = byteData.buffer.asUint8List();
 
       if (bytes.isEmpty) {
-        throw StateError('Collage export returned empty image data.');
+        throw StateError(
+          'Collage export returned empty image data.',
+        );
       }
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final timestamp =
+          DateTime.now().millisecondsSinceEpoch;
 
-      final fileName = 'neurolens_collage_$timestamp.png';
+      final fileName =
+          'neurolens_collage_$timestamp.png';
 
-      final savedAsset = await PhotoManager.editor.saveImage(
+      final savedAsset =
+          await PhotoManager.editor.saveImage(
         bytes,
         title: fileName,
         filename: fileName,
       );
 
       if (savedAsset.id.isEmpty) {
-        throw StateError('The saved collage has no gallery ID.');
+        throw StateError(
+          'The saved collage has no gallery ID.',
+        );
       }
 
       if (!mounted) {
         return;
       }
 
-      _showMessage('Collage saved to your gallery.');
+      _showMessage(
+        'Collage saved to your gallery.',
+      );
     } catch (error, stackTrace) {
-      debugPrint('Collage export error: $error');
+      debugPrint(
+        'Collage export error: $error',
+      );
 
-      debugPrintStack(stackTrace: stackTrace);
+      debugPrintStack(
+        stackTrace: stackTrace,
+      );
 
       if (mounted) {
-        _showMessage('Could not save collage: $error');
+        _showMessage(
+          'Could not save collage: $error',
+        );
       }
     } finally {
       if (mounted) {
@@ -427,9 +499,11 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   // ===========================================================================
@@ -445,12 +519,16 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          onPressed: _isPickingPhoto || _isExporting
-              ? null
-              : () {
-                  Navigator.of(context).pop();
-                },
-          icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+          onPressed:
+              _isPickingPhoto || _isExporting
+                  ? null
+                  : () {
+                      Navigator.of(context).pop();
+                    },
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: Colors.white,
+          ),
         ),
         title: const Text(
           'Collage',
@@ -462,9 +540,10 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
         ),
         actions: [
           TextButton.icon(
-            onPressed: !_isCollageComplete || _isExporting
-                ? null
-                : _exportCollage,
+            onPressed:
+                !_isCollageComplete || _isExporting
+                    ? null
+                    : _exportCollage,
             icon: _isExporting
                 ? const SizedBox(
                     width: 16,
@@ -474,7 +553,10 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
                       color: Color(0xFFC4B5FD),
                     ),
                   )
-                : const Icon(Icons.download_rounded, size: 19),
+                : const Icon(
+                    Icons.download_rounded,
+                    size: 19,
+                  ),
             label: Text(
               _isExporting ? 'Saving' : 'Save',
               style: TextStyle(
@@ -485,7 +567,6 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
               ),
             ),
           ),
-
           const SizedBox(width: 6),
         ],
       ),
@@ -493,16 +574,20 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
         top: false,
         child: Column(
           children: [
-            // =================================================================
-            // PHOTO STATUS
-            // =================================================================
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 4, 18, 4),
+              padding:
+                  const EdgeInsets.fromLTRB(
+                18,
+                4,
+                18,
+                4,
+              ),
               child: Row(
                 children: [
                   Expanded(
                     child: Text(
-                      '$_filledPhotoCount of $_requiredPhotoCount photos',
+                      '$_filledPhotoCount of '
+                      '$_requiredPhotoCount photos',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 13,
@@ -510,11 +595,14 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
                       ),
                     ),
                   ),
-
                   Text(
-                    'Tap a frame to add',
+                    _isLoadingInitialPhoto
+                        ? 'Loading photo...'
+                        : 'Tap a frame to add',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: Colors.white.withValues(
+                        alpha: 0.4,
+                      ),
                       fontSize: 12,
                     ),
                   ),
@@ -522,14 +610,10 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
               ),
             ),
 
-            // =================================================================
-            // CANVAS
-            // =================================================================
-            Expanded(child: _buildCollageCanvas()),
+            Expanded(
+              child: _buildCollageCanvas(),
+            ),
 
-            // =================================================================
-            // CONTROLS
-            // =================================================================
             _buildControlsPanel(),
           ],
         ),
@@ -546,7 +630,13 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       builder: (context, constraints) {
         return Center(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
+            padding:
+                const EdgeInsets.fromLTRB(
+              18,
+              10,
+              18,
+              14,
+            ),
             child: ConstrainedBox(
               constraints: BoxConstraints(
                 maxWidth: constraints.maxWidth,
@@ -559,15 +649,20 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
                   child: ColoredBox(
                     color: _collageBackground,
                     child: Padding(
-                      padding: EdgeInsets.all(_spacing),
+                      padding:
+                          EdgeInsets.all(_spacing),
                       child: _CollagePreview(
                         slots: _slots,
                         layout: _selectedLayout,
                         spacing: _spacing,
-                        cornerRadius: _cornerRadius,
-                        showControls: !_isExporting,
-                        onSelectPhoto: _pickPhotoForSlot,
-                        onRemovePhoto: _removePhotoFromSlot,
+                        cornerRadius:
+                            _cornerRadius,
+                        showControls:
+                            !_isExporting,
+                        onSelectPhoto:
+                            _pickPhotoForSlot,
+                        onRemovePhoto:
+                            _removePhotoFromSlot,
                       ),
                     ),
                   ),
@@ -589,7 +684,9 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: _surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -599,7 +696,12 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
 
             const SizedBox(height: 4),
 
-            Container(height: 1, color: Colors.white.withValues(alpha: 0.05)),
+            Container(
+              height: 1,
+              color: Colors.white.withValues(
+                alpha: 0.05,
+              ),
+            ),
 
             _buildToolbar(),
           ],
@@ -607,10 +709,6 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
       ),
     );
   }
-
-  // ===========================================================================
-  // ACTIVE CONTROL
-  // ===========================================================================
 
   Widget _buildSelectedControl() {
     switch (_selectedControl) {
@@ -631,15 +729,17 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     }
   }
 
-  // ===========================================================================
-  // LAYOUTS
-  // ===========================================================================
-
   Widget _buildLayoutControl() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        14,
+        16,
+        10,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -653,11 +753,12 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
                   ),
                 ),
               ),
-
               Text(
                 '2 • 3 • 4 • 6 photos',
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.38),
+                  color: Colors.white.withValues(
+                    alpha: 0.38,
+                  ),
                   fontSize: 11,
                 ),
               ),
@@ -669,18 +770,31 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
           SizedBox(
             height: 78,
             child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: CollageLayoutType.values.length,
-              separatorBuilder: (_, _) {
-                return const SizedBox(width: 10);
-              },
-              itemBuilder: (context, index) {
-                final layout = CollageLayoutType.values[index];
+              scrollDirection:
+                  Axis.horizontal,
+              itemCount:
+                  CollageLayoutType
+                      .values
+                      .length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(width: 10),
+              itemBuilder: (
+                context,
+                index,
+              ) {
+                final layout =
+                    CollageLayoutType
+                        .values[index];
 
                 return _LayoutButton(
                   layout: layout,
-                  photoCount: _layoutPhotoCount(layout),
-                  selected: _selectedLayout == layout,
+                  photoCount:
+                      _layoutPhotoCount(
+                    layout,
+                  ),
+                  selected:
+                      _selectedLayout ==
+                          layout,
                   onTap: () {
                     _changeLayout(layout);
                   },
@@ -693,15 +807,17 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     );
   }
 
-  // ===========================================================================
-  // RATIO
-  // ===========================================================================
-
   Widget _buildRatioControl() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        14,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           const Text(
             'Aspect Ratio',
@@ -715,38 +831,70 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
           const SizedBox(height: 14),
 
           Row(
-            children: CollageAspectRatio.values.map((ratio) {
-              final selected = _selectedRatio == ratio;
+            children:
+                CollageAspectRatio.values
+                    .map((ratio) {
+              final selected =
+                  _selectedRatio == ratio;
 
               return Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 4,
+                  ),
                   child: Material(
-                    color: selected ? _accent : _surfaceLight,
-                    borderRadius: BorderRadius.circular(14),
-                    clipBehavior: Clip.antiAlias,
+                    color: selected
+                        ? _accent
+                        : _surfaceLight,
+                    borderRadius:
+                        BorderRadius.circular(
+                      14,
+                    ),
+                    clipBehavior:
+                        Clip.antiAlias,
                     child: InkWell(
                       onTap: _isExporting
                           ? null
                           : () {
                               setState(() {
-                                _selectedRatio = ratio;
+                                _selectedRatio =
+                                    ratio;
                               });
                             },
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
+                        padding:
+                            const EdgeInsets.symmetric(
+                          vertical: 13,
+                        ),
                         child: Column(
                           children: [
-                            _RatioPreview(ratio: ratio, selected: selected),
+                            _RatioPreview(
+                              ratio: ratio,
+                              selected:
+                                  selected,
+                            ),
 
-                            const SizedBox(height: 7),
+                            const SizedBox(
+                              height: 7,
+                            ),
 
                             Text(
-                              _ratioName(ratio),
-                              style: TextStyle(
-                                color: selected ? Colors.white : Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
+                              _ratioName(
+                                ratio,
+                              ),
+                              style:
+                                  TextStyle(
+                                color: selected
+                                    ? Colors
+                                        .white
+                                    : Colors
+                                        .white70,
+                                fontSize:
+                                    12,
+                                fontWeight:
+                                    FontWeight
+                                        .w700,
                               ),
                             ),
                           ],
@@ -763,13 +911,14 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     );
   }
 
-  // ===========================================================================
-  // SPACING
-  // ===========================================================================
-
   Widget _buildSpacingControl() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        14,
+      ),
       child: Column(
         children: [
           Row(
@@ -782,9 +931,7 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-
               const Spacer(),
-
               Text(
                 _spacing.round().toString(),
                 style: const TextStyle(
@@ -801,7 +948,10 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
             max: 24,
             divisions: 24,
             activeColor: _accent,
-            inactiveColor: Colors.white.withValues(alpha: 0.12),
+            inactiveColor:
+                Colors.white.withValues(
+              alpha: 0.12,
+            ),
             onChanged: _isExporting
                 ? null
                 : (value) {
@@ -815,13 +965,14 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     );
   }
 
-  // ===========================================================================
-  // CORNERS
-  // ===========================================================================
-
   Widget _buildCornersControl() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        14,
+      ),
       child: Column(
         children: [
           Row(
@@ -834,11 +985,11 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-
               const Spacer(),
-
               Text(
-                _cornerRadius.round().toString(),
+                _cornerRadius
+                    .round()
+                    .toString(),
                 style: const TextStyle(
                   color: Color(0xFFC4B5FD),
                   fontWeight: FontWeight.w700,
@@ -853,7 +1004,10 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
             max: 32,
             divisions: 32,
             activeColor: _accent,
-            inactiveColor: Colors.white.withValues(alpha: 0.12),
+            inactiveColor:
+                Colors.white.withValues(
+              alpha: 0.12,
+            ),
             onChanged: _isExporting
                 ? null
                 : (value) {
@@ -867,15 +1021,17 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     );
   }
 
-  // ===========================================================================
-  // BACKGROUND
-  // ===========================================================================
-
   Widget _buildBackgroundControl() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 18),
+      padding: const EdgeInsets.fromLTRB(
+        16,
+        18,
+        16,
+        18,
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           const Text(
             'Background',
@@ -891,42 +1047,68 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
           SizedBox(
             height: 52,
             child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _backgroundColors.length,
-              separatorBuilder: (_, _) {
-                return const SizedBox(width: 12);
-              },
-              itemBuilder: (context, index) {
-                final color = _backgroundColors[index];
+              scrollDirection:
+                  Axis.horizontal,
+              itemCount:
+                  _backgroundColors.length,
+              separatorBuilder: (_, _) =>
+                  const SizedBox(width: 12),
+              itemBuilder: (
+                context,
+                index,
+              ) {
+                final color =
+                    _backgroundColors[index];
 
                 final selected =
-                    _collageBackground.toARGB32() == color.toARGB32();
+                    _collageBackground
+                            .toARGB32() ==
+                        color.toARGB32();
 
                 return GestureDetector(
                   onTap: _isExporting
                       ? null
                       : () {
                           setState(() {
-                            _collageBackground = color;
+                            _collageBackground =
+                                color;
                           });
                         },
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
+                    duration:
+                        const Duration(
+                      milliseconds: 160,
+                    ),
                     width: 48,
                     height: 48,
-                    padding: EdgeInsets.all(selected ? 3 : 0),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                    padding: EdgeInsets.all(
+                      selected ? 3 : 0,
+                    ),
+                    decoration:
+                        BoxDecoration(
+                      shape:
+                          BoxShape.circle,
                       border: selected
-                          ? Border.all(color: const Color(0xFFC4B5FD), width: 2)
+                          ? Border.all(
+                              color:
+                                  const Color(
+                                0xFFC4B5FD,
+                              ),
+                              width: 2,
+                            )
                           : null,
                     ),
                     child: Container(
-                      decoration: BoxDecoration(
+                      decoration:
+                          BoxDecoration(
                         color: color,
-                        shape: BoxShape.circle,
+                        shape:
+                            BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: Colors.white
+                              .withValues(
+                            alpha: 0.15,
+                          ),
                         ),
                       ),
                     ),
@@ -940,10 +1122,6 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
     );
   }
 
-  // ===========================================================================
-  // TOOLBAR
-  // ===========================================================================
-
   Widget _buildToolbar() {
     return SizedBox(
       height: 78,
@@ -951,12 +1129,18 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
         children: [
           Expanded(
             child: _ToolbarButton(
-              icon: Icons.grid_view_rounded,
+              icon:
+                  Icons.grid_view_rounded,
               label: 'Layout',
-              selected: _selectedControl == CollageControlType.layout,
+              selected:
+                  _selectedControl ==
+                      CollageControlType
+                          .layout,
               onTap: () {
                 setState(() {
-                  _selectedControl = CollageControlType.layout;
+                  _selectedControl =
+                      CollageControlType
+                          .layout;
                 });
               },
             ),
@@ -964,12 +1148,18 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
 
           Expanded(
             child: _ToolbarButton(
-              icon: Icons.aspect_ratio_rounded,
+              icon:
+                  Icons.aspect_ratio_rounded,
               label: 'Ratio',
-              selected: _selectedControl == CollageControlType.ratio,
+              selected:
+                  _selectedControl ==
+                      CollageControlType
+                          .ratio,
               onTap: () {
                 setState(() {
-                  _selectedControl = CollageControlType.ratio;
+                  _selectedControl =
+                      CollageControlType
+                          .ratio;
                 });
               },
             ),
@@ -977,12 +1167,18 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
 
           Expanded(
             child: _ToolbarButton(
-              icon: Icons.space_bar_rounded,
+              icon:
+                  Icons.space_bar_rounded,
               label: 'Spacing',
-              selected: _selectedControl == CollageControlType.spacing,
+              selected:
+                  _selectedControl ==
+                      CollageControlType
+                          .spacing,
               onTap: () {
                 setState(() {
-                  _selectedControl = CollageControlType.spacing;
+                  _selectedControl =
+                      CollageControlType
+                          .spacing;
                 });
               },
             ),
@@ -990,12 +1186,18 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
 
           Expanded(
             child: _ToolbarButton(
-              icon: Icons.rounded_corner_rounded,
+              icon: Icons
+                  .rounded_corner_rounded,
               label: 'Corners',
-              selected: _selectedControl == CollageControlType.corners,
+              selected:
+                  _selectedControl ==
+                      CollageControlType
+                          .corners,
               onTap: () {
                 setState(() {
-                  _selectedControl = CollageControlType.corners;
+                  _selectedControl =
+                      CollageControlType
+                          .corners;
                 });
               },
             ),
@@ -1003,12 +1205,18 @@ class _CollageEditorScreenState extends State<CollageEditorScreen> {
 
           Expanded(
             child: _ToolbarButton(
-              icon: Icons.palette_outlined,
+              icon:
+                  Icons.palette_outlined,
               label: 'Background',
-              selected: _selectedControl == CollageControlType.background,
+              selected:
+                  _selectedControl ==
+                      CollageControlType
+                          .background,
               onTap: () {
                 setState(() {
-                  _selectedControl = CollageControlType.background;
+                  _selectedControl =
+                      CollageControlType
+                          .background;
                 });
               },
             ),
@@ -1047,9 +1255,15 @@ class _CollagePreview extends StatelessWidget {
 
   Widget _slot(int index) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(cornerRadius),
+      borderRadius:
+          BorderRadius.circular(
+        cornerRadius,
+      ),
       child: _CollageSlot(
-        key: ValueKey('slot-$index-${slots[index]?.id ?? 'empty'}'),
+        key: ValueKey(
+          'slot-$index-'
+          '${slots[index]?.id ?? 'empty'}',
+        ),
         asset: slots[index],
         slotIndex: index,
         showControls: showControls,
@@ -1071,11 +1285,17 @@ class _CollagePreview extends StatelessWidget {
   }) {
     return Row(
       children: [
-        Expanded(flex: firstFlex, child: _slot(first)),
+        Expanded(
+          flex: firstFlex,
+          child: _slot(first),
+        ),
 
         SizedBox(width: spacing),
 
-        Expanded(flex: secondFlex, child: _slot(second)),
+        Expanded(
+          flex: secondFlex,
+          child: _slot(second),
+        ),
       ],
     );
   }
@@ -1088,11 +1308,17 @@ class _CollagePreview extends StatelessWidget {
   }) {
     return Column(
       children: [
-        Expanded(flex: firstFlex, child: _slot(first)),
+        Expanded(
+          flex: firstFlex,
+          child: _slot(first),
+        ),
 
         SizedBox(height: spacing),
 
-        Expanded(flex: secondFlex, child: _slot(second)),
+        Expanded(
+          flex: secondFlex,
+          child: _slot(second),
+        ),
       ],
     );
   }
@@ -1100,142 +1326,123 @@ class _CollagePreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     switch (layout) {
-      // =======================================================================
-      // TWO
-      // =======================================================================
-
       case CollageLayoutType.twoVertical:
         return _horizontal(0, 1);
 
       case CollageLayoutType.twoHorizontal:
         return _vertical(0, 1);
 
-      // =======================================================================
-      // THREE - LARGE LEFT
-      // =======================================================================
-
       case CollageLayoutType.threeLeft:
         return Row(
           children: [
-            Expanded(flex: 2, child: _slot(0)),
-
+            Expanded(
+              flex: 2,
+              child: _slot(0),
+            ),
             SizedBox(width: spacing),
-
-            Expanded(child: _vertical(1, 2)),
+            Expanded(
+              child: _vertical(1, 2),
+            ),
           ],
         );
-
-      // =======================================================================
-      // THREE - LARGE RIGHT
-      // =======================================================================
 
       case CollageLayoutType.threeRight:
         return Row(
           children: [
-            Expanded(child: _vertical(0, 1)),
-
+            Expanded(
+              child: _vertical(0, 1),
+            ),
             SizedBox(width: spacing),
-
-            Expanded(flex: 2, child: _slot(2)),
+            Expanded(
+              flex: 2,
+              child: _slot(2),
+            ),
           ],
         );
-
-      // =======================================================================
-      // THREE - LARGE TOP
-      // =======================================================================
 
       case CollageLayoutType.threeTop:
         return Column(
           children: [
-            Expanded(flex: 2, child: _slot(0)),
-
+            Expanded(
+              flex: 2,
+              child: _slot(0),
+            ),
             SizedBox(height: spacing),
-
-            Expanded(child: _horizontal(1, 2)),
+            Expanded(
+              child: _horizontal(1, 2),
+            ),
           ],
         );
-
-      // =======================================================================
-      // THREE - LARGE BOTTOM
-      // =======================================================================
 
       case CollageLayoutType.threeBottom:
         return Column(
           children: [
-            Expanded(child: _horizontal(0, 1)),
-
+            Expanded(
+              child: _horizontal(0, 1),
+            ),
             SizedBox(height: spacing),
-
-            Expanded(flex: 2, child: _slot(2)),
+            Expanded(
+              flex: 2,
+              child: _slot(2),
+            ),
           ],
         );
-
-      // =======================================================================
-      // THREE COLUMNS
-      // =======================================================================
 
       case CollageLayoutType.threeColumns:
         return Row(
           children: [
             Expanded(child: _slot(0)),
-
             SizedBox(width: spacing),
-
             Expanded(child: _slot(1)),
-
             SizedBox(width: spacing),
-
             Expanded(child: _slot(2)),
           ],
         );
 
-      // =======================================================================
-      // FOUR GRID
-      // =======================================================================
-
       case CollageLayoutType.fourGrid:
         return Column(
           children: [
-            Expanded(child: _horizontal(0, 1)),
-
+            Expanded(
+              child: _horizontal(0, 1),
+            ),
             SizedBox(height: spacing),
-
-            Expanded(child: _horizontal(2, 3)),
+            Expanded(
+              child: _horizontal(2, 3),
+            ),
           ],
         );
-
-      // =======================================================================
-      // FOUR TOP WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourTopWide:
         return Column(
           children: [
-            Expanded(flex: 2, child: _slot(0)),
-
+            Expanded(
+              flex: 2,
+              child: _slot(0),
+            ),
             SizedBox(height: spacing),
-
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _slot(1)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(2)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(3)),
+                  Expanded(
+                    child: _slot(1),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(2),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(3),
+                  ),
                 ],
               ),
             ),
           ],
         );
-
-      // =======================================================================
-      // FOUR BOTTOM WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourBottomWide:
         return Column(
@@ -1243,57 +1450,63 @@ class _CollagePreview extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _slot(0)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(1)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(2)),
+                  Expanded(
+                    child: _slot(0),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(1),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(2),
+                  ),
                 ],
               ),
             ),
-
             SizedBox(height: spacing),
-
-            Expanded(flex: 2, child: _slot(3)),
+            Expanded(
+              flex: 2,
+              child: _slot(3),
+            ),
           ],
         );
-
-      // =======================================================================
-      // FOUR LEFT WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourLeftWide:
         return Row(
           children: [
-            Expanded(flex: 2, child: _slot(0)),
-
+            Expanded(
+              flex: 2,
+              child: _slot(0),
+            ),
             SizedBox(width: spacing),
-
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _slot(1)),
-
-                  SizedBox(height: spacing),
-
-                  Expanded(child: _slot(2)),
-
-                  SizedBox(height: spacing),
-
-                  Expanded(child: _slot(3)),
+                  Expanded(
+                    child: _slot(1),
+                  ),
+                  SizedBox(
+                    height: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(2),
+                  ),
+                  SizedBox(
+                    height: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(3),
+                  ),
                 ],
               ),
             ),
           ],
         );
-
-      // =======================================================================
-      // FOUR RIGHT WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourRightWide:
         return Row(
@@ -1301,63 +1514,71 @@ class _CollagePreview extends StatelessWidget {
             Expanded(
               child: Column(
                 children: [
-                  Expanded(child: _slot(0)),
-
-                  SizedBox(height: spacing),
-
-                  Expanded(child: _slot(1)),
-
-                  SizedBox(height: spacing),
-
-                  Expanded(child: _slot(2)),
+                  Expanded(
+                    child: _slot(0),
+                  ),
+                  SizedBox(
+                    height: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(1),
+                  ),
+                  SizedBox(
+                    height: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(2),
+                  ),
                 ],
               ),
             ),
-
             SizedBox(width: spacing),
-
-            Expanded(flex: 2, child: _slot(3)),
+            Expanded(
+              flex: 2,
+              child: _slot(3),
+            ),
           ],
         );
-
-      // =======================================================================
-      // SIX GRID
-      // =======================================================================
 
       case CollageLayoutType.sixGrid:
         return Column(
           children: [
-            Expanded(child: _horizontal(0, 1)),
-
+            Expanded(
+              child: _horizontal(0, 1),
+            ),
             SizedBox(height: spacing),
-
-            Expanded(child: _horizontal(2, 3)),
-
+            Expanded(
+              child: _horizontal(2, 3),
+            ),
             SizedBox(height: spacing),
-
-            Expanded(child: _horizontal(4, 5)),
+            Expanded(
+              child: _horizontal(4, 5),
+            ),
           ],
         );
-
-      // =======================================================================
-      // SIX TOP WIDE
-      // =======================================================================
 
       case CollageLayoutType.sixTopWide:
         return Column(
           children: [
-            Expanded(flex: 2, child: _slot(0)),
+            Expanded(
+              flex: 2,
+              child: _slot(0),
+            ),
 
             SizedBox(height: spacing),
 
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _slot(1)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(2)),
+                  Expanded(
+                    child: _slot(1),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(2),
+                  ),
                 ],
               ),
             ),
@@ -1367,24 +1588,26 @@ class _CollagePreview extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _slot(3)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(4)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(5)),
+                  Expanded(
+                    child: _slot(3),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(4),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(5),
+                  ),
                 ],
               ),
             ),
           ],
         );
-
-      // =======================================================================
-      // SIX BOTTOM WIDE
-      // =======================================================================
 
       case CollageLayoutType.sixBottomWide:
         return Column(
@@ -1392,15 +1615,21 @@ class _CollagePreview extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _slot(0)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(1)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(2)),
+                  Expanded(
+                    child: _slot(0),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(1),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(2),
+                  ),
                 ],
               ),
             ),
@@ -1410,18 +1639,25 @@ class _CollagePreview extends StatelessWidget {
             Expanded(
               child: Row(
                 children: [
-                  Expanded(child: _slot(3)),
-
-                  SizedBox(width: spacing),
-
-                  Expanded(child: _slot(4)),
+                  Expanded(
+                    child: _slot(3),
+                  ),
+                  SizedBox(
+                    width: spacing,
+                  ),
+                  Expanded(
+                    child: _slot(4),
+                  ),
                 ],
               ),
             ),
 
             SizedBox(height: spacing),
 
-            Expanded(flex: 2, child: _slot(5)),
+            Expanded(
+              flex: 2,
+              child: _slot(5),
+            ),
           ],
         );
     }
@@ -1462,14 +1698,17 @@ class _CollageSlot extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        _CollageImage(asset: asset!),
+        _CollageImage(
+          asset: asset!,
+        ),
 
         if (showControls) ...[
           Positioned(
             left: 6,
             top: 6,
             child: _SmallCircleButton(
-              icon: Icons.photo_library_outlined,
+              icon:
+                  Icons.photo_library_outlined,
               tooltip: 'Replace',
               onTap: onSelectPhoto,
             ),
@@ -1494,8 +1733,12 @@ class _CollageSlot extends StatelessWidget {
 // EMPTY FRAME
 // =============================================================================
 
-class _EmptyCollageFrame extends StatelessWidget {
-  const _EmptyCollageFrame({required this.slotNumber, required this.onTap});
+class _EmptyCollageFrame
+    extends StatelessWidget {
+  const _EmptyCollageFrame({
+    required this.slotNumber,
+    required this.onTap,
+  });
 
   final int slotNumber;
   final VoidCallback onTap;
@@ -1509,42 +1752,73 @@ class _EmptyCollageFrame extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.13),
+              color: Colors.white
+                  .withValues(
+                alpha: 0.13,
+              ),
               width: 1.2,
             ),
           ),
           child: Center(
             child: LayoutBuilder(
-              builder: (context, constraints) {
+              builder: (
+                context,
+                constraints,
+              ) {
                 final compact =
-                    constraints.maxWidth < 90 || constraints.maxHeight < 90;
+                    constraints.maxWidth <
+                            90 ||
+                        constraints
+                                .maxHeight <
+                            90;
 
                 return Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisSize:
+                      MainAxisSize.min,
                   children: [
                     Container(
-                      width: compact ? 32 : 42,
-                      height: compact ? 32 : 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.16),
-                        shape: BoxShape.circle,
+                      width:
+                          compact ? 32 : 42,
+                      height:
+                          compact ? 32 : 42,
+                      decoration:
+                          BoxDecoration(
+                        color:
+                            const Color(
+                          0xFF8B5CF6,
+                        ).withValues(
+                          alpha: 0.16,
+                        ),
+                        shape:
+                            BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.add_photo_alternate_rounded,
-                        color: const Color(0xFFC4B5FD),
-                        size: compact ? 17 : 22,
+                        Icons
+                            .add_photo_alternate_rounded,
+                        color:
+                            const Color(
+                          0xFFC4B5FD,
+                        ),
+                        size:
+                            compact ? 17 : 22,
                       ),
                     ),
 
                     if (!compact) ...[
-                      const SizedBox(height: 8),
-
+                      const SizedBox(
+                        height: 8,
+                      ),
                       Text(
                         '$slotNumber',
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: Colors.white
+                              .withValues(
+                            alpha: 0.4,
+                          ),
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight:
+                              FontWeight
+                                  .w700,
                         ),
                       ),
                     ],
@@ -1563,19 +1837,27 @@ class _EmptyCollageFrame extends StatelessWidget {
 // INTERACTIVE IMAGE
 // =============================================================================
 
-class _CollageImage extends StatefulWidget {
-  const _CollageImage({required this.asset});
+class _CollageImage
+    extends StatefulWidget {
+  const _CollageImage({
+    required this.asset,
+  });
 
   final AssetEntity asset;
 
   @override
-  State<_CollageImage> createState() => _CollageImageState();
+  State<_CollageImage> createState() =>
+      _CollageImageState();
 }
 
-class _CollageImageState extends State<_CollageImage> {
-  final TransformationController _controller = TransformationController();
+class _CollageImageState
+    extends State<_CollageImage> {
+  final TransformationController
+      _controller =
+      TransformationController();
 
-  late Future<Uint8List?> _imageFuture;
+  late Future<Uint8List?>
+      _imageFuture;
 
   @override
   void initState() {
@@ -1585,19 +1867,27 @@ class _CollageImageState extends State<_CollageImage> {
   }
 
   @override
-  void didUpdateWidget(covariant _CollageImage oldWidget) {
+  void didUpdateWidget(
+    covariant _CollageImage oldWidget,
+  ) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.asset.id != widget.asset.id) {
-      _controller.value = Matrix4.identity();
+    if (oldWidget.asset.id !=
+        widget.asset.id) {
+      _controller.value =
+          Matrix4.identity();
 
       _loadImage();
     }
   }
 
   void _loadImage() {
-    _imageFuture = widget.asset.thumbnailDataWithSize(
-      const ThumbnailSize(2000, 2000),
+    _imageFuture =
+        widget.asset.thumbnailDataWithSize(
+      const ThumbnailSize(
+        2000,
+        2000,
+      ),
       quality: 100,
     );
   }
@@ -1610,47 +1900,66 @@ class _CollageImageState extends State<_CollageImage> {
   }
 
   void _resetPosition() {
-    _controller.value = Matrix4.identity();
+    _controller.value =
+        Matrix4.identity();
   }
 
   @override
   Widget build(BuildContext context) {
     return ClipRect(
-      child: FutureBuilder<Uint8List?>(
+      child:
+          FutureBuilder<Uint8List?>(
         future: _imageFuture,
-        builder: (context, snapshot) {
-          final bytes = snapshot.data;
+        builder: (
+          context,
+          snapshot,
+        ) {
+          final bytes =
+              snapshot.data;
 
           if (bytes == null) {
             return const ColoredBox(
-              color: Color(0xFF171E2C),
+              color:
+                  Color(0xFF171E2C),
               child: Center(
-                child: CircularProgressIndicator(
+                child:
+                    CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Color(0xFF8B5CF6),
+                  color: Color(
+                    0xFF8B5CF6,
+                  ),
                 ),
               ),
             );
           }
 
           return GestureDetector(
-            onDoubleTap: _resetPosition,
+            onDoubleTap:
+                _resetPosition,
             child: InteractiveViewer(
-              transformationController: _controller,
-              clipBehavior: Clip.hardEdge,
+              transformationController:
+                  _controller,
+              clipBehavior:
+                  Clip.hardEdge,
               panEnabled: true,
               scaleEnabled: true,
               minScale: 1,
               maxScale: 6,
-              interactionEndFrictionCoefficient: 0.0000135,
+              interactionEndFrictionCoefficient:
+                  0.0000135,
               child: SizedBox.expand(
                 child: Image.memory(
                   bytes,
-                  width: double.infinity,
-                  height: double.infinity,
+                  width:
+                      double.infinity,
+                  height:
+                      double.infinity,
                   fit: BoxFit.cover,
-                  gaplessPlayback: true,
-                  filterQuality: FilterQuality.high,
+                  gaplessPlayback:
+                      true,
+                  filterQuality:
+                      FilterQuality
+                          .high,
                 ),
               ),
             ),
@@ -1665,7 +1974,8 @@ class _CollageImageState extends State<_CollageImage> {
 // SMALL CIRCLE ACTION
 // =============================================================================
 
-class _SmallCircleButton extends StatelessWidget {
+class _SmallCircleButton
+    extends StatelessWidget {
   const _SmallCircleButton({
     required this.icon,
     required this.tooltip,
@@ -1681,16 +1991,26 @@ class _SmallCircleButton extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: Colors.black.withValues(alpha: 0.58),
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
+        color: Colors.black
+            .withValues(
+          alpha: 0.58,
+        ),
+        shape:
+            const CircleBorder(),
+        clipBehavior:
+            Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          customBorder: const CircleBorder(),
+          customBorder:
+              const CircleBorder(),
           child: SizedBox(
             width: 30,
             height: 30,
-            child: Icon(icon, color: Colors.white, size: 17),
+            child: Icon(
+              icon,
+              color: Colors.white,
+              size: 17,
+            ),
           ),
         ),
       ),
@@ -1702,7 +2022,8 @@ class _SmallCircleButton extends StatelessWidget {
 // TOOLBAR BUTTON
 // =============================================================================
 
-class _ToolbarButton extends StatelessWidget {
+class _ToolbarButton
+    extends StatelessWidget {
   const _ToolbarButton({
     required this.icon,
     required this.label,
@@ -1722,11 +2043,16 @@ class _ToolbarButton extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment:
+            MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            color: selected ? const Color(0xFFC4B5FD) : Colors.white54,
+            color: selected
+                ? const Color(
+                    0xFFC4B5FD,
+                  )
+                : Colors.white54,
             size: 22,
           ),
 
@@ -1734,11 +2060,18 @@ class _ToolbarButton extends StatelessWidget {
 
           Text(
             label,
-            overflow: TextOverflow.ellipsis,
+            overflow:
+                TextOverflow.ellipsis,
             style: TextStyle(
-              color: selected ? const Color(0xFFC4B5FD) : Colors.white54,
+              color: selected
+                  ? const Color(
+                      0xFFC4B5FD,
+                    )
+                  : Colors.white54,
               fontSize: 10,
-              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+              fontWeight: selected
+                  ? FontWeight.w700
+                  : FontWeight.w500,
             ),
           ),
         ],
@@ -1751,8 +2084,12 @@ class _ToolbarButton extends StatelessWidget {
 // RATIO PREVIEW
 // =============================================================================
 
-class _RatioPreview extends StatelessWidget {
-  const _RatioPreview({required this.ratio, required this.selected});
+class _RatioPreview
+    extends StatelessWidget {
+  const _RatioPreview({
+    required this.ratio,
+    required this.selected,
+  });
 
   final CollageAspectRatio ratio;
   final bool selected;
@@ -1784,10 +2121,13 @@ class _RatioPreview extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         border: Border.all(
-          color: selected ? Colors.white : Colors.white60,
+          color: selected
+              ? Colors.white
+              : Colors.white60,
           width: 1.6,
         ),
-        borderRadius: BorderRadius.circular(2),
+        borderRadius:
+            BorderRadius.circular(2),
       ),
     );
   }
@@ -1797,7 +2137,8 @@ class _RatioPreview extends StatelessWidget {
 // LAYOUT BUTTON
 // =============================================================================
 
-class _LayoutButton extends StatelessWidget {
+class _LayoutButton
+    extends StatelessWidget {
   const _LayoutButton({
     required this.layout,
     required this.photoCount,
@@ -1815,9 +2156,17 @@ class _LayoutButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? const Color(0xFF8B5CF6) : const Color(0xFF171E2C),
-      borderRadius: BorderRadius.circular(14),
-      clipBehavior: Clip.antiAlias,
+      color: selected
+          ? const Color(
+              0xFF8B5CF6,
+            )
+          : const Color(
+              0xFF171E2C,
+            ),
+      borderRadius:
+          BorderRadius.circular(14),
+      clipBehavior:
+          Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
@@ -1827,11 +2176,16 @@ class _LayoutButton extends StatelessWidget {
             children: [
               Positioned.fill(
                 child: Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding:
+                      const EdgeInsets.all(
+                    10,
+                  ),
                   child: CustomPaint(
-                    painter: _LayoutIconPainter(
+                    painter:
+                        _LayoutIconPainter(
                       layout: layout,
-                      selected: selected,
+                      selected:
+                          selected,
                     ),
                   ),
                 ),
@@ -1843,19 +2197,32 @@ class _LayoutButton extends StatelessWidget {
                 child: Container(
                   width: 18,
                   height: 18,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
+                  alignment:
+                      Alignment.center,
+                  decoration:
+                      BoxDecoration(
                     color: selected
                         ? Colors.white
-                        : Colors.black.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
+                        : Colors.black
+                            .withValues(
+                            alpha:
+                                0.5,
+                          ),
+                    shape:
+                        BoxShape.circle,
                   ),
                   child: Text(
                     '$photoCount',
                     style: TextStyle(
-                      color: selected ? const Color(0xFF6D4AE4) : Colors.white,
+                      color: selected
+                          ? const Color(
+                              0xFF6D4AE4,
+                            )
+                          : Colors.white,
                       fontSize: 9,
-                      fontWeight: FontWeight.w800,
+                      fontWeight:
+                          FontWeight
+                              .w800,
                     ),
                   ),
                 ),
@@ -1872,47 +2239,78 @@ class _LayoutButton extends StatelessWidget {
 // LAYOUT ICON PAINTER
 // =============================================================================
 
-class _LayoutIconPainter extends CustomPainter {
-  _LayoutIconPainter({required this.layout, required this.selected});
+class _LayoutIconPainter
+    extends CustomPainter {
+  _LayoutIconPainter({
+    required this.layout,
+    required this.selected,
+  });
 
   final CollageLayoutType layout;
   final bool selected;
 
   @override
-  void paint(Canvas canvas, Size size) {
+  void paint(
+    Canvas canvas,
+    Size size,
+  ) {
     final paint = Paint()
-      ..color = selected ? Colors.white : Colors.white.withValues(alpha: 0.72)
-      ..style = PaintingStyle.stroke
+      ..color = selected
+          ? Colors.white
+          : Colors.white
+              .withValues(
+              alpha: 0.72,
+            )
+      ..style =
+          PaintingStyle.stroke
       ..strokeWidth = 1.7;
 
     final left = 1.0;
     final top = 1.0;
-    final right = size.width - 1;
-    final bottom = size.height - 1;
+    final right =
+        size.width - 1;
+    final bottom =
+        size.height - 1;
 
-    canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), paint);
+    canvas.drawRect(
+      Rect.fromLTRB(
+        left,
+        top,
+        right,
+        bottom,
+      ),
+      paint,
+    );
 
     void vertical(double x) {
       canvas.drawLine(
-        Offset(size.width * x, top),
-        Offset(size.width * x, bottom),
+        Offset(
+          size.width * x,
+          top,
+        ),
+        Offset(
+          size.width * x,
+          bottom,
+        ),
         paint,
       );
     }
 
     void horizontal(double y) {
       canvas.drawLine(
-        Offset(left, size.height * y),
-        Offset(right, size.height * y),
+        Offset(
+          left,
+          size.height * y,
+        ),
+        Offset(
+          right,
+          size.height * y,
+        ),
         paint,
       );
     }
 
     switch (layout) {
-      // =======================================================================
-      // TWO
-      // =======================================================================
-
       case CollageLayoutType.twoVertical:
         vertical(0.5);
         break;
@@ -1921,163 +2319,191 @@ class _LayoutIconPainter extends CustomPainter {
         horizontal(0.5);
         break;
 
-      // =======================================================================
-      // THREE LEFT
-      // =======================================================================
-
       case CollageLayoutType.threeLeft:
         vertical(0.62);
 
         canvas.drawLine(
-          Offset(size.width * 0.62, size.height * 0.5),
-          Offset(right, size.height * 0.5),
+          Offset(
+            size.width * 0.62,
+            size.height * 0.5,
+          ),
+          Offset(
+            right,
+            size.height * 0.5,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // THREE RIGHT
-      // =======================================================================
 
       case CollageLayoutType.threeRight:
         vertical(0.38);
 
         canvas.drawLine(
-          Offset(left, size.height * 0.5),
-          Offset(size.width * 0.38, size.height * 0.5),
+          Offset(
+            left,
+            size.height * 0.5,
+          ),
+          Offset(
+            size.width * 0.38,
+            size.height * 0.5,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // THREE TOP
-      // =======================================================================
 
       case CollageLayoutType.threeTop:
         horizontal(0.62);
 
         canvas.drawLine(
-          Offset(size.width * 0.5, size.height * 0.62),
-          Offset(size.width * 0.5, bottom),
+          Offset(
+            size.width * 0.5,
+            size.height * 0.62,
+          ),
+          Offset(
+            size.width * 0.5,
+            bottom,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // THREE BOTTOM
-      // =======================================================================
 
       case CollageLayoutType.threeBottom:
         horizontal(0.38);
 
         canvas.drawLine(
-          Offset(size.width * 0.5, top),
-          Offset(size.width * 0.5, size.height * 0.38),
+          Offset(
+            size.width * 0.5,
+            top,
+          ),
+          Offset(
+            size.width * 0.5,
+            size.height * 0.38,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // THREE COLUMNS
-      // =======================================================================
 
       case CollageLayoutType.threeColumns:
         vertical(1 / 3);
         vertical(2 / 3);
         break;
 
-      // =======================================================================
-      // FOUR GRID
-      // =======================================================================
-
       case CollageLayoutType.fourGrid:
         vertical(0.5);
         horizontal(0.5);
         break;
 
-      // =======================================================================
-      // FOUR TOP WIDE
-      // =======================================================================
-
       case CollageLayoutType.fourTopWide:
         horizontal(0.62);
 
         canvas.drawLine(
-          Offset(size.width / 3, size.height * 0.62),
-          Offset(size.width / 3, bottom),
+          Offset(
+            size.width / 3,
+            size.height * 0.62,
+          ),
+          Offset(
+            size.width / 3,
+            bottom,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width * 2 / 3, size.height * 0.62),
-          Offset(size.width * 2 / 3, bottom),
+          Offset(
+            size.width * 2 / 3,
+            size.height * 0.62,
+          ),
+          Offset(
+            size.width * 2 / 3,
+            bottom,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // FOUR BOTTOM WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourBottomWide:
         horizontal(0.38);
 
         canvas.drawLine(
-          Offset(size.width / 3, top),
-          Offset(size.width / 3, size.height * 0.38),
+          Offset(
+            size.width / 3,
+            top,
+          ),
+          Offset(
+            size.width / 3,
+            size.height * 0.38,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width * 2 / 3, top),
-          Offset(size.width * 2 / 3, size.height * 0.38),
+          Offset(
+            size.width * 2 / 3,
+            top,
+          ),
+          Offset(
+            size.width * 2 / 3,
+            size.height * 0.38,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // FOUR LEFT WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourLeftWide:
         vertical(0.62);
 
         canvas.drawLine(
-          Offset(size.width * 0.62, size.height / 3),
-          Offset(right, size.height / 3),
+          Offset(
+            size.width * 0.62,
+            size.height / 3,
+          ),
+          Offset(
+            right,
+            size.height / 3,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width * 0.62, size.height * 2 / 3),
-          Offset(right, size.height * 2 / 3),
+          Offset(
+            size.width * 0.62,
+            size.height * 2 / 3,
+          ),
+          Offset(
+            right,
+            size.height * 2 / 3,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // FOUR RIGHT WIDE
-      // =======================================================================
 
       case CollageLayoutType.fourRightWide:
         vertical(0.38);
 
         canvas.drawLine(
-          Offset(left, size.height / 3),
-          Offset(size.width * 0.38, size.height / 3),
+          Offset(
+            left,
+            size.height / 3,
+          ),
+          Offset(
+            size.width * 0.38,
+            size.height / 3,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(left, size.height * 2 / 3),
-          Offset(size.width * 0.38, size.height * 2 / 3),
+          Offset(
+            left,
+            size.height * 2 / 3,
+          ),
+          Offset(
+            size.width * 0.38,
+            size.height * 2 / 3,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // SIX GRID
-      // =======================================================================
 
       case CollageLayoutType.sixGrid:
         vertical(0.5);
@@ -2085,56 +2511,84 @@ class _LayoutIconPainter extends CustomPainter {
         horizontal(2 / 3);
         break;
 
-      // =======================================================================
-      // SIX TOP WIDE
-      // =======================================================================
-
       case CollageLayoutType.sixTopWide:
         horizontal(0.48);
         horizontal(0.74);
 
         canvas.drawLine(
-          Offset(size.width / 2, size.height * 0.48),
-          Offset(size.width / 2, size.height * 0.74),
+          Offset(
+            size.width / 2,
+            size.height * 0.48,
+          ),
+          Offset(
+            size.width / 2,
+            size.height * 0.74,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width / 3, size.height * 0.74),
-          Offset(size.width / 3, bottom),
+          Offset(
+            size.width / 3,
+            size.height * 0.74,
+          ),
+          Offset(
+            size.width / 3,
+            bottom,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width * 2 / 3, size.height * 0.74),
-          Offset(size.width * 2 / 3, bottom),
+          Offset(
+            size.width * 2 / 3,
+            size.height * 0.74,
+          ),
+          Offset(
+            size.width * 2 / 3,
+            bottom,
+          ),
           paint,
         );
         break;
-
-      // =======================================================================
-      // SIX BOTTOM WIDE
-      // =======================================================================
 
       case CollageLayoutType.sixBottomWide:
         horizontal(0.26);
         horizontal(0.52);
 
         canvas.drawLine(
-          Offset(size.width / 3, top),
-          Offset(size.width / 3, size.height * 0.26),
+          Offset(
+            size.width / 3,
+            top,
+          ),
+          Offset(
+            size.width / 3,
+            size.height * 0.26,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width * 2 / 3, top),
-          Offset(size.width * 2 / 3, size.height * 0.26),
+          Offset(
+            size.width * 2 / 3,
+            top,
+          ),
+          Offset(
+            size.width * 2 / 3,
+            size.height * 0.26,
+          ),
           paint,
         );
 
         canvas.drawLine(
-          Offset(size.width / 2, size.height * 0.26),
-          Offset(size.width / 2, size.height * 0.52),
+          Offset(
+            size.width / 2,
+            size.height * 0.26,
+          ),
+          Offset(
+            size.width / 2,
+            size.height * 0.52,
+          ),
           paint,
         );
         break;
@@ -2142,7 +2596,10 @@ class _LayoutIconPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LayoutIconPainter oldDelegate) {
-    return oldDelegate.layout != layout || oldDelegate.selected != selected;
+  bool shouldRepaint(
+    covariant _LayoutIconPainter oldDelegate,
+  ) {
+    return oldDelegate.layout != layout ||
+        oldDelegate.selected != selected;
   }
 }
