@@ -154,56 +154,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(memorySearchQueryProvider.notifier).state = '';
   }
 
-  Future<void> _signOut() async {
-    final shouldSignOut = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: _surfaceColor,
-          surfaceTintColor: Colors.transparent,
-          title: const Text(
-            'Sign out?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-          ),
-          content: Text(
-            'Your locally imported memories remain stored on this device.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.65),
-              height: 1.5,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(false);
-              },
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.of(dialogContext).pop(true);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF8B5CF6),
-              ),
-              child: const Text('Sign out'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (shouldSignOut != true || !mounted) {
-      return;
-    }
-
-    try {
-      await ref.read(authServiceProvider).signOut();
-    } catch (error) {
-      _showMessage('Could not sign out: $error');
-    }
-  }
-
   void _openAccountSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -211,7 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       isScrollControlled: true,
       backgroundColor: _surfaceColor,
       builder: (_) {
-        return AccountBottomSheet(onSignOut: _signOut);
+        return const AccountBottomSheet();
       },
     );
   }
@@ -298,8 +248,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case 'image':
         Navigator.of(context).push(
           MaterialPageRoute<void>(
-            builder: (_) =>
-                MemoryDetailScreen(assetId: memory.id, title: memory.title),
+            builder: (_) => MemoryDetailScreen(
+              assetId: memory.id,
+              title: memory.title,
+            ),
           ),
         );
         return;
@@ -347,7 +299,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ).showSnackBar(
+      SnackBar(
+        content: Text(message),
+      ),
+    );
   }
 
   @override
@@ -356,11 +312,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final selectedFilter = ref.watch(memoryFilterProvider);
     final isListening = ref.watch(voiceListeningProvider);
     final searchQuery = ref.watch(memorySearchQueryProvider);
-    final currentUser = ref.watch(currentUserProvider);
+
+    final localProfile = ref.watch(localProfileProvider);
+
+    final displayName = localProfile.maybeWhen(
+      data: (name) => name,
+      orElse: () => null,
+    );
 
     return Scaffold(
       backgroundColor: _backgroundColor,
-      floatingActionButton: _AddMemoryButton(onTap: _openImportSheet),
+      floatingActionButton: _AddMemoryButton(
+        onTap: _openImportSheet,
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
@@ -371,15 +335,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   Row(
                     children: [
-                      const Expanded(child: _NeuroLensTitle()),
+                      const Expanded(
+                        child: _NeuroLensTitle(),
+                      ),
                       _AccountButton(
-                        displayName: currentUser?.displayName,
-                        email: currentUser?.email,
+                        displayName: displayName,
                         onTap: _openAccountSheet,
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 16),
+
                   _SearchBar(
                     controller: _searchController,
                     isListening: isListening,
@@ -391,7 +358,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     onClear: _clearSearch,
                     onVoicePressed: _toggleVoiceSearch,
                   ),
+
                   const SizedBox(height: 14),
+
                   _MemoryFilters(
                     selectedFilter: selectedFilter,
                     onSelected: (filter) {
@@ -401,7 +370,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 18),
+
             Expanded(
               child: timeline.when(
                 data: (memories) {
@@ -460,6 +431,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                       ],
+
                       SliverToBoxAdapter(
                         child: _SectionHeader(
                           title: searchQuery.isEmpty
@@ -468,37 +440,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           count: regularMemories.length,
                         ),
                       ),
-                      SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 96),
-                        sliver: SliverGrid(
-                          delegate: SliverChildBuilderDelegate((
-                            context,
-                            index,
-                          ) {
-                            final memory = regularMemories[index];
 
-                            return RepaintBoundary(
-                              child: MemoryGridItem(
-                                memory: memory,
-                                onTap: () => _openMemory(memory),
-                              ),
-                            );
-                          }, childCount: regularMemories.length),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          18,
+                          12,
+                          18,
+                          96,
+                        ),
+                        sliver: SliverGrid(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final memory = regularMemories[index];
+
+                              return RepaintBoundary(
+                                child: MemoryGridItem(
+                                  memory: memory,
+                                  onTap: () => _openMemory(memory),
+                                ),
+                              );
+                            },
+                            childCount: regularMemories.length,
+                          ),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 3,
-                                mainAxisSpacing: 3,
-                                childAspectRatio: 1.0,
-                              ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 3,
+                            mainAxisSpacing: 3,
+                            childAspectRatio: 1.0,
+                          ),
                         ),
                       ),
                     ],
                   );
                 },
-                loading: () => const Center(
-                  child: CircularProgressIndicator(color: _purple),
-                ),
+                loading: () {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: _purple,
+                    ),
+                  );
+                },
                 error: (error, stackTrace) {
                   return Center(
                     child: Padding(
@@ -546,7 +528,9 @@ class _SearchBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0D1321),
         borderRadius: BorderRadius.circular(17),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.06),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.16),
@@ -559,13 +543,18 @@ class _SearchBar extends StatelessWidget {
         controller: controller,
         textInputAction: TextInputAction.search,
         cursorColor: const Color(0xFFA855F7),
-        style: const TextStyle(color: Colors.white, fontSize: 15),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 15,
+        ),
         onChanged: onChanged,
         decoration: InputDecoration(
           hintText: isListening
               ? 'Listening...'
               : 'Search photos, PDFs and notes...',
-          hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.42)),
+          hintStyle: TextStyle(
+            color: Colors.white.withValues(alpha: 0.42),
+          ),
           prefixIcon: Icon(
             Icons.search_rounded,
             color: Colors.white.withValues(alpha: 0.55),
@@ -588,7 +577,9 @@ class _SearchBar extends StatelessWidget {
                     ? 'Stop voice search'
                     : 'Start voice search',
                 icon: Icon(
-                  isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                  isListening
+                      ? Icons.mic_rounded
+                      : Icons.mic_none_rounded,
                   color: isListening
                       ? const Color(0xFFA855F7)
                       : Colors.white.withValues(alpha: 0.72),
@@ -597,7 +588,9 @@ class _SearchBar extends StatelessWidget {
             ],
           ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 15,
+          ),
         ),
       ),
     );
@@ -629,6 +622,7 @@ class _MemoryFilters extends StatelessWidget {
               onTap: () => onSelected(MemoryFilter.all),
             ),
             const SizedBox(width: 8),
+
             _FilterButton(
               label: 'Photos',
               icon: Icons.image_outlined,
@@ -636,6 +630,7 @@ class _MemoryFilters extends StatelessWidget {
               onTap: () => onSelected(MemoryFilter.images),
             ),
             const SizedBox(width: 8),
+
             _FilterButton(
               label: 'PDFs',
               icon: Icons.picture_as_pdf_outlined,
@@ -643,6 +638,7 @@ class _MemoryFilters extends StatelessWidget {
               onTap: () => onSelected(MemoryFilter.pdfs),
             ),
             const SizedBox(width: 8),
+
             _FilterButton(
               label: 'Notes',
               icon: Icons.sticky_note_2_outlined,
@@ -657,7 +653,11 @@ class _MemoryFilters extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.count, this.icon});
+  const _SectionHeader({
+    required this.title,
+    required this.count,
+    this.icon,
+  });
 
   final String title;
   final int count;
@@ -666,11 +666,17 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 18,
+      ),
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 18, color: const Color(0xFFC084FC)),
+            Icon(
+              icon,
+              size: 18,
+              color: const Color(0xFFC084FC),
+            ),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -684,7 +690,10 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 9,
+              vertical: 4,
+            ),
             decoration: BoxDecoration(
               color: const Color(0xFF141B2D),
               borderRadius: BorderRadius.circular(20),
@@ -705,7 +714,10 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _FavoriteMemoryCard extends StatelessWidget {
-  const _FavoriteMemoryCard({required this.memory, required this.onTap});
+  const _FavoriteMemoryCard({
+    required this.memory,
+    required this.onTap,
+  });
 
   final Memory memory;
   final VoidCallback onTap;
@@ -718,7 +730,9 @@ class _FavoriteMemoryCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF101729),
         borderRadius: BorderRadius.zero,
-        border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.07),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.24),
@@ -731,14 +745,19 @@ class _FavoriteMemoryCard extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: MemoryGridItem(memory: memory, onTap: onTap),
+            child: MemoryGridItem(
+              memory: memory,
+              onTap: onTap,
+            ),
           ),
-
-          // Small favorite indicator only.
           const Positioned(
             top: 7,
             right: 7,
-            child: Icon(Icons.star, color: Colors.white, size: 18),
+            child: Icon(
+              Icons.star,
+              color: Colors.white,
+              size: 18,
+            ),
           ),
         ],
       ),
@@ -777,7 +796,10 @@ class _ImportTile extends StatelessWidget {
               color: iconColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(13),
             ),
-            child: Icon(icon, color: iconColor),
+            child: Icon(
+              icon,
+              color: iconColor,
+            ),
           ),
           title: Text(
             title,
@@ -823,7 +845,12 @@ class _NeuroLensTitle extends StatelessWidget {
                   Color(0xFF9A5CDC),
                   Color(0xFF5D22E6),
                 ],
-                stops: [0, 0.43, 0.68, 1],
+                stops: [
+                  0,
+                  0.43,
+                  0.68,
+                  1,
+                ],
               ).createShader(bounds);
             },
             child: const Text(
@@ -853,27 +880,22 @@ class _NeuroLensTitle extends StatelessWidget {
 class _AccountButton extends StatelessWidget {
   const _AccountButton({
     required this.displayName,
-    required this.email,
     required this.onTap,
   });
 
   final String? displayName;
-  final String? email;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final name = displayName?.trim();
-    final address = email?.trim();
 
     final initial = name != null && name.isNotEmpty
         ? name[0].toUpperCase()
-        : address != null && address.isNotEmpty
-        ? address[0].toUpperCase()
         : 'N';
 
     return Tooltip(
-      message: 'Account',
+      message: 'Profile',
       child: Material(
         color: Colors.transparent,
         shape: const CircleBorder(),
@@ -894,10 +916,14 @@ class _AccountButton extends StatelessWidget {
                   Color(0xFFC084FC),
                 ],
               ),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.16),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                  color: const Color(
+                    0xFF8B5CF6,
+                  ).withValues(alpha: 0.3),
                   blurRadius: 16,
                   spreadRadius: 1,
                 ),
@@ -921,7 +947,9 @@ class _AccountButton extends StatelessWidget {
 }
 
 class _AddMemoryButton extends StatefulWidget {
-  const _AddMemoryButton({required this.onTap});
+  const _AddMemoryButton({
+    required this.onTap,
+  });
 
   final VoidCallback onTap;
 
@@ -947,12 +975,22 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
     _scaleAnimation = Tween<double>(
       begin: 1,
       end: 1.05,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     _glowAnimation = Tween<double>(
       begin: 0.18,
       end: 0.42,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   @override
@@ -975,7 +1013,9 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
                 BoxShadow(
                   color: const Color(
                     0xFF8B5CF6,
-                  ).withValues(alpha: _glowAnimation.value),
+                  ).withValues(
+                    alpha: _glowAnimation.value,
+                  ),
                   blurRadius: 18,
                   spreadRadius: 2,
                 ),
@@ -995,7 +1035,11 @@ class _AddMemoryButtonState extends State<_AddMemoryButton>
           child: const SizedBox(
             width: 58,
             height: 58,
-            child: Icon(Icons.add_rounded, color: Colors.white, size: 31),
+            child: Icon(
+              Icons.add_rounded,
+              color: Colors.white,
+              size: 31,
+            ),
           ),
         ),
       ),
@@ -1021,7 +1065,9 @@ class _FilterButton extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFF8B5CF6) : const Color(0xFF0D1321),
+        color: selected
+            ? const Color(0xFF8B5CF6)
+            : const Color(0xFF0D1321),
         borderRadius: BorderRadius.circular(30),
         border: Border.all(
           color: selected
@@ -1031,7 +1077,9 @@ class _FilterButton extends StatelessWidget {
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.28),
+                  color: const Color(
+                    0xFF8B5CF6,
+                  ).withValues(alpha: 0.28),
                   blurRadius: 14,
                   spreadRadius: 1,
                 ),
@@ -1045,7 +1093,10 @@ class _FilterButton extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(30),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 9),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 15,
+              vertical: 9,
+            ),
             child: Row(
               children: [
                 Icon(
@@ -1063,7 +1114,9 @@ class _FilterButton extends StatelessWidget {
                         ? Colors.white
                         : Colors.white.withValues(alpha: 0.68),
                     fontSize: 13,
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: selected
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                   ),
                 ),
               ],
@@ -1088,7 +1141,12 @@ class _EmptyMemoriesView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(32, 32, 32, 100),
+        padding: const EdgeInsets.fromLTRB(
+          32,
+          32,
+          32,
+          100,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1127,10 +1185,16 @@ class _EmptyMemoriesView extends StatelessWidget {
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: onAddPressed,
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('Add memory'),
+                icon: const Icon(
+                  Icons.add_rounded,
+                ),
+                label: const Text(
+                  'Add memory',
+                ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF8B5CF6),
+                  backgroundColor: const Color(
+                    0xFF8B5CF6,
+                  ),
                   foregroundColor: Colors.white,
                 ),
               ),

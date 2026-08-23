@@ -1,40 +1,23 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:neurolens/core/presentation/premium_splash_screen.dart';
-import 'package:neurolens/features/auth/presentation/email_verification_screen.dart';
-import 'package:neurolens/features/auth/presentation/login_screen.dart';
+import 'package:neurolens/features/auth/presentation/welcome_name_screen.dart';
 import 'package:neurolens/features/auth/providers/auth_providers.dart';
 import 'package:neurolens/features/home/presentation/home_screen.dart';
-import 'package:neurolens/features/subscription/data/revenuecat_service.dart';
 
-class NeuroLensApp extends ConsumerWidget {
+class NeuroLensApp extends StatelessWidget {
   const NeuroLensApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    ref.listen(authStateProvider, (previous, next) {
-      next.whenData((user) {
-        if (!RevenueCatService.isConfigured) {
-          return;
-        }
-
-        if (user != null) {
-          unawaited(RevenueCatService.identifyUser(user.uid));
-        } else {
-          unawaited(RevenueCatService.logOut());
-        }
-      });
-    });
-
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NeuroLens',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF050816),
+        scaffoldBackgroundColor:
+            const Color(0xFF050816),
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF8B5CF6),
           brightness: Brightness.dark,
@@ -45,14 +28,15 @@ class NeuroLensApp extends ConsumerWidget {
   }
 }
 
-class _SplashGate extends ConsumerStatefulWidget {
+class _SplashGate extends StatefulWidget {
   const _SplashGate();
 
   @override
-  ConsumerState<_SplashGate> createState() => _SplashGateState();
+  State<_SplashGate> createState() =>
+      _SplashGateState();
 }
 
-class _SplashGateState extends ConsumerState<_SplashGate> {
+class _SplashGateState extends State<_SplashGate> {
   bool _splashFinished = false;
 
   void _finishSplash() {
@@ -68,34 +52,44 @@ class _SplashGateState extends ConsumerState<_SplashGate> {
   @override
   Widget build(BuildContext context) {
     if (!_splashFinished) {
-      return PremiumSplashScreen(onFinished: _finishSplash);
+      return PremiumSplashScreen(
+        onFinished: _finishSplash,
+      );
     }
 
-    return const _AuthGate();
+    return const _LocalProfileGate();
   }
 }
 
-class _AuthGate extends ConsumerWidget {
-  const _AuthGate();
+class _LocalProfileGate extends ConsumerWidget {
+  const _LocalProfileGate();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
+  Widget build(
+    BuildContext context,
+    WidgetRef ref,
+  ) {
+    final profile =
+        ref.watch(localProfileProvider);
 
-    return authState.when(
+    return profile.when(
       loading: () {
-        return const _AuthLoadingScreen();
+        return const _ProfileLoadingScreen();
       },
       error: (error, stackTrace) {
-        return _AuthErrorScreen(message: error.toString());
+        return _ProfileErrorScreen(
+          message: error.toString(),
+          onRetry: () {
+            ref
+                .read(localProfileProvider.notifier)
+                .reload();
+          },
+        );
       },
-      data: (user) {
-        if (user == null) {
-          return const LoginScreen();
-        }
-
-        if (!user.emailVerified) {
-          return const EmailVerificationScreen();
+      data: (name) {
+        if (name == null ||
+            name.trim().isEmpty) {
+          return const WelcomeNameScreen();
         }
 
         return const HomeScreen();
@@ -104,33 +98,46 @@ class _AuthGate extends ConsumerWidget {
   }
 }
 
-class _AuthLoadingScreen extends StatelessWidget {
-  const _AuthLoadingScreen();
+class _ProfileLoadingScreen
+    extends StatelessWidget {
+  const _ProfileLoadingScreen();
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
       backgroundColor: Color(0xFF050816),
-      body: Center(child: CircularProgressIndicator(color: Color(0xFF8B5CF6))),
+      body: Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF8B5CF6),
+        ),
+      ),
     );
   }
 }
 
-class _AuthErrorScreen extends StatelessWidget {
-  const _AuthErrorScreen({required this.message});
+class _ProfileErrorScreen
+    extends StatelessWidget {
+  const _ProfileErrorScreen({
+    required this.message,
+    required this.onRetry,
+  });
 
   final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF050816),
+      backgroundColor:
+          const Color(0xFF050816),
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding:
+                const EdgeInsets.all(24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize:
+                  MainAxisSize.min,
               children: [
                 const Icon(
                   Icons.error_outline_rounded,
@@ -141,12 +148,13 @@ class _AuthErrorScreen extends StatelessWidget {
                 const SizedBox(height: 16),
 
                 const Text(
-                  'Could not load authentication',
+                  'Could not load your profile',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 17,
-                    fontWeight: FontWeight.w700,
+                    fontWeight:
+                        FontWeight.w700,
                   ),
                 ),
 
@@ -156,9 +164,30 @@ class _AuthErrorScreen extends StatelessWidget {
                   message,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.6),
+                    color:
+                        Colors.white.withValues(
+                      alpha: 0.6,
+                    ),
                     height: 1.5,
                     fontSize: 13,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                FilledButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(
+                    Icons.refresh_rounded,
+                  ),
+                  label:
+                      const Text('Try again'),
+                  style:
+                      FilledButton.styleFrom(
+                    backgroundColor:
+                        const Color(
+                          0xFF8B5CF6,
+                        ),
                   ),
                 ),
               ],
