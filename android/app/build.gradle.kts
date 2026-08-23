@@ -1,8 +1,9 @@
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+
+    // The Flutter Gradle Plugin must be applied after
+    // the Android Gradle plugin.
     id("dev.flutter.flutter-gradle-plugin")
-    id("com.google.gms.google-services")
 }
 
 android {
@@ -16,34 +17,45 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.sadman.neurolens"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
+
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
-    release {
-        signingConfig = signingConfigs.getByName("debug")
+        release {
+            signingConfig = signingConfigs.getByName("debug")
 
-        isMinifyEnabled = true
-        isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
 
-        proguardFiles(
-            getDefaultProguardFile("proguard-android-optimize.txt"),
-            "proguard-rules.pro",
-        )
+            proguardFiles(
+                getDefaultProguardFile(
+                    "proguard-android-optimize.txt"
+                ),
+                "proguard-rules.pro",
+            )
+        }
     }
 }
+
+dependencies {
+    // Bundled ML Kit face detector.
+    // The model is included with the app and works offline
+    // without waiting for a Google Play Services download.
+    implementation(
+        "com.google.mlkit:face-detection:16.1.7"
+    )
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+        jvmTarget =
+            org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
 }
 

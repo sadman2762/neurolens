@@ -48,6 +48,7 @@ class VoiceSearchService {
       listenOptions: SpeechListenOptions(
         partialResults: true,
         cancelOnError: true,
+        onDevice: true,
         listenMode: ListenMode.search,
         listenFor: Duration(seconds: 30),
         pauseFor: Duration(seconds: 4),
